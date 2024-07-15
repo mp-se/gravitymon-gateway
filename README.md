@@ -1,9 +1,9 @@
 
-![download](https://img.shields.io/github/downloads/mp-se/gravitymon-blegw/total) 
-![release](https://img.shields.io/github/release/mp-se/gravitymon-blegw?label=latest%20release)
-![issues](https://img.shields.io/github/issues/mp-se/gravitymon-blegw)
-![pr](https://img.shields.io/github/issues-pr/mp-se/gravitymon-blegw)
-![dev_build](https://img.shields.io/github/actions/workflow/status/mp-se/gravitymon-blegw/pio-build.yaml?branch=dev)
+![download](https://img.shields.io/github/downloads/mp-se/gravitymon-gateway/total) 
+![release](https://img.shields.io/github/release/mp-se/gravitymon-gateway?label=latest%20release)
+![issues](https://img.shields.io/github/issues/mp-se/gravitymon-gateway)
+![pr](https://img.shields.io/github/issues-pr/mp-se/gravitymon-gateway)
+![dev_build](https://img.shields.io/github/actions/workflow/status/mp-se/gravitymon-blegatewaygw/pio-build.yaml?branch=dev)
 
 # Gravitymon BLE Gateway
 
