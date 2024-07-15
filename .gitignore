@@ -1,0 +1,7 @@
+.pio/*
+.vscode/*
+*.map
+.env/*
+*.pyc
+*.json
+.DS_Store
