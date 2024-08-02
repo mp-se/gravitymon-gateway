@@ -84,6 +84,9 @@ void GravmonGatewayWebServer::webHandleFactoryDefaults(
   myConfig.saveFileWifiOnly();
   LittleFS.remove(ERR_FILENAME);
   LittleFS.remove(TPL_FNAME_POST);
+  LittleFS.remove(TPL_FNAME_POST2);
+  LittleFS.remove(TPL_FNAME_INFLUXDB);
+  LittleFS.remove(TPL_FNAME_MQTT);
   LittleFS.end();
   Log.notice(F("WEB : Deleted files in filesystem, rebooting." CR));
 
@@ -185,6 +188,19 @@ void GravmonGatewayWebServer::webHandleConfigFormatWrite(
 
   if (!obj[PARAM_FORMAT_POST].isNull()) {
     success += writeFile(TPL_FNAME_POST, obj[PARAM_FORMAT_POST]) ? 1 : 0;
+  }
+  if (!obj[PARAM_FORMAT_POST2].isNull()) {
+    success += writeFile(TPL_FNAME_POST2, obj[PARAM_FORMAT_POST2]) ? 1 : 0;
+  }
+  if (!obj[PARAM_FORMAT_GET].isNull()) {
+    success += writeFile(TPL_FNAME_GET, obj[PARAM_FORMAT_GET]) ? 1 : 0;
+  }
+  if (!obj[PARAM_FORMAT_INFLUXDB].isNull()) {
+    success +=
+        writeFile(TPL_FNAME_INFLUXDB, obj[PARAM_FORMAT_INFLUXDB]) ? 1 : 0;
+  }
+  if (!obj[PARAM_FORMAT_MQTT].isNull()) {
+    success += writeFile(TPL_FNAME_MQTT, obj[PARAM_FORMAT_MQTT]) ? 1 : 0;
   }
 
   AsyncJsonResponse *response =
@@ -366,6 +382,18 @@ void GravmonGatewayWebServer::webHandleConfigFormatRead(
   s = readFile(TPL_FNAME_POST);
   obj[PARAM_FORMAT_POST] =
       s.length() ? urlencode(s) : urlencode(String(&iSpindleFormat[0]));
+  s = readFile(TPL_FNAME_POST2);
+  obj[PARAM_FORMAT_POST2] =
+      s.length() ? urlencode(s) : urlencode(String(&iSpindleFormat[0]));
+  s = readFile(TPL_FNAME_GET);
+  obj[PARAM_FORMAT_GET] =
+      s.length() ? urlencode(s) : urlencode(String(&iHttpGetFormat[0]));
+  s = readFile(TPL_FNAME_INFLUXDB);
+  obj[PARAM_FORMAT_INFLUXDB] =
+      s.length() ? urlencode(s) : urlencode(String(&influxDbFormat[0]));
+  s = readFile(TPL_FNAME_MQTT);
+  obj[PARAM_FORMAT_MQTT] =
+      s.length() ? urlencode(s) : urlencode(String(&mqttFormat[0]));
 
   response->setLength();
   request->send(response);
@@ -443,6 +471,30 @@ void GravmonGatewayWebServer::loop() {
       String tpl = push.getTemplate(GravmonGatewayPush::TEMPLATE_HTTP1);
       String doc = engine.create(tpl.c_str());
       push.sendHttpPost(doc);
+      _pushTestEnabled = true;
+    } else if (!_pushTestTarget.compareTo(PARAM_FORMAT_POST2) &&
+               myConfig.hasTargetHttpPost2()) {
+      String tpl = push.getTemplate(GravmonGatewayPush::TEMPLATE_HTTP2);
+      String doc = engine.create(tpl.c_str());
+      push.sendHttpPost2(doc);
+      _pushTestEnabled = true;
+    } else if (!_pushTestTarget.compareTo(PARAM_FORMAT_GET) &&
+               myConfig.hasTargetHttpGet()) {
+      String tpl = push.getTemplate(GravmonGatewayPush::TEMPLATE_HTTP3);
+      String doc = engine.create(tpl.c_str());
+      push.sendHttpGet(doc);
+      _pushTestEnabled = true;
+    } else if (!_pushTestTarget.compareTo(PARAM_FORMAT_INFLUXDB) &&
+               myConfig.hasTargetInfluxDb2()) {
+      String tpl = push.getTemplate(GravmonGatewayPush::TEMPLATE_INFLUX);
+      String doc = engine.create(tpl.c_str());
+      push.sendInfluxDb2(doc);
+      _pushTestEnabled = true;
+    } else if (!_pushTestTarget.compareTo(PARAM_FORMAT_MQTT) &&
+               myConfig.hasTargetMqtt()) {
+      String tpl = push.getTemplate(GravmonGatewayPush::TEMPLATE_MQTT);
+      String doc = engine.create(tpl.c_str());
+      push.sendMqtt(doc);
       _pushTestEnabled = true;
     }
 

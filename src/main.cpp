@@ -49,7 +49,7 @@ constexpr auto CFG_AP_PASS = "password";
 #endif
 
 void controller();
-void displayLog();
+void renderDisplay();
 
 // #define FORCE_GRAVITY_MODE
 SerialDebug mySerial;
@@ -194,27 +194,29 @@ void setup() {
   myDisplay.printLineCentered(3, "Startup completed");
   myDisplay.setFont(FontSize::FONT_9);
   delay(1000);
-  myDisplay.clear();
+  renderDisplay();
   loopMillis = millis();
 }
 
 void loop() {
+  myUptime.calculate();
+  myWebServer.loop();
+  myWifi.loop();
+
   switch (runMode) {
     case RunMode::gatewayMode:
       if (!myWifi.isConnected()) {
         Log.warning(F("Loop: Wifi was disconnected, trying to reconnect." CR));
         myWifi.connect();
       }
+      controller();
       break;
 
     case RunMode::wifiSetupMode:
       break;
   }
 
-  myUptime.calculate();
-  myWebServer.loop();
-  myWifi.loop();
-  controller();
+  renderDisplay();
 }
 
 struct LogEntry {
@@ -239,82 +241,74 @@ void addLogEntry(const char* id, tm timeinfo, float gravitySG, float tempC) {
 }
 
 void controller() {
-  displayLog();
-
   // Scan for ble beacons
-  if (runMode == RunMode::gatewayMode) {
-    bleScanner.scan();
-    bleScanner.waitForScan();
+  bleScanner.scan();
+  bleScanner.waitForScan();
 
 #if defined(ENABLE_TILT_SCANNING)
-    /*
-     * This part is for testing / debugging only, use Tiltbridge if you use Tilt
-     * as BLE transmission, will show detected tilt devices but dont send data.
-     */
-    for (int i = 0; i < NO_TILT_COLORS; i++) {
-      TiltData td = bleScanner.getTiltData((TiltColor)i);
+  /*
+   * This part is for testing / debugging only, use Tiltbridge if you use Tilt
+   * as BLE transmission, will show detected tilt devices but dont send data.
+   */
+  for (int i = 0; i < NO_TILT_COLORS; i++) {
+    TiltData td = bleScanner.getTiltData((TiltColor)i);
 
-      if (td.updated && (td.getPushAge() > myConfig.getPushResendTime())) {
-        addLogEntry(bleScanner.getTiltColorAsString((TiltColor)i),
-                    td.timeinfoUpdated, td.gravity, convertFtoC(td.tempF));
+    if (td.updated && (td.getPushAge() > myConfig.getPushResendTime())) {
+      addLogEntry(bleScanner.getTiltColorAsString((TiltColor)i),
+                  td.timeinfoUpdated, td.gravity, convertFtoC(td.tempF));
 
-        Log.notice(F("Main: Type=%s, Gravity=%F, Temp=%F "
-                     "Id=%s." CR),
-                   bleScanner.getTiltColorAsString((TiltColor)i), td.gravity,
-                   convertFtoC(td.tempF));
+      Log.notice(F("Main: Type=%s, Gravity=%F, Temp=%F "
+                   "Id=%s." CR),
+                 bleScanner.getTiltColorAsString((TiltColor)i), td.gravity,
+                 convertFtoC(td.tempF));
 
-        /*
-        push.sendAll(td.angle, td.gravity, td.tempC, td.battery, td.interval,
-                    td.id.c_str(), td.token.c_str(), td.name.c_str());
-        td.setPushed();
-        */
-      }
+      /*
+      push.sendAll(td.angle, td.gravity, td.tempC, td.battery, td.interval,
+                  td.id.c_str(), td.token.c_str(), td.name.c_str());
+      td.setPushed();
+      */
     }
+  }
 #endif
 
-    GravmonGatewayPush push(&myConfig);
+  GravmonGatewayPush push(&myConfig);
 
-    // Process gravitymon from BLE
-    for (int i = 0; i < NO_GRAVITYMON; i++) {
-      GravitymonData& gmd = bleScanner.getGravitymonData(i);
+  // Process gravitymon from BLE
+  for (int i = 0; i < NO_GRAVITYMON; i++) {
+    GravitymonData& gmd = bleScanner.getGravitymonData(i);
 
-      if (gmd.updated && (gmd.getPushAge() > myConfig.getPushResendTime())) {
-        addLogEntry(gmd.id.c_str(), gmd.timeinfoUpdated, gmd.gravity,
-                    gmd.tempC);
+    if (gmd.updated && (gmd.getPushAge() > myConfig.getPushResendTime())) {
+      addLogEntry(gmd.id.c_str(), gmd.timeinfoUpdated, gmd.gravity, gmd.tempC);
 
-        Log.notice(F("Main: Type=%s, Angle=%F Gravity=%F, Temp=%F, Battery=%F, "
-                     "Id=%s." CR),
-                   gmd.type.c_str(), gmd.angle, gmd.gravity, gmd.tempC,
-                   gmd.battery, gmd.id.c_str());
-        push.sendAll(gmd.angle, gmd.gravity, gmd.tempC, gmd.battery,
-                     gmd.interval, gmd.id.c_str(), gmd.token.c_str(),
-                     gmd.name.c_str());
-        gmd.setPushed();
-      }
+      Log.notice(F("Main: Type=%s, Angle=%F Gravity=%F, Temp=%F, Battery=%F, "
+                   "Id=%s." CR),
+                 gmd.type.c_str(), gmd.angle, gmd.gravity, gmd.tempC,
+                 gmd.battery, gmd.id.c_str());
+      push.sendAll(gmd.angle, gmd.gravity, gmd.tempC, gmd.battery, gmd.interval,
+                   gmd.id.c_str(), gmd.token.c_str(), gmd.name.c_str());
+      gmd.setPushed();
     }
+  }
 
-    // Process gravitymon from HTTP
-    for (int i = 0; i < NO_GRAVITYMON; i++) {
-      GravitymonData& gmd = myWebServer.getGravitymonData(i);
+  // Process gravitymon from HTTP
+  for (int i = 0; i < NO_GRAVITYMON; i++) {
+    GravitymonData& gmd = myWebServer.getGravitymonData(i);
 
-      if (gmd.updated && (gmd.getPushAge() > myConfig.getPushResendTime())) {
-        addLogEntry(gmd.id.c_str(), gmd.timeinfoUpdated, gmd.gravity,
-                    gmd.tempC);
+    if (gmd.updated && (gmd.getPushAge() > myConfig.getPushResendTime())) {
+      addLogEntry(gmd.id.c_str(), gmd.timeinfoUpdated, gmd.gravity, gmd.tempC);
 
-        Log.notice(F("Main: Type=%s, Angle=%F Gravity=%F, Temp=%F, Battery=%F, "
-                     "Id=%s." CR),
-                   gmd.type.c_str(), gmd.angle, gmd.gravity, gmd.tempC,
-                   gmd.battery, gmd.id.c_str());
-        push.sendAll(gmd.angle, gmd.gravity, gmd.tempC, gmd.battery,
-                     gmd.interval, gmd.id.c_str(), gmd.token.c_str(),
-                     gmd.name.c_str());
-        gmd.setPushed();
-      }
+      Log.notice(F("Main: Type=%s, Angle=%F Gravity=%F, Temp=%F, Battery=%F, "
+                   "Id=%s." CR),
+                 gmd.type.c_str(), gmd.angle, gmd.gravity, gmd.tempC,
+                 gmd.battery, gmd.id.c_str());
+      push.sendAll(gmd.angle, gmd.gravity, gmd.tempC, gmd.battery, gmd.interval,
+                   gmd.id.c_str(), gmd.token.c_str(), gmd.name.c_str());
+      gmd.setPushed();
     }
   }
 }
 
-void displayLog() {
+void renderDisplay() {
   myDisplay.printLineCentered(0, "GravityMon Gateway");
 
   for (int i = 0, j = logIndex; i < maxLogEntries; i++) {
@@ -325,11 +319,21 @@ void displayLog() {
 
   char info[80];
 
-  if (strlen(myConfig.getWifiDirectSSID())) {
-    snprintf(&info[0], sizeof(info), "%s - %s",
-             WiFi.localIP().toString().c_str(), myConfig.getWifiDirectSSID());
-  } else {
-    snprintf(&info[0], sizeof(info), "%s", WiFi.localIP().toString().c_str());
+  switch (runMode) {
+    case RunMode::gatewayMode:
+      if (strlen(myConfig.getWifiDirectSSID())) {
+        snprintf(&info[0], sizeof(info), "%s - %s",
+                 WiFi.localIP().toString().c_str(),
+                 myConfig.getWifiDirectSSID());
+      } else {
+        snprintf(&info[0], sizeof(info), "%s",
+                 WiFi.localIP().toString().c_str());
+      }
+      break;
+
+    case RunMode::wifiSetupMode:
+      snprintf(&info[0], sizeof(info), "Wifi Setup - 192.168.4.1");
+      break;
   }
 
   myDisplay.printLineCentered(10, &info[0]);

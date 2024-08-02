@@ -44,6 +44,38 @@ const char iSpindleFormat[] PROGMEM =
     "\"RSSI\": ${rssi}, "
     "}";
 
+// Format for an HTTP GET
+const char iHttpGetFormat[] PROGMEM =
+    "?name=${mdns}"
+    "&id=${id}"
+    "&token=${token2}"
+    "&interval=${sleep-interval}"
+    "&temperature=${temp}"
+    "&temp-units=${temp-unit}"
+    "&gravity=${gravity}"
+    "&angle=${angle}"
+    "&battery=${battery}"
+    "&rssi=${rssi}"
+    "&corr-gravity=${corr-gravity}"
+    "&gravity-unit=${gravity-unit}"
+    "&run-time=${run-time}";
+
+const char influxDbFormat[] PROGMEM =
+    "measurement,host=${mdns},device=${id},temp-format=${temp-unit},gravity-"
+    "format=${gravity-unit} "
+    "gravity=${gravity},corr-gravity=${corr-gravity},angle=${angle},temp=${"
+    "temp},battery=${battery},"
+    "rssi=${rssi}\n";
+
+const char mqttFormat[] PROGMEM =
+    "ispindel/${mdns}/tilt:${angle}|"
+    "ispindel/${mdns}/temperature:${temp}|"
+    "ispindel/${mdns}/temp_units:${temp-unit}|"
+    "ispindel/${mdns}/battery:${battery}|"
+    "ispindel/${mdns}/gravity:${gravity}|"
+    "ispindel/${mdns}/interval:${sleep-interval}|"
+    "ispindel/${mdns}/RSSI:${rssi}|";
+
 GravmonGatewayPush::GravmonGatewayPush(
     GravmonGatewayConfig* gravmonGatewayConfig)
     : BasePush(gravmonGatewayConfig) {
@@ -64,8 +96,31 @@ void GravmonGatewayPush::sendAll(float angle, float gravitySG, float tempC,
   if (myConfig.hasTargetHttpPost()) {
     String tpl = getTemplate(GravmonGatewayPush::TEMPLATE_HTTP1);
     String doc = engine.create(tpl.c_str());
-    Log.notice(F("PUSH: Data to send=%s." CR), doc.c_str());
     sendHttpPost(doc);
+  }
+
+  if (myConfig.hasTargetHttpPost2()) {
+    String tpl = getTemplate(GravmonGatewayPush::TEMPLATE_HTTP2);
+    String doc = engine.create(tpl.c_str());
+    sendHttpPost2(doc);
+  }
+
+  if (myConfig.hasTargetHttpGet()) {
+    String tpl = getTemplate(GravmonGatewayPush::TEMPLATE_HTTP3);
+    String doc = engine.create(tpl.c_str());
+    sendHttpGet(doc);
+  }
+
+  if (myConfig.hasTargetInfluxDb2()) {
+    String tpl = getTemplate(GravmonGatewayPush::TEMPLATE_INFLUX);
+    String doc = engine.create(tpl.c_str());
+    sendInfluxDb2(doc);
+  }
+
+  if (myConfig.hasTargetMqtt()) {
+    String tpl = getTemplate(GravmonGatewayPush::TEMPLATE_MQTT);
+    String doc = engine.create(tpl.c_str());
+    sendMqtt(doc);
   }
 
   engine.freeMemory();
@@ -81,6 +136,22 @@ const char* GravmonGatewayPush::getTemplate(Templates t,
     case TEMPLATE_HTTP1:
       _baseTemplate = String(iSpindleFormat);
       fname = TPL_FNAME_POST;
+      break;
+    case TEMPLATE_HTTP2:
+      _baseTemplate = String(iSpindleFormat);
+      fname = TPL_FNAME_POST2;
+      break;
+    case TEMPLATE_HTTP3:
+      _baseTemplate = String(iHttpGetFormat);
+      fname = TPL_FNAME_GET;
+      break;
+    case TEMPLATE_INFLUX:
+      _baseTemplate = String(influxDbFormat);
+      fname = TPL_FNAME_INFLUXDB;
+      break;
+    case TEMPLATE_MQTT:
+      _baseTemplate = String(mqttFormat);
+      fname = TPL_FNAME_MQTT;
       break;
   }
 
@@ -105,10 +176,13 @@ void GravmonGatewayPush::setupTemplateEngine(TemplatingEngine& engine,
                                              int interval, const char* id,
                                              const char* token,
                                              const char* name) {
-  // Names
+  float runTime = 0, corrGravitySG = gravitySG;
+
+  //  Names
   engine.setVal(TPL_MDNS, strlen(name) ? name : myConfig.getMDNS());
   engine.setVal(TPL_ID, id);
   engine.setVal(TPL_TOKEN, strlen(token) ? token : myConfig.getToken());
+  engine.setVal(TPL_TOKEN2, strlen(token) ? token : myConfig.getToken());
 
   // Temperature
   if (myConfig.isTempFormatC()) {
@@ -125,7 +199,35 @@ void GravmonGatewayPush::setupTemplateEngine(TemplatingEngine& engine,
   engine.setVal(TPL_BATTERY, voltage, DECIMALS_BATTERY);
   engine.setVal(TPL_SLEEP_INTERVAL, interval);
 
+  int charge = 0;
+
+  if (voltage > 4.15)
+    charge = 100;
+  else if (voltage > 4.05)
+    charge = 90;
+  else if (voltage > 3.97)
+    charge = 80;
+  else if (voltage > 3.91)
+    charge = 70;
+  else if (voltage > 3.86)
+    charge = 60;
+  else if (voltage > 3.81)
+    charge = 50;
+  else if (voltage > 3.78)
+    charge = 40;
+  else if (voltage > 3.76)
+    charge = 30;
+  else if (voltage > 3.73)
+    charge = 20;
+  else if (voltage > 3.67)
+    charge = 10;
+  else if (voltage > 3.44)
+    charge = 5;
+
+  engine.setVal(TPL_BATTERY_PERCENT, charge);
+
   // Performance metrics
+  engine.setVal(TPL_RUN_TIME, runTime, DECIMALS_RUNTIME);
   engine.setVal(TPL_RSSI, WiFi.RSSI());
 
   // Angle/Tilt
@@ -135,16 +237,26 @@ void GravmonGatewayPush::setupTemplateEngine(TemplatingEngine& engine,
   // Gravity options
   if (myConfig.isGravitySG()) {
     engine.setVal(TPL_GRAVITY, gravitySG, DECIMALS_SG);
+    engine.setVal(TPL_GRAVITY_CORR, corrGravitySG, DECIMALS_SG);
   } else {
     engine.setVal(TPL_GRAVITY, convertToPlato(gravitySG), DECIMALS_PLATO);
+    engine.setVal(TPL_GRAVITY_CORR, convertToPlato(corrGravitySG),
+                  DECIMALS_PLATO);
   }
 
   engine.setVal(TPL_GRAVITY_G, gravitySG, DECIMALS_SG);
   engine.setVal(TPL_GRAVITY_P, convertToPlato(gravitySG), DECIMALS_PLATO);
+  engine.setVal(TPL_GRAVITY_CORR_G, corrGravitySG, DECIMALS_SG);
+  engine.setVal(TPL_GRAVITY_CORR_P, convertToPlato(corrGravitySG),
+                DECIMALS_PLATO);
   engine.setVal(TPL_GRAVITY_UNIT, myConfig.getGravityFormat());
 
   engine.setVal(TPL_APP_VER, CFG_APPVER);
   engine.setVal(TPL_APP_BUILD, CFG_GITREV);
+
+#if LOG_LEVEL == 6
+  dumpAll();
+#endif
 }
 
 // EOF
