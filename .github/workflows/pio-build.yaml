@@ -28,7 +28,7 @@ jobs:
       - name: PlatformIO Run
         uses: karniv00l/platformio-run-action@v1
         with:
-          environments: "gw-release,gw-s3-release"
+          environments: "gw-pro-release,gw-s3pro-release,gw-c3-release"
           #targets: ""
           #project-dir: "./some_dir"
           #project-conf: "./some_dir/custom.ini"
