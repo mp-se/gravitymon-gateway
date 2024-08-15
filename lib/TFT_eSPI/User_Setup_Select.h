@@ -35,13 +35,15 @@
 #define TFT_PIN_MISO 13
 #define TFT_PIN_MOSI 11
 #define TFT_PIN_SCLK 12
-#define TFT_PIN_RST 21 
+#define TFT_PIN_RST 21
 #define TFT_PIN_CS 48
 
 #define SPI_FREQUENCY 40000000
 #define SPI_READ_FREQUENCY 60000000
 
 #elif defined(ESP32S3) && defined(WAVESHARE_TFT)
+
+// https://www.waveshare.com/wiki/ESP32-S3-Touch-LCD-2.8
 
 #define ST7789_DRIVER 1
 #define TFT_WIDTH 240
@@ -50,6 +52,7 @@
 #define SMOOTH_FONT 1
 #define TFT_BACKLIGHT_ON 1
 #define LOAD_GFXFF 1
+#define CONFIG_ENABLE_TOUCH 1
 
 #define TOUCH_CS -1
 #define TFT_BL 5
@@ -62,6 +65,7 @@
 
 #define SPI_FREQUENCY 40000000
 #define SPI_READ_FREQUENCY 60000000
+// #define CONFIG_SPI_TOUCH_FREQUENCY 2500000
 
 #elif defined(ESP32)
 

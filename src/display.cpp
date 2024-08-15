@@ -25,6 +25,7 @@ SOFTWARE.
 
 #include <display.hpp>
 #include <fonts.hpp>
+#include <log.hpp>
 
 Display::Display() {
 #if defined(ENABLE_TFT)
@@ -85,5 +86,19 @@ void Display::clear() {
   _tft->fillScreen(TFT_BLACK);
   delay(1);
 }
+
+/*void Display::loop() {
+  if (!_tft) return;
+
+  uint16_t x = 0, y = 0;
+
+  bool pressed = _tft->getTouch(&x, &y);
+
+  if (pressed) {
+    _tft->fillCircle(x, y, 2, TFT_WHITE);
+    Log.info(F("DISP: Touch has been detected at %d,%d." CR), x, y);
+   
+  }
+}*/
 
 // EOF

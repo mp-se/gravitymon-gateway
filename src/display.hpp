@@ -39,6 +39,7 @@ class Display {
  public:
   Display();
   void setup();
+  // void loop();
 
   void clear();
   void setFont(FontSize f);

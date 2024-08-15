@@ -212,6 +212,7 @@ void loop() {
   myUptime.calculate();
   myWebServer.loop();
   myWifi.loop();
+  // myDisplay.loop();
 
   switch (runMode) {
     case RunMode::gatewayMode:
