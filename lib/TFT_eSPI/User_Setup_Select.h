@@ -17,6 +17,10 @@
 
 // Setup
 #define USER_SETUP_LOADED 1
+
+// Pins
+#if defined(ESP32S3) && defined(LOLIN_TFT)
+
 #define ILI9341_DRIVER 1
 #define TFT_WIDTH 240
 #define TFT_HEIGHT 320
@@ -24,9 +28,6 @@
 #define SMOOTH_FONT 1
 #define TFT_BACKLIGHT_ON 1
 #define LOAD_GFXFF 1
-
-// Pins
-#if defined(ESP32S3)
 
 #define TOUCH_CS 45
 #define TFT_BL 14
@@ -36,6 +37,28 @@
 #define TFT_PIN_SCLK 12
 #define TFT_PIN_RST 21 
 #define TFT_PIN_CS 48
+
+#define SPI_FREQUENCY 40000000
+#define SPI_READ_FREQUENCY 60000000
+
+#elif defined(ESP32S3) && defined(WAVESHARE_TFT)
+
+#define ST7789_DRIVER 1
+#define TFT_WIDTH 240
+#define TFT_HEIGHT 320
+#define CGRAM_OFFSET 1
+#define SMOOTH_FONT 1
+#define TFT_BACKLIGHT_ON 1
+#define LOAD_GFXFF 1
+
+#define TOUCH_CS -1
+#define TFT_BL 5
+#define TFT_PIN_DC 41
+#define TFT_PIN_MISO -1
+#define TFT_PIN_MOSI 45
+#define TFT_PIN_SCLK 40
+#define TFT_PIN_RST 39
+#define TFT_PIN_CS 42
 
 #define SPI_FREQUENCY 40000000
 #define SPI_READ_FREQUENCY 60000000

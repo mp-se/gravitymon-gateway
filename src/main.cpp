@@ -49,9 +49,11 @@ constexpr auto CFG_AP_PASS = "password";
 #endif
 
 void controller();
-void renderDisplay();
+void renderDisplayHeader();
+void renderDisplayFooter();
+void renderDisplayLogs();
+void checkSleepMode(float angle, float volt);
 
-// #define FORCE_GRAVITY_MODE
 SerialDebug mySerial;
 GravmonGatewayConfig myConfig(CFG_APPNAME, CFG_FILENAME);
 WifiConnection myWifi(&myConfig, CFG_AP_SSID, CFG_AP_PASS, CFG_APPNAME,
@@ -63,10 +65,16 @@ Display myDisplay;
 // Define constats for this program
 int interval = 1000;      // ms, time to wait between changes to output
 uint32_t loopMillis = 0;  // Used for main loop to run the code every _interval_
-
 RunMode runMode = RunMode::gatewayMode;
 
-void checkSleepMode(float angle, float volt);
+struct LogEntry {
+  char s[60] = "";
+};
+
+const auto maxLogEntries = 9;
+LogEntry logEntryList[maxLogEntries];
+int logIndex = 0;
+bool logUpdated = true;
 
 void setup() {
   // Main startup
@@ -194,7 +202,9 @@ void setup() {
   myDisplay.printLineCentered(3, "Startup completed");
   myDisplay.setFont(FontSize::FONT_9);
   delay(1000);
-  renderDisplay();
+  myDisplay.clear();
+  renderDisplayHeader();
+  renderDisplayFooter();
   loopMillis = millis();
 }
 
@@ -208,6 +218,7 @@ void loop() {
       if (!myWifi.isConnected()) {
         Log.warning(F("Loop: Wifi was disconnected, trying to reconnect." CR));
         myWifi.connect();
+        renderDisplayFooter();
       }
       controller();
       break;
@@ -216,16 +227,11 @@ void loop() {
       break;
   }
 
-  renderDisplay();
+  if(logUpdated) {
+    renderDisplayLogs();
+    logUpdated = false;
+  }
 }
-
-struct LogEntry {
-  char s[60] = "";
-};
-
-const auto maxLogEntries = 10;
-LogEntry logEntryList[maxLogEntries];
-int logIndex = 0;
 
 void addLogEntry(const char* id, tm timeinfo, float gravitySG, float tempC) {
   float temp = myConfig.isTempFormatF() ? convertCtoF(tempC) : tempC;
@@ -238,6 +244,8 @@ void addLogEntry(const char* id, tm timeinfo, float gravitySG, float tempC) {
            temp, myConfig.isTempFormatC() ? "C" : "F");
 
   if (++logIndex >= maxLogEntries) logIndex = 0;
+
+  logUpdated = true;
 }
 
 void controller() {
@@ -308,15 +316,11 @@ void controller() {
   }
 }
 
-void renderDisplay() {
+void renderDisplayHeader() {
   myDisplay.printLineCentered(0, "GravityMon Gateway");
+}
 
-  for (int i = 0, j = logIndex; i < maxLogEntries; i++) {
-    j--;
-    if (j < 0) j = maxLogEntries - 1;
-    myDisplay.printLine(i + 1, &logEntryList[j].s[0]);
-  }
-
+void renderDisplayFooter() {
   char info[80];
 
   switch (runMode) {
@@ -337,6 +341,14 @@ void renderDisplay() {
   }
 
   myDisplay.printLineCentered(10, &info[0]);
+}
+
+void renderDisplayLogs() {
+  for (int i = 0, j = logIndex; i < maxLogEntries; i++) {
+    j--;
+    if (j < 0) j = maxLogEntries - 1;
+    myDisplay.printLine(i + 1, &logEntryList[j].s[0]);
+  }
 }
 
 // EOF
