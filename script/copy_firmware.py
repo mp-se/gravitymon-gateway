@@ -11,24 +11,24 @@ def after_build(source, target, env):
     print( "Executing custom step " )
     dir    = env.GetLaunchDir()
     name   = env.get( "PIOENV" )
-    if name == "gw-release" :
-        target = dir + "/bin/firmware32.bin"
+    if name == "gw-pro-release" :
+        target = dir + "/bin/firmware32pro.bin"
         source = dir + "/.pio/build/" + name + "/firmware.bin"
         print( "Copy file : " + source + " -> " + target )
         shutil.copyfile( source, target )
 
-        target = dir + "/bin/partitions32.bin"
+        target = dir + "/bin/partitions32pro.bin"
         source = dir + "/.pio/build/" + name + "/partitions.bin"
         print( "Copy file : " + source + " -> " + target )
         shutil.copyfile( source, target )
 
-    elif name == "gw-s3-release" :
-        target = dir + "/bin/firmware32s3.bin"
+    elif name == "gw-s3pro-release" :
+        target = dir + "/bin/firmware32s3pro.bin"
         source = dir + "/.pio/build/" + name + "/firmware.bin"
         print( "Copy file : " + source + " -> " + target )
         shutil.copyfile( source, target )
 
-        target = dir + "/bin/partitions32s3.bin"
+        target = dir + "/bin/partitions32s3pro.bin"
         source = dir + "/.pio/build/" + name + "/partitions.bin"
         print( "Copy file : " + source + " -> " + target )
         shutil.copyfile( source, target )
@@ -40,6 +40,17 @@ def after_build(source, target, env):
         shutil.copyfile( source, target )
 
         target = dir + "/bin/partitions32c3.bin"
+        source = dir + "/.pio/build/" + name + "/partitions.bin"
+        print( "Copy file : " + source + " -> " + target )
+        shutil.copyfile( source, target )
+
+    elif name == "gw-s3-release" :
+        target = dir + "/bin/firmware32s3.bin"
+        source = dir + "/.pio/build/" + name + "/firmware.bin"
+        print( "Copy file : " + source + " -> " + target )
+        shutil.copyfile( source, target )
+
+        target = dir + "/bin/partitions32s3.bin"
         source = dir + "/.pio/build/" + name + "/partitions.bin"
         print( "Copy file : " + source + " -> " + target )
         shutil.copyfile( source, target )
