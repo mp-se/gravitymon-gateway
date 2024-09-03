@@ -24,16 +24,21 @@ SOFTWARE.
 #ifndef SRC_DISPLAY_HPP_
 #define SRC_DISPLAY_HPP_
 
+
 #include <config.hpp>
 #include <main.hpp>
 
+#if defined(ENABLE_TFT)
 #include "TFT_eSPI.h"
+#endif
 
 enum FontSize { FONT_9 = 9, FONT_12 = 12, FONT_18 = 18, FONT_24 = 24 };
 
 class Display {
  private:
+#if defined(ENABLE_TFT)
   TFT_eSPI* _tft = NULL;
+#endif
   FontSize _fontSize = FontSize::FONT_9;
 
  public:

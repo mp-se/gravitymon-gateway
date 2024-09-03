@@ -199,10 +199,12 @@ void setup() {
   }
 
   Log.notice(F("Main: Startup completed." CR));
+#if defined(ENABLE_TFT)
   myDisplay.printLineCentered(3, "Startup completed");
   myDisplay.setFont(FontSize::FONT_9);
   delay(1000);
   myDisplay.clear();
+#endif
   renderDisplayHeader();
   renderDisplayFooter();
   loopMillis = millis();

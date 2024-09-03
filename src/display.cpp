@@ -27,10 +27,9 @@ SOFTWARE.
 #include <fonts.hpp>
 #include <log.hpp>
 
-Display::Display() {
 #if defined(ENABLE_TFT)
+Display::Display() {
   _tft = new TFT_eSPI();
-#endif
 }
 
 void Display::setup() {
@@ -87,18 +86,20 @@ void Display::clear() {
   delay(1);
 }
 
-/*void Display::loop() {
-  if (!_tft) return;
+#else
 
-  uint16_t x = 0, y = 0;
+Display::Display() {}
 
-  bool pressed = _tft->getTouch(&x, &y);
+void Display::setup() {}
 
-  if (pressed) {
-    _tft->fillCircle(x, y, 2, TFT_WHITE);
-    Log.info(F("DISP: Touch has been detected at %d,%d." CR), x, y);
-   
-  }
-}*/
+void Display::setFont(FontSize f) {}
+
+void Display::printLine(int l, const String& text) {}
+
+void Display::printLineCentered(int l, const String& text) {}
+
+void Display::clear() {}
+
+#endif
 
 // EOF
