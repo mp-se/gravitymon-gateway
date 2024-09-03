@@ -17,9 +17,9 @@ jobs:
       - name: Checkout UI
         run: |
           echo "Checkout UI"
-          git clone https://github.com/mp-se/gravitymon-blegw-ui gravitymon-blegw-ui 
-          cp gravitymon-blegw-ui/dist/assests/style.css.gz html/app.css.gz
-          cp gravitymon-blegw-ui/dist/assests/js/index.js.gz html/app.js.gz
+          git clone https://github.com/mp-se/gravitymon-gateway-ui gravitymon-gateway-ui 
+          cp gravitymon-gateway-ui/dist/assests/style.css.gz html/app.css.gz
+          cp gravitymon-gateway-ui/dist/assests/js/index.js.gz html/app.js.gz
 
       - name: Setup PlatformIO
         uses: n-vr/setup-platformio-action@v1.0.1    
