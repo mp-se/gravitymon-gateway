@@ -97,8 +97,8 @@ void GravmonGatewayWebServer::webHandleFactoryDefaults(
   obj[PARAM_MESSAGE] = "Factory reset completed, rebooting";
   response->setLength();
   request->send(response);
-  delay(500);
-  ESP_RESET();
+  _rebootTimer = millis();
+  _rebootTask = true;  
 }
 
 void GravmonGatewayWebServer::webHandleStatus(AsyncWebServerRequest *request) {
