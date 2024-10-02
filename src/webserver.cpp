@@ -403,7 +403,7 @@ bool GravmonGatewayWebServer::setupWebServer() {
   Log.notice(F("WEB : Configuring web server." CR));
 
   BaseWebServer::setupWebServer();
-  MDNS.addService("gravitymon", "tcp", 80);
+  MDNS.addService("gravitymon-gateway", "tcp", 80);
 
   // Static content
   Log.notice(F("WEB : Setting up handlers for gravmon gateway web server." CR));
