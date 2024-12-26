@@ -24,7 +24,6 @@ SOFTWARE.
 #ifndef SRC_DISPLAY_HPP_
 #define SRC_DISPLAY_HPP_
 
-
 #include <config.hpp>
 #include <main.hpp>
 

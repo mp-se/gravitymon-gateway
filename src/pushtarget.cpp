@@ -86,8 +86,7 @@ void GravmonGatewayPush::sendAll(float angle, float gravitySG, float tempC,
                                  float battery, int interval, const char* id,
                                  const char* token, const char* mdns) {
   printHeap("PUSH");
-  _http.setReuse(true);
-  _httpSecure.setReuse(true);
+  _http->setReuse(true);
 
   TemplatingEngine engine;
   setupTemplateEngine(engine, angle, gravitySG, tempC, battery, interval, id,

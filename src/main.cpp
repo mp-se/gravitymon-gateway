@@ -36,6 +36,7 @@ SOFTWARE.
 #if defined(ENABLE_SD_CARD)
 #include <sd.h>
 #endif
+#include <cstdio>
 #include <uptime.hpp>
 
 constexpr auto CFG_APPNAME = "gravitymon-gw";
@@ -230,7 +231,7 @@ void loop() {
       break;
   }
 
-  if(logUpdated) {
+  if (logUpdated) {
     renderDisplayLogs();
     logUpdated = false;
   }
@@ -254,7 +255,7 @@ void addLogEntry(const char* id, tm timeinfo, float gravitySG, float tempC) {
 void controller() {
   // Scan for ble beacons
   bleScanner.scan();
-  bleScanner.waitForScan();
+  // bleScanner.waitForScan();
 
 #if defined(ENABLE_TILT_SCANNING)
   /*

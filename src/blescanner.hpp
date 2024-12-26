@@ -28,7 +28,8 @@ SOFTWARE.
 #define SRC_BLESCANNER_HPP_
 
 #include <ArduinoJson.h>
-#include <ArduinoLog.h>
+
+#include <ArduinoLog.hpp>
 
 #undef LOG_LEVEL_ERROR
 #undef LOG_LEVEL_INFO
@@ -53,8 +54,8 @@ constexpr auto PARAM_BLE_TOKEN = "token";
 constexpr auto PARAM_BLE_INTERVAL = "interval";
 constexpr auto PARAM_BLE_TEMP_UNITS = "temp_units";
 
-class BleDeviceCallbacks : public NimBLEAdvertisedDeviceCallbacks {
-  void onResult(NimBLEAdvertisedDevice *advertisedDevice) override;
+class BleDeviceCallbacks : public NimBLEScanCallbacks {
+  void onResult(const NimBLEAdvertisedDevice *advertisedDevice) override;
 };
 
 class BleClientCallbacks : public NimBLEClientCallbacks {
@@ -152,7 +153,7 @@ class BleScanner {
   void deInit();
 
   bool scan();
-  bool waitForScan();
+  // bool waitForScan();
 
   void setScanTime(int scanTime) { _scanTime = scanTime; }
   void setAllowActiveScan(bool activeScan) { _activeScan = activeScan; }
@@ -162,9 +163,9 @@ class BleScanner {
   void proccesGravitymonBeacon(const std::string &advertStringHex,
                                NimBLEAddress address);
 
-  void processGravitymonDevice(NimBLEAddress address);
+  // void processGravitymonDevice(NimBLEAddress address);
   void processGravitymonEddystoneBeacon(NimBLEAddress address,
-                                        const uint8_t *payload);
+                                        const std::vector<uint8_t> &payload);
   void processGravitymonExtBeacon(NimBLEAddress address,
                                   const std::string &payload);
 
@@ -192,10 +193,10 @@ class BleScanner {
 
   // Gravitymon related data
   GravitymonData _gravitymon[NO_GRAVITYMON];
-  std::queue<NimBLEAddress> _doConnect;
+  // std::queue<NimBLEAddress> _doConnect;
 
   TiltColor uuidToTiltColor(std::string uuid);
-  bool connectGravitymonDevice(NimBLEAddress address);
+  // bool connectGravitymonDevice(NimBLEAddress address);
 };
 
 extern BleScanner bleScanner;

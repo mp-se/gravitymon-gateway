@@ -22,6 +22,11 @@ def after_build(source, target, env):
         print( "Copy file : " + source + " -> " + target )
         shutil.copyfile( source, target )
 
+        # target = dir + "/bin/merged_firmware32pro.bin"
+        # source = dir + "/.pio/build/" + name + "/firmware_merged.bin"
+        # print( "Copy file : " + source + " -> " + target )
+        # shutil.copyfile( source, target )
+
     elif name == "gw-s3pro" :
         target = dir + "/bin/firmware32s3pro.bin"
         source = dir + "/.pio/build/" + name + "/firmware.bin"
@@ -33,16 +38,10 @@ def after_build(source, target, env):
         print( "Copy file : " + source + " -> " + target )
         shutil.copyfile( source, target )
 
-    # elif name == "gw-c3-release" :
-    #     target = dir + "/bin/firmware32c3.bin"
-    #     source = dir + "/.pio/build/" + name + "/firmware.bin"
-    #     print( "Copy file : " + source + " -> " + target )
-    #     shutil.copyfile( source, target )
-
-    #     target = dir + "/bin/partitions32c3.bin"
-    #     source = dir + "/.pio/build/" + name + "/partitions.bin"
-    #     print( "Copy file : " + source + " -> " + target )
-    #     shutil.copyfile( source, target )
+        # target = dir + "/bin/merged_firmware32s3pro.bin"
+        # source = dir + "/.pio/build/" + name + "/firmware_merged.bin"
+        # print( "Copy file : " + source + " -> " + target )
+        # shutil.copyfile( source, target )
 
     elif name == "gw-s3-waveshare" :
         target = dir + "/bin/firmware32s3w.bin"
@@ -52,6 +51,11 @@ def after_build(source, target, env):
 
         target = dir + "/bin/partitions32s3w.bin"
         source = dir + "/.pio/build/" + name + "/partitions.bin"
+        print( "Copy file : " + source + " -> " + target )
+        shutil.copyfile( source, target )
+
+        target = dir + "/bin/merged_firmware32s3w.bin"
+        source = dir + "/.pio/build/" + name + "/firmware_merged.bin"
         print( "Copy file : " + source + " -> " + target )
         shutil.copyfile( source, target )
 

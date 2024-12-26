@@ -45,8 +45,7 @@ void GravmonGatewayWebServer::webHandleConfigRead(
   }
 
   Log.notice(F("WEB : webServer callback for /api/config(read)." CR));
-  AsyncJsonResponse *response =
-      new AsyncJsonResponse(false, JSON_BUFFER_SIZE_L);
+  AsyncJsonResponse *response = new AsyncJsonResponse(false);
   JsonObject obj = response->getRoot().as<JsonObject>();
   myConfig.createJson(obj);
   response->setLength();
@@ -65,8 +64,7 @@ void GravmonGatewayWebServer::webHandleConfigWrite(
   obj.clear();
   myConfig.saveFile();
 
-  AsyncJsonResponse *response =
-      new AsyncJsonResponse(false, JSON_BUFFER_SIZE_S);
+  AsyncJsonResponse *response = new AsyncJsonResponse(false);
   obj = response->getRoot().as<JsonObject>();
   obj[PARAM_SUCCESS] = true;
   obj[PARAM_MESSAGE] = "Configuration updated";
@@ -90,15 +88,14 @@ void GravmonGatewayWebServer::webHandleFactoryDefaults(
   LittleFS.end();
   Log.notice(F("WEB : Deleted files in filesystem, rebooting." CR));
 
-  AsyncJsonResponse *response =
-      new AsyncJsonResponse(false, JSON_BUFFER_SIZE_S);
+  AsyncJsonResponse *response = new AsyncJsonResponse(false);
   JsonObject obj = response->getRoot().as<JsonObject>();
   obj[PARAM_SUCCESS] = true;
   obj[PARAM_MESSAGE] = "Factory reset completed, rebooting";
   response->setLength();
   request->send(response);
   _rebootTimer = millis();
-  _rebootTask = true;  
+  _rebootTask = true;
 }
 
 void GravmonGatewayWebServer::webHandleStatus(AsyncWebServerRequest *request) {
@@ -112,8 +109,7 @@ void GravmonGatewayWebServer::webHandleStatus(AsyncWebServerRequest *request) {
     ESP_RESET();
   }
 
-  AsyncJsonResponse *response =
-      new AsyncJsonResponse(false, JSON_BUFFER_SIZE_L);
+  AsyncJsonResponse *response = new AsyncJsonResponse(false);
   JsonObject obj = response->getRoot().as<JsonObject>();
 
   obj[PARAM_ID] = myConfig.getID();
@@ -141,19 +137,21 @@ void GravmonGatewayWebServer::webHandleStatus(AsyncWebServerRequest *request) {
   obj[PARAM_UPTIME_HOURS] = myUptime.getHours();
   obj[PARAM_UPTIME_DAYS] = myUptime.getDays();
 
-  JsonArray devices = obj.createNestedArray(PARAM_GRAVITY_DEVICE);
+  JsonArray devices = obj[PARAM_GRAVITY_DEVICE].as<JsonArray>();
 
   // Get data from BLE
+  int j = 0;
+
   for (int i = 0; i < NO_GRAVITYMON; i++) {
     GravitymonData gd = bleScanner.getGravitymonData(i);
     if (gd.id != "") {
-      JsonObject n = devices.createNestedObject();
-      n[PARAM_DEVICE] = gd.id;
-      n[PARAM_GRAVITY] = gd.gravity;
-      n[PARAM_TEMP] = gd.tempC;
-      n[PARAM_UPDATE_TIME] = gd.getUpdateAge();
-      n[PARAM_PUSH_TIME] = gd.getPushAge();
-      n[PARAM_ENDPOINT] = "ble";
+      devices[j][PARAM_DEVICE] = gd.id;
+      devices[j][PARAM_GRAVITY] = gd.gravity;
+      devices[j][PARAM_TEMP] = gd.tempC;
+      devices[j][PARAM_UPDATE_TIME] = gd.getUpdateAge();
+      devices[j][PARAM_PUSH_TIME] = gd.getPushAge();
+      devices[j][PARAM_ENDPOINT] = "ble";
+      j++;
     }
   }
 
@@ -161,13 +159,13 @@ void GravmonGatewayWebServer::webHandleStatus(AsyncWebServerRequest *request) {
   for (int i = 0; i < NO_GRAVITYMON; i++) {
     GravitymonData gd = getGravitymonData(i);
     if (gd.id != "") {
-      JsonObject n = devices.createNestedObject();
-      n[PARAM_DEVICE] = gd.id;
-      n[PARAM_GRAVITY] = gd.gravity;
-      n[PARAM_TEMP] = gd.tempC;
-      n[PARAM_UPDATE_TIME] = gd.getUpdateAge();
-      n[PARAM_PUSH_TIME] = gd.getPushAge();
-      n[PARAM_ENDPOINT] = "wifi";
+      devices[j][PARAM_DEVICE] = gd.id;
+      devices[j][PARAM_GRAVITY] = gd.gravity;
+      devices[j][PARAM_TEMP] = gd.tempC;
+      devices[j][PARAM_UPDATE_TIME] = gd.getUpdateAge();
+      devices[j][PARAM_PUSH_TIME] = gd.getPushAge();
+      devices[j][PARAM_ENDPOINT] = "wifi";
+      j++;
     }
   }
 
@@ -203,8 +201,7 @@ void GravmonGatewayWebServer::webHandleConfigFormatWrite(
     success += writeFile(TPL_FNAME_MQTT, obj[PARAM_FORMAT_MQTT]) ? 1 : 0;
   }
 
-  AsyncJsonResponse *response =
-      new AsyncJsonResponse(false, JSON_BUFFER_SIZE_S);
+  AsyncJsonResponse *response = new AsyncJsonResponse(false);
   obj = response->getRoot().as<JsonObject>();
   obj[PARAM_SUCCESS] = success > 0 ? true : false;
   obj[PARAM_MESSAGE] = success > 0 ? "Format template stored"
@@ -226,8 +223,7 @@ void GravmonGatewayWebServer::webHandleTestPush(AsyncWebServerRequest *request,
   _pushTestEnabled = false;
   _pushTestLastSuccess = false;
   _pushTestLastCode = 0;
-  AsyncJsonResponse *response =
-      new AsyncJsonResponse(false, JSON_BUFFER_SIZE_S);
+  AsyncJsonResponse *response = new AsyncJsonResponse(false);
   obj = response->getRoot().as<JsonObject>();
   obj[PARAM_SUCCESS] = true;
   obj[PARAM_MESSAGE] = "Scheduled test for " + _pushTestTarget;
@@ -254,31 +250,28 @@ void GravmonGatewayWebServer::webHandleRemotePost(
     "RSSI": -79
   }*/
 
-  String id =
-      obj.containsKey(PARAM_BLE_ID) ? obj[PARAM_BLE_ID].as<String>() : "";
+  String id = !obj[PARAM_BLE_ID].isNull() ? obj[PARAM_BLE_ID].as<String>() : "";
   String token =
-      obj.containsKey(PARAM_BLE_TOKEN) ? obj[PARAM_BLE_TOKEN].as<String>() : "";
+      !obj[PARAM_BLE_TOKEN].isNull() ? obj[PARAM_BLE_TOKEN].as<String>() : "";
   String name =
-      obj.containsKey(PARAM_BLE_NAME) ? obj[PARAM_BLE_NAME].as<String>() : "";
-  int interval = obj.containsKey(PARAM_BLE_INTERVAL)
-                     ? obj[PARAM_BLE_INTERVAL].as<int>()
-                     : 0;
-  float temp = obj.containsKey(PARAM_BLE_TEMPERATURE)
+      !obj[PARAM_BLE_NAME].isNull() ? obj[PARAM_BLE_NAME].as<String>() : "";
+  int interval =
+      !obj[PARAM_BLE_INTERVAL].isNull() ? obj[PARAM_BLE_INTERVAL].as<int>() : 0;
+  float temp = !obj[PARAM_BLE_TEMPERATURE].isNull()
                    ? obj[PARAM_BLE_TEMPERATURE].as<float>()
                    : 0.0;
-  String tempUnits = obj.containsKey(PARAM_BLE_TEMP_UNITS)
+  String tempUnits = !obj[PARAM_BLE_TEMP_UNITS].isNull()
                          ? obj[PARAM_BLE_TEMP_UNITS].as<String>()
                          : "";
-  float gravity = obj.containsKey(PARAM_BLE_GRAVITY)
+  float gravity = !obj[PARAM_BLE_GRAVITY].isNull()
                       ? obj[PARAM_BLE_GRAVITY].as<float>()
                       : 0.0;
   float angle =
-      obj.containsKey(PARAM_BLE_ANGLE) ? obj[PARAM_BLE_ANGLE].as<float>() : 0.0;
-  float battery = obj.containsKey(PARAM_BLE_BATTERY)
+      !obj[PARAM_BLE_ANGLE].isNull() ? obj[PARAM_BLE_ANGLE].as<float>() : 0.0;
+  float battery = !obj[PARAM_BLE_BATTERY].isNull()
                       ? obj[PARAM_BLE_BATTERY].as<float>()
                       : 0.0;
-  int rssi =
-      obj.containsKey(PARAM_BLE_RSSI) ? obj[PARAM_BLE_RSSI].as<int>() : 0;
+  int rssi = !obj[PARAM_BLE_RSSI].isNull() ? obj[PARAM_BLE_RSSI].as<int>() : 0;
 
   int idx = findGravitymonId(id);
   if (idx >= 0) {
@@ -311,8 +304,7 @@ void GravmonGatewayWebServer::webHandleRemotePost(
 void GravmonGatewayWebServer::webHandleTestPushStatus(
     AsyncWebServerRequest *request) {
   Log.notice(F("WEB : webServer callback for /api/test/push/status." CR));
-  AsyncJsonResponse *response =
-      new AsyncJsonResponse(false, JSON_BUFFER_SIZE_S);
+  AsyncJsonResponse *response = new AsyncJsonResponse(false);
   JsonObject obj = response->getRoot().as<JsonObject>();
   String s;
 
@@ -374,8 +366,7 @@ void GravmonGatewayWebServer::webHandleConfigFormatRead(
 
   Log.notice(F("WEB : webServer callback for /api/config/format(read)." CR));
 
-  AsyncJsonResponse *response =
-      new AsyncJsonResponse(false, JSON_BUFFER_SIZE_XL);
+  AsyncJsonResponse *response = new AsyncJsonResponse(false);
   JsonObject obj = response->getRoot().as<JsonObject>();
   String s;
 
@@ -415,20 +406,16 @@ bool GravmonGatewayWebServer::setupWebServer() {
   handler = new AsyncCallbackJsonWebHandler(
       "/api/format",
       std::bind(&GravmonGatewayWebServer::webHandleConfigFormatWrite, this,
-                std::placeholders::_1, std::placeholders::_2),
-      JSON_BUFFER_SIZE_L);
+                std::placeholders::_1, std::placeholders::_2));
   _server->addHandler(handler);
   handler = new AsyncCallbackJsonWebHandler(
-      "/post",
-      std::bind(&GravmonGatewayWebServer::webHandleRemotePost, this,
-                std::placeholders::_1, std::placeholders::_2),
-      JSON_BUFFER_SIZE_L);
+      "/post", std::bind(&GravmonGatewayWebServer::webHandleRemotePost, this,
+                         std::placeholders::_1, std::placeholders::_2));
   _server->addHandler(handler);
   handler = new AsyncCallbackJsonWebHandler(
       "/api/config",
       std::bind(&GravmonGatewayWebServer::webHandleConfigWrite, this,
-                std::placeholders::_1, std::placeholders::_2),
-      JSON_BUFFER_SIZE_L);
+                std::placeholders::_1, std::placeholders::_2));
   _server->addHandler(handler);
   _server->on("/api/config", HTTP_GET,
               std::bind(&GravmonGatewayWebServer::webHandleConfigRead, this,
@@ -443,10 +430,8 @@ bool GravmonGatewayWebServer::setupWebServer() {
               std::bind(&GravmonGatewayWebServer::webHandleTestPushStatus, this,
                         std::placeholders::_1));
   handler = new AsyncCallbackJsonWebHandler(
-      "/api/push",
-      std::bind(&GravmonGatewayWebServer::webHandleTestPush, this,
-                std::placeholders::_1, std::placeholders::_2),
-      JSON_BUFFER_SIZE_S);
+      "/api/push", std::bind(&GravmonGatewayWebServer::webHandleTestPush, this,
+                             std::placeholders::_1, std::placeholders::_2));
   _server->addHandler(handler);
 
   Log.notice(F("WEB : Web server started." CR));

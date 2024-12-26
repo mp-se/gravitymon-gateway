@@ -28,7 +28,7 @@ SOFTWARE.
 #include <resources.hpp>
 
 GravmonGatewayConfig::GravmonGatewayConfig(String baseMDNS, String fileName)
-    : BaseConfig(baseMDNS, fileName, JSON_BUFFER_SIZE_XL) {}
+    : BaseConfig(baseMDNS, fileName) {}
 
 void GravmonGatewayConfig::createJson(JsonObject& doc) {
   // Call base class functions

@@ -25,7 +25,10 @@ SOFTWARE.
  */
 
 #include <blescanner.hpp>
+#include <cstdio>
+#include <string>
 #include <utils.hpp>
+#include <vector>
 
 BleScanner bleScanner;
 
@@ -42,7 +45,8 @@ constexpr auto SERV_UUID = "180A";
 constexpr auto SERV2_UUID = "1801";
 constexpr auto CHAR_UUID = "2AC4";
 
-void BleDeviceCallbacks::onResult(NimBLEAdvertisedDevice* advertisedDevice) {
+void BleDeviceCallbacks::onResult(
+    const NimBLEAdvertisedDevice* advertisedDevice) {
   // Log.notice(F("BLE : %s,%s" CR),
   //           advertisedDevice->getAddress().toString().c_str(),
   //           advertisedDevice->getName().c_str());
@@ -74,11 +78,12 @@ void BleDeviceCallbacks::onResult(NimBLEAdvertisedDevice* advertisedDevice) {
       bleScanner.processGravitymonExtBeacon(
           advertisedDevice->getAddress(),
           advertisedDevice->getServiceData(NimBLEUUID(SERV_UUID)));
-    } else {
-      Log.notice(
-          F("BLE : Processing gravitymon device (connect with device)" CR));
-      bleScanner.processGravitymonDevice(advertisedDevice->getAddress());
     }
+    // else {
+    //   Log.notice(
+    //       F("BLE : Processing gravitymon device (connect with device)" CR));
+    //   bleScanner.processGravitymonDevice(advertisedDevice->getAddress());
+    // }
 
     return;
   }
@@ -156,8 +161,8 @@ void BleScanner::proccesGravitymonBeacon(const std::string& advertStringHex,
   }
 }
 
-void BleScanner::processGravitymonEddystoneBeacon(NimBLEAddress address,
-                                                  const uint8_t* payload) {
+void BleScanner::processGravitymonEddystoneBeacon(
+    NimBLEAddress address, const std::vector<uint8_t>& payload) {
   //                                                                      <--------------
   //                                                                      beacon
   //                                                                      data
@@ -165,20 +170,18 @@ void BleScanner::processGravitymonEddystoneBeacon(NimBLEAddress address,
   // 0b 09 67 72 61 76 69 74 79 6d 6f 6e 02 01 06 03 03 aa fe 11 16 aa fe 20 00
   // 0c 8b 10 8b 00 00 30 39 00 00 16 2e
 
-  payload = payload + 23;
-
   float battery;
   float temp;
   float gravity;
   float angle;
   uint32_t chipId;
 
-  battery = static_cast<float>((*(payload + 2) << 8) | *(payload + 3)) / 1000;
-  temp = static_cast<float>((*(payload + 4) << 8) | *(payload + 5)) / 1000;
-  gravity = static_cast<float>((*(payload + 6) << 8) | *(payload + 7)) / 10000;
-  angle = static_cast<float>((*(payload + 8) << 8) | *(payload + 9)) / 100;
-  chipId = (*(payload + 10) << 24) | (*(payload + 11) << 16) |
-           (*(payload + 12) << 8) | *(payload + 13);
+  battery = static_cast<float>((payload[25] << 8) | payload[26]) / 1000;
+  temp = static_cast<float>((payload[27] << 8) | payload[28]) / 1000;
+  gravity = static_cast<float>((payload[29] << 8) | payload[30]) / 10000;
+  angle = static_cast<float>((payload[31] << 8) | payload[32]) / 100;
+  chipId = (payload[33] << 24) | (payload[34] << 16) | (payload[35] << 8) |
+           (payload[36]);
 
   char chip[20];
   snprintf(&chip[0], sizeof(chip), "%6x", chipId);
@@ -205,7 +208,7 @@ void BleScanner::processGravitymonExtBeacon(NimBLEAddress address,
   // Log.notice(F("BLE : Advertised gravitymon ext device: %s" CR),
   //            address.toString().c_str());
 
-  DynamicJsonDocument in(1000);
+  JsonDocument in;
   DeserializationError err = deserializeJson(in, payload.c_str());
 
   if (err) {
@@ -237,130 +240,134 @@ void BleScanner::processGravitymonExtBeacon(NimBLEAddress address,
   }
 }
 
-void BleScanner::processGravitymonDevice(NimBLEAddress address) {
-  // Log.notice(F("BLE : Advertised gravitymon device: %s" CR),
-  //            address.toString().c_str());
-  _doConnect.push(address);
-}
+// void BleScanner::processGravitymonDevice(NimBLEAddress address) {
+//   // Log.notice(F("BLE : Advertised gravitymon device: %s" CR),
+//   //            address.toString().c_str());
+//   _doConnect.push(address);
+// }
 
-bool BleScanner::connectGravitymonDevice(NimBLEAddress address) {
-  // Log.notice(F("BLE : Connecting to gravitymon device: %s" CR),
-  //            address.toString().c_str());
+// bool BleScanner::connectGravitymonDevice(NimBLEAddress address) {
+//   // Log.notice(F("BLE : Connecting to gravitymon device: %s" CR),
+//   //            address.toString().c_str());
 
-  NimBLEClient* client = nullptr;
+//   NimBLEClient* client = nullptr;
 
-  if (NimBLEDevice::getClientListSize()) {
-    client = NimBLEDevice::getClientByPeerAddress(address);
-    if (client) {
-      if (!client->connect(address, false)) {
-        Log.warning(F("BLE : Reconnect failed." CR));
-        return false;
-      }
-      // Log.notice(F("BLE : Reconnected with client." CR));
-    } else {
-      client = NimBLEDevice::getDisconnectedClient();
-    }
-  }
+//   if (NimBLEDevice::getCreatedClientCount()) {
+//     client = NimBLEDevice::getClientByPeerAddress(address);
+//     if (client) {
+//       if (!client->connect(address, false)) {
+//         Log.warning(F("BLE : Reconnect failed." CR));
+//         return false;
+//       }
+//       // Log.notice(F("BLE : Reconnected with client." CR));
+//     } else {
+//       client = NimBLEDevice::getDisconnectedClient();
+//     }
+//   }
 
-  if (!client) {
-    if (NimBLEDevice::getClientListSize() >= NIMBLE_MAX_CONNECTIONS) {
-      Log.error(
-          F("BLE : Max clients reached - no more connections available" CR));
-      return false;
-    }
+//   if (!client) {
+//     if (NimBLEDevice::getCreatedClientCount() >= NIMBLE_MAX_CONNECTIONS) {
+//       Log.error(
+//           F("BLE : Max clients reached - no more connections available" CR));
+//       return false;
+//     }
 
-    client = NimBLEDevice::createClient();
-    // Log.notice(F("BLE : New client created." CR));
-    client->setClientCallbacks(_clientCallbacks, false);
+//     client = NimBLEDevice::createClient();
+//     // Log.notice(F("BLE : New client created." CR));
+//     client->setClientCallbacks(_clientCallbacks, false);
 
-    // Set initial connection parameters: These settings are 15ms interval, 0
-    // latency, 120ms timout. These settings are safe for 3 clients to connect
-    // reliably, can go faster if you have less connections. Timeout should be a
-    // multiple of the interval, minimum is 100ms. Min interval: 12 * 1.25ms =
-    // 15, Max interval: 12 * 1.25ms = 15, 0 latency, 51 * 10ms = 510ms timeout
-    client->setConnectionParams(12, 12, 0, 51);
-    client->setConnectTimeout(5);
+//     // Set initial connection parameters: These settings are 15ms interval, 0
+//     // latency, 120ms timout. These settings are safe for 3 clients to
+//     connect
+//     // reliably, can go faster if you have less connections. Timeout should
+//     be a
+//     // multiple of the interval, minimum is 100ms. Min interval: 12 * 1.25ms
+//     =
+//     // 15, Max interval: 12 * 1.25ms = 15, 0 latency, 51 * 10ms = 510ms
+//     timeout client->setConnectionParams(12, 12, 0, 51);
+//     client->setConnectTimeout(5);
 
-    if (!client->connect(address)) {
-      NimBLEDevice::deleteClient(client);
-      Log.warning(F("BLE : Failed to connect, deleted client." CR));
-      return false;
-    }
-  }
+//     if (!client->connect(address)) {
+//       NimBLEDevice::deleteClient(client);
+//       Log.warning(F("BLE : Failed to connect, deleted client." CR));
+//       return false;
+//     }
+//   }
 
-  if (!client->isConnected()) {
-    if (!client->connect(address)) {
-      Log.warning(F("BLE : Failed to connect." CR));
-      return false;
-    }
-  }
+//   if (!client->isConnected()) {
+//     if (!client->connect(address)) {
+//       Log.warning(F("BLE : Failed to connect." CR));
+//       return false;
+//     }
+//   }
 
-  // Log.notice(F("BLE : Connected to: %s, RSSI: %d" CR),
-  //            client->getPeerAddress().toString().c_str(), client->getRssi());
+//   // Log.notice(F("BLE : Connected to: %s, RSSI: %d" CR),
+//   //            client->getPeerAddress().toString().c_str(),
+//   client->getRssi());
 
-  NimBLERemoteService* srv = nullptr;
-  NimBLERemoteCharacteristic* chr = nullptr;
+//   NimBLERemoteService* srv = nullptr;
+//   NimBLERemoteCharacteristic* chr = nullptr;
 
-  srv = client->getService(SERV_UUID);
+//   srv = client->getService(SERV_UUID);
 
-  if (srv) {
-    chr = srv->getCharacteristic(CHAR_UUID);
+//   if (srv) {
+//     chr = srv->getCharacteristic(CHAR_UUID);
 
-    if (chr && chr->canRead()) {
-      String data = chr->readValue();
-      // Log.notice(F("uuid=%s, value=%s" CR),
-      // chr->getUUID().toString().c_str(),
-      //            data.c_str());
+//     if (chr && chr->canRead()) {
+//       String data = chr->readValue();
+//       // Log.notice(F("uuid=%s, value=%s" CR),
+//       // chr->getUUID().toString().c_str(),
+//       //            data.c_str());
 
-      DynamicJsonDocument in(1000);
-      DeserializationError err = deserializeJson(in, data.c_str());
+//       JsonDocument in;
+//       DeserializationError err = deserializeJson(in, data.c_str());
 
-      if (err) {
-        client->disconnect();
-        Log.error(F("BLE : Failed to parse advertisement json %d" CR), err);
-        return false;
-      }
+//       if (err) {
+//         client->disconnect();
+//         Log.error(F("BLE : Failed to parse advertisement json %d" CR), err);
+//         return false;
+//       }
 
-      int idx = findGravitymonId(in["ID"].as<String>());
-      if (idx >= 0) {
-        GravitymonData& data = getGravitymonData(idx);
-        data.tempC = in["temp_units"].as<String>() == "C"
-                         ? in["temperature"].as<float>()
-                         : convertCtoF(in["temperature"].as<float>());
-        data.gravity = in["gravity"].as<float>();
-        data.angle = in["angle"].as<float>();
-        data.battery = in["battery"].as<int>();
-        data.id = in["ID"].as<String>();
+//       int idx = findGravitymonId(in["ID"].as<String>());
+//       if (idx >= 0) {
+//         GravitymonData& data = getGravitymonData(idx);
+//         data.tempC = in["temp_units"].as<String>() == "C"
+//                          ? in["temperature"].as<float>()
+//                          : convertCtoF(in["temperature"].as<float>());
+//         data.gravity = in["gravity"].as<float>();
+//         data.angle = in["angle"].as<float>();
+//         data.battery = in["battery"].as<int>();
+//         data.id = in["ID"].as<String>();
 
-        data.rssi = in["RSSI"].as<int>();
-        data.name = in["name"].as<String>();
-        data.token = in["token"].as<String>();
-        data.interval = in["interval"].as<int>();
+//         data.rssi = in["RSSI"].as<int>();
+//         data.name = in["name"].as<String>();
+//         data.token = in["token"].as<String>();
+//         data.interval = in["interval"].as<int>();
 
-        data.address = address;
-        data.type = "ExtBeacon";
-        data.setUpdated();
-      } else {
-        Log.error(
-            F("BLE : Max devices reached - no more devices available." CR));
-      }
-    } else {
-      client->disconnect();
-      Log.warning(
-          F("BLE : Unable to find characteristic %s or not readable!" CR),
-          CHAR_UUID);
-      return false;
-    }
-  } else {
-    client->disconnect();
-    Log.warning(F("BLE : Unable to find service %s!" CR), SERV_UUID);
-    return false;
-  }
+//         data.address = address;
+//         data.type = "ExtBeacon";
+//         data.setUpdated();
+//       } else {
+//         Log.error(
+//             F("BLE : Max devices reached - no more devices available." CR));
+//       }
+//     } else {
+//       client->disconnect();
+//       Log.warning(
+//           F("BLE : Unable to find characteristic %s or not readable!" CR),
+//           CHAR_UUID);
+//       return false;
+//     }
+//   } else {
+//     client->disconnect();
+//     Log.warning(F("BLE : Unable to find service %s!" CR), SERV_UUID);
+//     return false;
+//   }
 
-  // Log.notice(F("BLE : Done reading data from gravitymon device!" CR));
-  client->disconnect();
-  return true;
-}
+//   // Log.notice(F("BLE : Done reading data from gravitymon device!" CR));
+//   client->disconnect();
+//   return true;
+// }
 
 BleScanner::BleScanner() {
   _deviceCallbacks = new BleDeviceCallbacks();
@@ -370,7 +377,7 @@ BleScanner::BleScanner() {
 void BleScanner::init() {
   NimBLEDevice::init("");
   _bleScan = NimBLEDevice::getScan();
-  _bleScan->setAdvertisedDeviceCallbacks(_deviceCallbacks);
+  _bleScan->setScanCallbacks(_deviceCallbacks);
   _bleScan->setMaxResults(0);
   _bleScan->setActiveScan(_activeScan);
 
@@ -383,7 +390,7 @@ void BleScanner::init() {
 }
 
 void BleScanner::deInit() {
-  waitForScan();
+  // waitForScan();
   NimBLEDevice::deinit();
 }
 
@@ -408,30 +415,45 @@ bool BleScanner::scan() {
              _activeScan ? "ACTIVE" : "PASSIVE");
   _bleScan->setActiveScan(_activeScan);
 
-  if (_bleScan->start(_scanTime, nullptr, true)) {
-    return true;
-  }
+  // if (_bleScan->start(_scanTime, nullptr, true)) {
+  //   return true;
+  // }
 
-  Log.error(F("BLE : Scan failed to start." CR));
-  return false;
-}
+  NimBLEScanResults foundDevices =
+      _bleScan->getResults(_scanTime * 1000, false);
+  Log.notice(F("BLE : Scanning completed, found %d results." CR),
+             foundDevices.getCount());
 
-bool BleScanner::waitForScan() {
-  if (!_bleScan) return false;
+  // while (!_doConnect.empty()) {
+  //   uint32_t start = millis();
+  //   connectGravitymonDevice(_doConnect.front());
+  //   _doConnect.pop();
+  //   Log.info(F("Connected with devices, took %d ms" CR), millis() - start);
+  // }
 
-  while (_bleScan->isScanning()) {
-    delay(100);
-  }
-
-  while (!_doConnect.empty()) {
-    uint32_t start = millis();
-    connectGravitymonDevice(_doConnect.front());
-    _doConnect.pop();
-    Log.info(F("Connected with devices, took %d ms" CR), millis() - start);
-  }
-
+  _bleScan->clearResults();  // delete results scan buffer to release memory
   return true;
+
+  // Log.error(F("BLE : Scan failed to start." CR));
+  // return false;
 }
+
+// bool BleScanner::waitForScan() {
+//   if (!_bleScan) return false;
+
+//   while (_bleScan->isScanning()) {
+//     delay(100);
+//   }
+
+//   while (!_doConnect.empty()) {
+//     uint32_t start = millis();
+//     connectGravitymonDevice(_doConnect.front());
+//     _doConnect.pop();
+//     Log.info(F("Connected with devices, took %d ms" CR), millis() - start);
+//   }
+
+//   return true;
+// }
 
 TiltColor BleScanner::proccesTiltBeacon(const std::string& advertStringHex,
                                         const int8_t& currentRSSI) {

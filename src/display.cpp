@@ -28,9 +28,7 @@ SOFTWARE.
 #include <log.hpp>
 
 #if defined(ENABLE_TFT)
-Display::Display() {
-  _tft = new TFT_eSPI();
-}
+Display::Display() { _tft = new TFT_eSPI(); }
 
 void Display::setup() {
   if (!_tft) return;
