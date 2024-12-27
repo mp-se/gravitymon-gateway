@@ -36,8 +36,8 @@ SOFTWARE.
 #if defined(ENABLE_SD_CARD)
 #include <sd.h>
 #endif
-#include <cstdio>
 #include <uptime.hpp>
+#include <cstdio>
 
 constexpr auto CFG_APPNAME = "gravitymon-gw";
 constexpr auto CFG_FILENAME = "/gravitymon-gw.json";

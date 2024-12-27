@@ -137,7 +137,7 @@ void GravmonGatewayWebServer::webHandleStatus(AsyncWebServerRequest *request) {
   obj[PARAM_UPTIME_HOURS] = myUptime.getHours();
   obj[PARAM_UPTIME_DAYS] = myUptime.getDays();
 
-  JsonArray devices = obj[PARAM_GRAVITY_DEVICE].as<JsonArray>();
+  JsonArray devices = obj[PARAM_GRAVITY_DEVICE].to<JsonArray>();
 
   // Get data from BLE
   int j = 0;
