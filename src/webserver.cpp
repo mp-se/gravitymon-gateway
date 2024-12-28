@@ -412,14 +412,14 @@ bool GravmonGatewayWebServer::setupWebServer() {
       "/post", std::bind(&GravmonGatewayWebServer::webHandleRemotePost, this,
                          std::placeholders::_1, std::placeholders::_2));
   _server->addHandler(handler);
+  _server->on("/api/config", HTTP_GET,
+              std::bind(&GravmonGatewayWebServer::webHandleConfigRead, this,
+                        std::placeholders::_1));
   handler = new AsyncCallbackJsonWebHandler(
       "/api/config",
       std::bind(&GravmonGatewayWebServer::webHandleConfigWrite, this,
                 std::placeholders::_1, std::placeholders::_2));
   _server->addHandler(handler);
-  _server->on("/api/config", HTTP_GET,
-              std::bind(&GravmonGatewayWebServer::webHandleConfigRead, this,
-                        std::placeholders::_1));
   _server->on("/api/factory", HTTP_GET,
               std::bind(&GravmonGatewayWebServer::webHandleFactoryDefaults,
                         this, std::placeholders::_1));
