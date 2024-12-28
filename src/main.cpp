@@ -269,8 +269,7 @@ void controller() {
       addLogEntry(bleScanner.getTiltColorAsString((TiltColor)i),
                   td.timeinfoUpdated, td.gravity, convertFtoC(td.tempF));
 
-      Log.notice(F("Main: Type=%s, Gravity=%F, Temp=%F "
-                   "Id=%s." CR),
+      Log.notice(F("Main: Type=%s, Gravity=%F, Temp=%F." CR),
                  bleScanner.getTiltColorAsString((TiltColor)i), td.gravity,
                  convertFtoC(td.tempF));
 
