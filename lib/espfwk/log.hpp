@@ -1,6 +1,7 @@
+/*
 MIT License
 
-Copyright (c) 2024-2025 Magnus
+Copyright (c) 2021-2024 Magnus
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,3 +20,27 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+ */
+#ifndef SRC_LOG_HPP_
+#define SRC_LOG_HPP_
+
+#include <ArduinoLog.hpp>
+
+class SerialDebug {
+ private:
+  uint32_t _serialSpeed;
+ public:
+  explicit SerialDebug(const uint32_t serialSpeed = 115200L, bool autoBegin = true);
+  void begin(Print* p);
+  uint32_t getSerialSpeed() { return _serialSpeed; }
+  static Logging* getLog() { return &Log; }
+};
+
+void printTimestamp(Print* _logOutput, int _logLevel);
+void printNewline(Print* _logOutput);
+
+#define EspSerial Serial
+
+#endif  // SRC_LOG_HPP_
+
+// EOF
