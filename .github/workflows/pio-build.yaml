@@ -6,7 +6,6 @@ on:
     branches: 
       - dev
 
-      
 jobs:
   pio-build:
     runs-on: ubuntu-latest
@@ -21,9 +20,12 @@ jobs:
           git clone https://github.com/mp-se/gravitymon-gateway-ui gravitymon-gateway-ui 
           cp gravitymon-gateway-ui/dist/assets/style.css.gz html/app.css.gz
           cp gravitymon-gateway-ui/dist/assets/index.js.gz html/app.js.gz
+          cp gravitymon-gateway-ui/gravitymon-gateay.html html/index.html
+          cp gravitymon-gateway-ui/dist/favicon.ico html/favicon.ico
+          gzip -f html/favicon.ico
 
           echo "Checkout shared code"
-          git clone -b pressuremon https://github.com/mp-se/gravitymon gravitymon-gateway 
+          git clone -b gravitymon-gateway https://github.com/mp-se/gravitymon pressuremon 
           rm ./src/*
           rm ./lib/espfwk/*
           cp -R gravitymon-gateway/lib/ ./
@@ -38,7 +40,7 @@ jobs:
       - name: PlatformIO Run
         uses: karniv00l/platformio-run-action@v1
         with:
-          environments: "gateway32pro-release,gateway32s3pro-release,gateway32s3wave-release"
+          environments: "gateway32s3pro-release,gateway32pro-release,gateway32s3wave-release"
           jobs: 6
           silent: false
           verbose: true
