@@ -20,7 +20,7 @@ jobs:
           git clone https://github.com/mp-se/gravitymon-gateway-ui gravitymon-gateway-ui 
           cp gravitymon-gateway-ui/dist/assets/style.css.gz html/app.css.gz
           cp gravitymon-gateway-ui/dist/assets/index.js.gz html/app.js.gz
-          cp gravitymon-gateway-ui/gravitymon-gateay.html html/index.html
+          cp gravitymon-gateway-ui/gravitymon-gateway.html html/index.html
           cp gravitymon-gateway-ui/dist/favicon.ico html/favicon.ico
           gzip -f html/favicon.ico
 
