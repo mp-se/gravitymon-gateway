@@ -1,6 +1,7 @@
+/*
 MIT License
 
-Copyright (c) 2024-2025 Magnus
+Copyright (c) 2023-2024 Magnus
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,3 +20,39 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+ */
+#ifndef SRC_LED_HPP_
+#define SRC_LED_HPP_
+
+#include <pins_arduino.h>
+
+enum LedColor {
+#if defined(RGB_BUILTIN) || defined(ESPFWK_ENABLE_RGB_LED)
+  OFF = 0x000000,
+  BLACK = 0x000000,
+  RED = 0xff0000,
+  GREEN = 0x00ff00,
+  BLUE = 0x0000ff,
+  CYAN = 0x00ffff,
+  PURPLE = 0xff00ff,
+  YELLOW = 0xffff00,
+  WHITE = 0xffffff
+#else
+  OFF = HIGH,
+  BLACK = HIGH,
+  RED = 3,  // TIcker at fast pace
+  GREEN = LOW,
+  BLUE = 2,  // Ticker at slow pace
+  PURPLE = LOW,
+  CYAN = LOW,
+  YELLOW = LOW,
+  WHITE = LOW
+#endif
+};
+
+void ledOn(LedColor l = LedColor::WHITE);
+void ledOff();
+
+#endif  // SRC_LED_HPP_
+
+// EOF

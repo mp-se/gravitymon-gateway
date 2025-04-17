@@ -1,6 +1,7 @@
+/*
 MIT License
 
-Copyright (c) 2024-2025 Magnus
+Copyright (c) 2021-2024 Magnus
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,3 +20,36 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+ */
+#ifndef SRC_UTILS_HPP_
+#define SRC_UTILS_HPP_
+
+float convertCtoF(float c);
+float convertFtoC(float f);
+float convertKGtoLBS(float kg);
+float convertLBStoKG(float lbs);
+float convertCLtoUSOZ(float cl);
+float convertCLtoUKOZ(float cl);
+float convertUSOZtoCL(float usoz);
+float convertUKOZtoCL(float ukoz);
+double convertToPlato(double sg);
+double convertToSG(double plato);
+
+float reduceFloatPrecision(float f, int dec);
+char* convertFloatToString(float f, char* buf, int dec = 2);
+
+void tcp_cleanup();
+void deepSleep(int t);
+
+void printHeap(String prefix);
+
+void forcedReset();
+
+void checkResetReason();
+
+String urldecode(String str);
+String urlencode(String str);
+
+#endif  // SRC_UTILS_HPP_
+
+// EOF

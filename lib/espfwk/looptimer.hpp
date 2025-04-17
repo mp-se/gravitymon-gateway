@@ -1,6 +1,7 @@
+/*
 MIT License
 
-Copyright (c) 2024-2025 Magnus
+Copyright (c) 2024 Magnus
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,3 +20,37 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+ */
+#ifndef SRC_LOOPTIMER_HPP_
+#define SRC_LOOPTIMER_HPP_
+
+#include <Arduino.h>
+
+class LoopTimer {
+ private:
+  uint64_t _startMillis = 0;
+  uint64_t _interval = 0;
+  uint64_t _loopCounter = 0;
+
+ public:
+  explicit LoopTimer(uint64_t interval) {
+    _interval = interval;
+    reset();
+  }
+
+  bool hasExipred() {
+    if (abs((int32_t)(millis() - _startMillis)) > _interval) {
+      _loopCounter++;
+      return true;
+    }
+    return false;
+  }
+
+  void reset() { _startMillis = millis(); }
+  uint64_t getLoopCounter() { return _loopCounter; }
+  int32_t getTimePassed() { return abs((int32_t)(millis() - _startMillis)); }
+};
+
+#endif  // SRC_LOOPTIMER_HPP_
+
+// EOF

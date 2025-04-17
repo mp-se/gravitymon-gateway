@@ -1,10 +1,11 @@
 name: PlatformIO CI
 
 on: 
+  workflow_dispatch:
+  pull_request:
   push:
     branches: 
       - dev
-      - master
 
 jobs:
   pio-build:
@@ -20,6 +21,19 @@ jobs:
           git clone https://github.com/mp-se/gravitymon-gateway-ui gravitymon-gateway-ui 
           cp gravitymon-gateway-ui/dist/assets/style.css.gz html/app.css.gz
           cp gravitymon-gateway-ui/dist/assets/index.js.gz html/app.js.gz
+          cp gravitymon-gateway-ui/gravitymon-gateway.html html/index.html
+          cp gravitymon-gateway-ui/dist/favicon.ico html/favicon.ico
+          gzip -f html/favicon.ico
+
+          echo "Checkout shared code"
+          git clone -b dev https://github.com/mp-se/gravitymon gravitymon-gateway 
+          rm ./src/*
+          rm ./lib/espfwk/*
+          cp -R gravitymon-gateway/lib/ ./
+          cp -R gravitymon-gateway/src/ ./
+          cp -R gravitymon-gateway/script/ ./
+          cp -R gravitymon-gateway/boards/ ./
+          cp gravitymon-gateway/platformio.ini ./platformio.ini
 
       - name: Setup PlatformIO
         uses: n-vr/setup-platformio-action@v1.0.1    
@@ -27,7 +41,7 @@ jobs:
       - name: PlatformIO Run
         uses: karniv00l/platformio-run-action@v1
         with:
-          environments: "gw-pro,gw-s3pro,gw-s3-waveshare"
+          environments: "gateway32s3pro-release,gateway32pro-release,gateway32s3wave-release"
           jobs: 6
           silent: false
           verbose: true
@@ -41,4 +55,3 @@ jobs:
           default_author: github_actor
           message: 'GitHub Action Build'
           pathspec_error_handling: ignore
-          
