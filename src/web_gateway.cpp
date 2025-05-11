@@ -213,6 +213,8 @@ void GatewayWebServer::webHandleRemotePost(AsyncWebServerRequest *request,
 }
 
 void GatewayWebServer::loop() {
+  BrewingWebServer::loop();
+ 
   // Process data that was received in posts
   while (!_postData.empty()) {
     String data = _postData.front();
