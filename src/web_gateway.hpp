@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) 2023-2024 Magnus
+Copyright (c) 2024-2025 Magnus
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,38 +21,42 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
  */
-#ifndef SRC_LED_HPP_
-#define SRC_LED_HPP_
+#ifndef SRC_WEB_GATEWAY_HPP_
+#define SRC_WEB_GATEWAY_HPP_
 
-#include <pins_arduino.h>
+#if defined(GATEWAY)
 
-enum LedColor {
-#if defined(RGB_BUILTIN) || defined(ESPFWK_ENABLE_RGB_LED)
-  OFF = 0x000000,
-  BLACK = 0x000000,
-  RED = 0xff0000,
-  GREEN = 0x00ff00,
-  BLUE = 0x0000ff,
-  CYAN = 0x00ffff,
-  PURPLE = 0xff00ff,
-  YELLOW = 0xffff00,
-  WHITE = 0xffffff
-#else
-  OFF = HIGH,
-  BLACK = HIGH,
-  RED = 3,  // TIcker at fast pace
-  GREEN = LOW,
-  BLUE = 2,  // Ticker at slow pace
-  PURPLE = LOW,
-  CYAN = LOW,
-  YELLOW = LOW,
-  WHITE = LOW
-#endif
+#include <web_gateway.hpp>
+#include <web_brewing.hpp>
+
+#include <queue>
+
+class GatewayWebServer : public BrewingWebServer {
+ private:
+  std::queue<String> _postData;
+  GravmonGatewayConfig* _gatewayConfig = nullptr;
+
+ public:
+  explicit GatewayWebServer(GravmonGatewayConfig *config);
+  void webHandleRemotePost(AsyncWebServerRequest *request, JsonVariant &json);
+
+  void doWebStatus(JsonObject &obj);
+  bool setupWebServer(const char *serviceName);
+
+  void doWebCalibrateStatus(JsonObject &obj) {}
+  void doWebConfigWrite() {}  
+  void doTaskSensorCalibration() {}
+  void doTaskPushTestSetup(TemplatingEngine &engine, BrewingPush &push) {}
+  void doTaskHardwareScanning(JsonObject &obj) {}
+
+  virtual void loop();
 };
 
-void ledOn(LedColor l = LedColor::WHITE);
-void ledOff();
+// Global instance created
+extern GatewayWebServer myWebServer;
 
-#endif  // SRC_LED_HPP_
+#endif  // GATEWAY
+
+#endif  // SRC_WEB_GATEWAY_HPP_
 
 // EOF

@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) 2021-2024 Magnus
+Copyright (c) 2022-2024 Magnus
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,26 +21,30 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
  */
-#ifndef SRC_LOG_HPP_
-#define SRC_LOG_HPP_
+#include <Arduino.h>
+#include <main.hpp>
+#include <helper.hpp>
+#include <AUnit.h>
 
-#include <ArduinoLog.hpp>
+using aunit::Printer;
+using aunit::TestRunner;
+using aunit::Verbosity;
 
-class SerialDebug {
- private:
-  uint32_t _serialSpeed;
- public:
-  explicit SerialDebug(const uint32_t serialSpeed = 115200L, bool autoBegin = true);
-  void begin(Print* p);
-  uint32_t getSerialSpeed() { return _serialSpeed; }
-  static Logging* getLog() { return &Log; }
-};
 
-void printTimestamp(Print* _logOutput, int _logLevel);
-void printNewline(Print* _logOutput);
+void setup() {
+  Serial.begin(115200);
+  Serial.println("Gravitymon Gateway - Unit Test Build");
 
-#define EspSerial Serial
+  delay(2000);
+  Printer::setPrinter(&Serial);
+  // TestRunner::setVerbosity(Verbosity::kAll);
 
-#endif  // SRC_LOG_HPP_
+  // TestRunner::exclude("measure_*");
+}
+
+void loop() {
+  TestRunner::run();
+  delay(10);
+}
 
 // EOF

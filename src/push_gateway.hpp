@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) 2024 Magnus
+Copyright (c) 2021-2025 Magnus
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,36 +21,27 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
  */
-#ifndef SRC_LOOPTIMER_HPP_
-#define SRC_LOOPTIMER_HPP_
+#ifndef SRC_PUSH_GATEWAY_HPP_
+#define SRC_PUSH_GATEWAY_HPP_
 
-#include <Arduino.h>
+#if defined(GATEWAY)
 
-class LoopTimer {
- private:
-  uint64_t _startMillis = 0;
-  uint64_t _interval = 0;
-  uint64_t _loopCounter = 0;
+#include <templating.hpp>
+#include <config_gateway.hpp>
 
- public:
-  explicit LoopTimer(uint64_t interval) {
-    _interval = interval;
-    reset();
-  }
+void setupTemplateEngineGravityGateway(GravmonGatewayConfig *config, TemplatingEngine& engine, float angle,
+    float gravitySG, float tempC,
+    float voltage, int interval,
+    const char* id, const char* token,
+    const char* name);
 
-  bool hasExipred() {
-    if (abs((int32_t)(millis() - _startMillis)) > _interval) {
-      _loopCounter++;
-      return true;
-    }
-    return false;
-  }
+void setupTemplateEnginePressureGateway(GravmonGatewayConfig *config, TemplatingEngine& engine,
+    float pressurePsi, float pressurePsi1,
+    float tempC, float voltage,
+    int interval, const char* id,
+    const char* token, const char* name);
 
-  void reset() { _startMillis = millis(); }
-  uint64_t getLoopCounter() { return _loopCounter; }
-  int32_t getTimePassed() { return abs((int32_t)(millis() - _startMillis)); }
-};
 
-#endif  // SRC_LOOPTIMER_HPP_
+#endif  // GATEWAY
 
-// EOF
+#endif  // SRC_PUSH_GATEWAY_HPP_
