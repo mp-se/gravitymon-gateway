@@ -28,11 +28,6 @@ SOFTWARE.
 
 #include <templating.hpp>
 
-enum RunMode {
-  measurementMode = 0,
-  wifiSetupMode = 1,
-};
-
 void setupTemplateEngineGravityGateway(TemplatingEngine& engine, float angle,
                                        float gravitySG, float tempC,
                                        float voltage, int interval,
