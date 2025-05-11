@@ -26,21 +26,22 @@ SOFTWARE.
 
 #if defined(GATEWAY)
 
-#include <templating.hpp>
 #include <config_gateway.hpp>
+#include <templating.hpp>
 
-void setupTemplateEngineGravityGateway(GravmonGatewayConfig *config, TemplatingEngine& engine, float angle,
-    float gravitySG, float tempC,
-    float voltage, int interval,
-    const char* id, const char* token,
-    const char* name);
+void setupTemplateEngineGravityGateway(GravmonGatewayConfig* config,
+                                       TemplatingEngine& engine, float angle,
+                                       float gravitySG, float tempC,
+                                       float voltage, int interval,
+                                       const char* id, const char* token,
+                                       const char* name);
 
-void setupTemplateEnginePressureGateway(GravmonGatewayConfig *config, TemplatingEngine& engine,
-    float pressurePsi, float pressurePsi1,
-    float tempC, float voltage,
-    int interval, const char* id,
-    const char* token, const char* name);
-
+void setupTemplateEnginePressureGateway(GravmonGatewayConfig* config,
+                                        TemplatingEngine& engine,
+                                        float pressurePsi, float pressurePsi1,
+                                        float tempC, float voltage,
+                                        int interval, const char* id,
+                                        const char* token, const char* name);
 
 #endif  // GATEWAY
 

@@ -23,6 +23,7 @@ SOFTWARE.
  */
 #if defined(GATEWAY)
 
+#include <cstdio>
 #include <display.hpp>
 #include <fonts.hpp>
 #include <log.hpp>

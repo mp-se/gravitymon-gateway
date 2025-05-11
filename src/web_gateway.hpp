@@ -26,15 +26,14 @@ SOFTWARE.
 
 #if defined(GATEWAY)
 
-#include <web_gateway.hpp>
-#include <web_brewing.hpp>
-
 #include <queue>
+#include <web_brewing.hpp>
+#include <web_gateway.hpp>
 
 class GatewayWebServer : public BrewingWebServer {
  private:
   std::queue<String> _postData;
-  GravmonGatewayConfig* _gatewayConfig = nullptr;
+  GravmonGatewayConfig *_gatewayConfig = nullptr;
 
  public:
   explicit GatewayWebServer(GravmonGatewayConfig *config);
@@ -44,7 +43,7 @@ class GatewayWebServer : public BrewingWebServer {
   bool setupWebServer(const char *serviceName);
 
   void doWebCalibrateStatus(JsonObject &obj) {}
-  void doWebConfigWrite() {}  
+  void doWebConfigWrite() {}
   void doTaskSensorCalibration() {}
   void doTaskPushTestSetup(TemplatingEngine &engine, BrewingPush &push) {}
   void doTaskHardwareScanning(JsonObject &obj) {}

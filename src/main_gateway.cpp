@@ -30,6 +30,7 @@ SOFTWARE.
 #include <led.hpp>
 #include <log.hpp>
 #include <main.hpp>
+#include <main_gateway.hpp>
 #include <push_gateway.hpp>
 #include <pushtarget.hpp>
 #include <serialws.hpp>
@@ -69,7 +70,8 @@ WifiConnection myWifi(&myConfig, CFG_AP_SSID, CFG_AP_PASS, CFG_APPNAME,
 GatewayWebServer myWebServer(&myConfig);
 SerialWebSocket mySerialWebSocket;
 Display myDisplay;
-BatteryVoltage myBatteryVoltage(&myConfig); // Needs to be defined but not used in gateway
+BatteryVoltage myBatteryVoltage(
+    &myConfig);  // Needs to be defined but not used in gateway
 MeasurementList myMeasurementList;  // Data recevied from http or bluetooth
 LoopTimer controllerTimer(5000), displayTimer(2000);
 
