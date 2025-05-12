@@ -25,15 +25,15 @@ jobs:
           cp gravitymon-gateway-ui/dist/favicon.ico html/favicon.ico
           gzip -f html/favicon.ico
 
-          echo "Checkout shared code"
-          git clone -b dev https://github.com/mp-se/gravitymon gravitymon-gateway 
-          rm ./src/*
-          rm ./lib/espfwk/*
-          cp -R gravitymon-gateway/lib/ ./
-          cp -R gravitymon-gateway/src/ ./
-          cp -R gravitymon-gateway/script/ ./
-          cp -R gravitymon-gateway/boards/ ./
-          cp gravitymon-gateway/platformio.ini ./platformio.ini
+          # echo "Checkout shared code"
+          # git clone -b dev https://github.com/mp-se/gravitymon gravitymon-gateway 
+          # rm ./src/*
+          # rm ./lib/espfwk/*
+          # cp -R gravitymon-gateway/lib/ ./
+          # cp -R gravitymon-gateway/src/ ./
+          # cp -R gravitymon-gateway/script/ ./
+          # cp -R gravitymon-gateway/boards/ ./
+          # cp gravitymon-gateway/platformio.ini ./platformio.ini
 
       - name: Setup PlatformIO
         uses: n-vr/setup-platformio-action@v1.0.1    

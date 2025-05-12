@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) 2024 Magnus
+Copyright (c) 2024-2025 Magnus
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,36 +21,41 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
  */
-#ifndef SRC_LOOPTIMER_HPP_
-#define SRC_LOOPTIMER_HPP_
+#ifndef SRC_WEB_GATEWAY_HPP_
+#define SRC_WEB_GATEWAY_HPP_
 
-#include <Arduino.h>
+#if defined(GATEWAY)
 
-class LoopTimer {
+#include <queue>
+#include <web_brewing.hpp>
+#include <web_gateway.hpp>
+
+class GatewayWebServer : public BrewingWebServer {
  private:
-  uint64_t _startMillis = 0;
-  uint64_t _interval = 0;
-  uint64_t _loopCounter = 0;
+  std::queue<String> _postData;
+  GravmonGatewayConfig *_gatewayConfig = nullptr;
 
  public:
-  explicit LoopTimer(uint64_t interval) {
-    _interval = interval;
-    reset();
-  }
+  explicit GatewayWebServer(GravmonGatewayConfig *config);
+  void webHandleRemotePost(AsyncWebServerRequest *request, JsonVariant &json);
 
-  bool hasExipred() {
-    if (abs((int32_t)(millis() - _startMillis)) > _interval) {
-      _loopCounter++;
-      return true;
-    }
-    return false;
-  }
+  void doWebStatus(JsonObject &obj);
+  bool setupWebServer(const char *serviceName);
 
-  void reset() { _startMillis = millis(); }
-  uint64_t getLoopCounter() { return _loopCounter; }
-  int32_t getTimePassed() { return abs((int32_t)(millis() - _startMillis)); }
+  void doWebCalibrateStatus(JsonObject &obj) {}
+  void doWebConfigWrite() {}
+  void doTaskSensorCalibration() {}
+  void doTaskPushTestSetup(TemplatingEngine &engine, BrewingPush &push) {}
+  void doTaskHardwareScanning(JsonObject &obj) {}
+
+  virtual void loop();
 };
 
-#endif  // SRC_LOOPTIMER_HPP_
+// Global instance created
+extern GatewayWebServer myWebServer;
+
+#endif  // GATEWAY
+
+#endif  // SRC_WEB_GATEWAY_HPP_
 
 // EOF
