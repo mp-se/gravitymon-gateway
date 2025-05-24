@@ -94,6 +94,7 @@ void setup() {
 
   delay(2000);
 
+  #if defined(ENABLE_TFT)
   Log.notice(F("Main: TOUCH_CS %d." CR), TOUCH_CS);
   Log.notice(F("Main: TFT_BL %d." CR), TFT_BL);
   Log.notice(F("Main: TFT_DC %d." CR), TFT_DC);
@@ -102,6 +103,7 @@ void setup() {
   Log.notice(F("Main: TFT_SCLK %d." CR), TFT_SCLK);
   Log.notice(F("Main: TFT_RST %d." CR), TFT_RST);
   Log.notice(F("Main: TFT_CS %d." CR), TFT_CS);
+  #endif
 
   Log.notice(F("Main: Initialize display." CR));
   myDisplay.setup();

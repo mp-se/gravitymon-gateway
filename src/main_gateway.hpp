@@ -46,6 +46,8 @@ void setupTemplateEnginePressureGateway(TemplatingEngine& engine,
 #define PIN_VOLT T0
 #elif defined(LOLIN_S3)
 #define PIN_VOLT A3
+#elif defined(LOLIN_D32)
+#define PIN_VOLT A3
 #endif
 
 #endif  // GATEWAY
