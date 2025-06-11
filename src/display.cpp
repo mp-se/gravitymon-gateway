@@ -193,8 +193,9 @@ void Display::updateHistory(const char *history, int idx) {
   lvglData._dataHistory[idx] = history;
 }
 
-void Display::updateStatus(const char *status) {
+void Display::updateStatus(const char *status, bool darkmode) {
   lvglData._dataStatusbar = status;
+  lvglData._darkmode = darkmode;
 }
 
 // LVGL Wrappers and Handlers
@@ -225,6 +226,30 @@ void lvgl_loop_handler(void *parameter) {
   for (;;) {
     if (taskLoop.hasExpired()) {
       taskLoop.reset();
+
+      lv_obj_t *scr = lv_scr_act();
+      lv_color_t color;
+
+      if(lvglData._darkmode) { 
+        lv_obj_set_style_bg_color(scr, lv_color_hex(0x1F1F1F), LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, LV_PART_MAIN);
+        color = lv_color_white();
+      } else {
+        lv_obj_set_style_bg_color(scr, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, LV_PART_MAIN);
+        color = lv_color_black();
+      }
+
+      lv_obj_set_style_text_color(lvglData._txtDeviceName, color, 0);
+      lv_obj_set_style_text_color(lvglData._txtDeviceIndex, color, 0);
+      lv_obj_set_style_text_color(lvglData._txtDeviceValue1, color, 0);
+      lv_obj_set_style_text_color(lvglData._txtDeviceValue2, color, 0);
+      lv_obj_set_style_text_color(lvglData._txtDeviceValue3, color, 0);
+      lv_obj_set_style_text_color(lvglData._txtDeviceTimeStamp, color, 0);
+      lv_obj_set_style_text_color(lvglData._txtStatusbar, color, 0);
+
+      for (int i = 0; i < 5; i++)
+        lv_obj_set_style_text_color(lvglData._txtHistory[i], color, 0);
 
       updateLabel(lvglData._txtDeviceName, lvglData._dataDeviceName.c_str());
       updateLabel(lvglData._txtDeviceIndex, lvglData._dataDeviceIndex.c_str());

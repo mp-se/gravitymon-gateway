@@ -243,7 +243,6 @@ void loop() {
       if (!myWifi.isConnected()) {
         Log.warning(F("Loop: Wifi was disconnected, trying to reconnect." CR));
         myWifi.connect();
-        updateDisplayStatus();
       }
       controller();
       break;
@@ -259,6 +258,8 @@ void loop() {
 
   if (displayTimer.hasExpired()) {
     displayTimer.reset();
+
+    updateDisplayStatus();
 
     if (myMeasurementList.size() == 0) {  // No data to display
       myDisplay.updateDevice("No data received", "", "", "", "", 0, 0);
@@ -554,7 +555,7 @@ void updateDisplayStatus() {
       break;
   }
 
-  myDisplay.updateStatus(info);
+  myDisplay.updateStatus(info, myConfig.getDarkMode());
 }
 
 void updateDisplayLogs() {

@@ -59,6 +59,8 @@ struct LVGL_Data {
   String _dataDeviceTimeStamp;
   String _dataStatusbar;
   String _dataHistory[5];
+
+  bool _darkmode;
 };
 #endif
 
@@ -97,7 +99,7 @@ class Display {
                     const char* value3, const char* timestamp, int index,
                     int maxIndex);
   void updateHistory(const char* history, int idx);
-  void updateStatus(const char* status);
+  void updateStatus(const char* status, bool darkmode);
 };
 
 // Wrappers to simplify interaction with LVGL
