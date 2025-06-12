@@ -152,6 +152,7 @@ void setup() {
       } else {
         myWifi.connect(false, WIFI_AP);
       }
+      // myDisplay.calibrateTouch();
       break;
   }
 

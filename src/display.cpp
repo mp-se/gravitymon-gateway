@@ -33,6 +33,8 @@ SOFTWARE.
 TaskHandle_t lvglTaskHandler;
 struct LVGL_Data lvglData;
 
+// constexpr auto TTF_CALIBRATION_FILENAME = "/tft.dat";
+
 Display::Display() { _tft = new TFT_eSPI(); }
 
 void Display::setup() {
@@ -82,10 +84,11 @@ void Display::printLineCentered(int l, const String &text) {
   _tft->drawString(text.c_str(), (_tft->width() - w) / 2, l * h, GFXFF);
 }
 
-void Display::clear() {
+void Display::clear(uint32_t color) {
   if (!_tft) return;
 
-  _tft->fillScreen(TFT_BLACK);
+  _backgroundColor = color;
+  _tft->fillScreen(_backgroundColor);
   delay(1);
 }
 
@@ -116,6 +119,11 @@ void Display::createUI() {
   } else {  // Rotation::ROTATION_270
     lv_display_set_rotation(lvglData._display, LV_DISPLAY_ROTATION_270);
   }
+
+  // Initialize an LVGL input device object (Touchscreen)
+  // lv_indev_t *indev = lv_indev_create();
+  // lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
+  // lv_indev_set_read_cb(indev, touchscreenHandler);
 
   // Create components
   lv_style_init(&lvglData._font12);
@@ -198,8 +206,103 @@ void Display::updateStatus(const char *status, bool darkmode) {
   lvglData._darkmode = darkmode;
 }
 
+// void Display::calibrateTouch() {
+// #if defined(ENABLE_LVGL)
+//   if (!_tft) return;
+
+//   uint16_t x, y, pressed, i = 0;
+
+//   myDisplay.printLineCentered(4, "Press screen to calibrate");
+
+//   do {
+//     delay(300);
+//     pressed = _tft->getTouch(&x, &y, 600);
+//     // Log.info(F("DISP: Screen touched %d." CR), pressed);
+//   } while (!pressed && ++i < 10);
+
+//   if (pressed) {
+//     clear(TFT_GREEN);
+//     myDisplay.printLineCentered(4, "Touch detected");
+//     Log.info(F("DISP: Touch screen pressed, force calibration." CR));
+//     delay(3000);
+//   }
+
+//   File file = LittleFS.open(TTF_CALIBRATION_FILENAME, "r");
+
+//   if (file) {
+//     Log.info(F("DISP: Loading touch calibration data from file." CR));
+//     file.read(reinterpret_cast<uint8_t *>(&this->_touchCalibrationlData),
+//               sizeof(_touchCalibrationlData));
+//     file.close();
+//   } else {
+//     _touchCalibrationlData[0] = 0;
+//   }
+
+//   if (pressed || (_touchCalibrationlData[0] == 0)) {
+//     Log.info(F("DISP: Running calibration sequence." CR));
+
+//     clear();
+//     myDisplay.printLineCentered(4, "Calibration started");
+//     _tft->calibrateTouch(_touchCalibrationlData, TFT_GREEN, TFT_BLACK, 15);
+
+//     file = LittleFS.open(TTF_CALIBRATION_FILENAME, "w");
+
+//     if (file) {
+//       file.write(reinterpret_cast<uint8_t *>(&this->_touchCalibrationlData),
+//                  sizeof(_touchCalibrationlData));
+//       file.close();
+//     } else {
+//       Log.warning(F("DISP: Failed to write calibration data to file." CR));
+//     }
+
+//     myDisplay.printLineCentered(4, "Touch calibration completed");
+//     delay(3000);
+//   }
+
+//   myDisplay.printLineCentered(4, "");
+// #endif
+// }
+
+// bool Display::getTouch(uint16_t *x, uint16_t *y) {
+// #if defined(ENABLE_TFT)
+//   uint16_t xt, yt;
+//   uint8_t b = _tft->getTouch(&xt, &yt);
+
+//   if (b) {
+//     if (xt < 0) xt = 0;
+//     if (yt < 0) yt = 0;
+
+//     if (_rotation == Rotation::ROTATION_90) {
+//       *x = yt;
+//       *y = TFT_HEIGHT - xt;
+//     } else {  // Rotation::ROTATION_270
+//       *x = yt;
+//       *y = TFT_HEIGHT - xt;
+//     }
+//   }
+
+//   return b;
+// #else
+//   return false;
+// #endif
+// }
+
 // LVGL Wrappers and Handlers
 // **************************************************************************************************
+
+// void touchscreenHandler(lv_indev_t *indev, lv_indev_data_t *data) {
+//   uint16_t x = 0, y = 0;
+
+//   if (myDisplay.getTouch(&x, &y)) {
+//     data->state = LV_INDEV_STATE_PRESSED;
+//     data->point.x = x;
+//     data->point.y = y;
+
+//     // Log.notice(F("LVGL : %d:%d." CR), x, y);
+//   } else {
+//     data->state = LV_INDEV_STATE_RELEASED;
+//   }
+// }
 
 void log_print(lv_log_level_t level, const char *buf) {
   LV_UNUSED(level);
@@ -287,7 +390,7 @@ void Display::printLine(int l, const String& text) {}
 
 void Display::printLineCentered(int l, const String& text) {}
 
-void Display::clear() {}
+void Display::clear(uint32_t color) {}
 
 void Display::updateDevice(const char* name, const char* value1,
                            const char* value2, const char* value3,

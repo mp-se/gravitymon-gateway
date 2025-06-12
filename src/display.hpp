@@ -82,13 +82,15 @@ class Display {
 #endif
   FontSize _fontSize = FontSize::FONT_9;
   Rotation _rotation = ROTATION_90;
+  // uint16_t _touchCalibrationlData[5] = {0, 0, 0, 0, 0};
 
  public:
   Display();
   void setup();
   void createUI();
+  // void calibrateTouch();
 
-  void clear();
+  void clear(uint32_t color = TFT_BLACK);
   void setFont(FontSize f);
   void printLine(int l, const String& text);
   void printLineCentered(int l, const String& text);
@@ -100,6 +102,10 @@ class Display {
                     int maxIndex);
   void updateHistory(const char* history, int idx);
   void updateStatus(const char* status, bool darkmode);
+
+  // LVGL methods
+  // bool getTouch(uint16_t* x, uint16_t* y);  // Check for touch callback
+  // void handleButtonEvent(char btn);
 };
 
 // Wrappers to simplify interaction with LVGL
@@ -108,6 +114,7 @@ lv_obj_t* createLabel(const char* label, int32_t x, int32_t y, int32_t w,
                       int32_t h, lv_style_t* style);
 void updateLabel(lv_obj_t* obj, const char* label);
 void setStyle(lv_obj_t* obj, lv_style_t* style);
+// void touchscreenHandler(lv_indev_t* indev, lv_indev_data_t* data);
 void log_print(lv_log_level_t level, const char* buf);
 void lvgl_loop_handler(void* parameter);
 
