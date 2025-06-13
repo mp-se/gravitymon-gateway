@@ -45,7 +45,7 @@ void Display::setup() {
   _tft->init();
   _tft->setSwapBytes(true);
   _tft->setRotation(1);  // 90 degrees
-  clear();
+  clear(TFT_BLACK);
   setFont(FontSize::FONT_9);
 
 #if TOUCH_CS == -1  // Using CST328 touch on waveshare
@@ -254,7 +254,7 @@ void Display::calibrateTouch() {
   if (pressed || (_touchCalibrationlData[0] == 0)) {
     Log.info(F("DISP: Running calibration sequence." CR));
 
-    clear();
+    clear(TFT_BLACK);
     myDisplay.printLineCentered(4, "Calibration started");
     _tft->calibrateTouch(_touchCalibrationlData, TFT_GREEN, TFT_BLACK, 15);
 
@@ -451,6 +451,8 @@ void Display::setup() {}
 
 void Display::createUI() {}
 
+void Display::calibrateTouch() {}
+
 void Display::setFont(FontSize f) {}
 
 void Display::printLine(int l, const String& text) {}
@@ -463,7 +465,7 @@ void Display::updateDevice(const char* name, const char* value1,
                            const char* value2, const char* value3,
                            const char* timestamp, int index, int maxIndex) {}
 void Display::updateHistory(const char* history, int idx) {}
-void Display::updateStatus(const char* status) {}
+void Display::updateStatus(const char* status, bool darkmode) {}
 
 #endif
 

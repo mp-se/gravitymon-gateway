@@ -233,7 +233,7 @@ void setup() {
   myDisplay.createUI();
 #endif
 
-#define CREATE_TESTDATA 1
+// #define CREATE_TESTDATA 1
 
 #if defined(CREATE_TESTDATA)
   std::unique_ptr<MeasurementBaseData> gravityData1;

@@ -79,10 +79,10 @@ class Display {
 #if defined(ENABLE_TFT)
   TFT_eSPI* _tft = NULL;
   uint32_t _backgroundColor = TFT_BLACK;
+  uint16_t _touchCalibrationlData[5] = {0, 0, 0, 0, 0};
 #endif
   FontSize _fontSize = FontSize::FONT_9;
   // Rotation _rotation = ROTATION_90;
-  uint16_t _touchCalibrationlData[5] = {0, 0, 0, 0, 0};
 
  public:
   Display();
@@ -90,7 +90,7 @@ class Display {
   void createUI();
   void calibrateTouch();
 
-  void clear(uint32_t color = TFT_BLACK);
+  void clear(uint32_t color);
   void setFont(FontSize f);
   void printLine(int l, const String& text);
   void printLineCentered(int l, const String& text);
