@@ -74,7 +74,7 @@ Display myDisplay;
 BatteryVoltage myBatteryVoltage(
     &myConfig);  // Needs to be defined but not used in gateway
 MeasurementList myMeasurementList;  // Data recevied from http or bluetooth
-LoopTimer controllerTimer(5000), displayTimer(1000);
+LoopTimer controllerTimer(5000), displayTimer(4000);
 
 bool sleepModeAlwaysSkip =
     false;  // Needs to be defined but not used in gateway
@@ -283,118 +283,118 @@ void loop() {
 
   if (displayTimer.hasExpired()) {
     displayTimer.reset();
+    displayMeasurementIndex++;
+  }
 
-    updateDisplayStatus();
+  updateDisplayStatus();
 
-    if (myMeasurementList.size() == 0) {  // No data to display
-      myDisplay.updateDevice("No data received", "", "", "", "", 0, 0);
-    } else {
-      if (displayMeasurementIndex >= myMeasurementList.size())
-        displayMeasurementIndex = 0;
+  if (myMeasurementList.size() == 0) {  // No data to display
+    myDisplay.updateDevice("No data received", "", "", "", "", 0, 0);
+  } else {
+    if (displayMeasurementIndex >= myMeasurementList.size())
+      displayMeasurementIndex = 0;
 
-      MeasurementEntry* entry =
-          myMeasurementList.getMeasurementEntry(displayMeasurementIndex);
+    MeasurementEntry* entry =
+        myMeasurementList.getMeasurementEntry(displayMeasurementIndex);
 
-      char t[20], v1[20], v2[20], v3[20], s[20];
-      strftime(t, sizeof(t), "%Y-%m-%d %H:%M:%S", entry->getTimeinfoUpdated());
+    char t[20], v1[20], v2[20], v3[20], s[20];
+    strftime(t, sizeof(t), "%Y-%m-%d %H:%M:%S", entry->getTimeinfoUpdated());
 
-      switch (entry->getType()) {
-        case MeasurementType::Gravitymon: {
-          const GravityData* gd = entry->getGravityData();
+    switch (entry->getType()) {
+      case MeasurementType::Gravitymon: {
+        const GravityData* gd = entry->getGravityData();
 
-          float temp = myConfig.isTempFormatF() ? convertCtoF(gd->getTempC())
-                                                : gd->getTempC();
-          float gravity = myConfig.isGravityPlato()
-                              ? convertToPlato(gd->getGravity())
-                              : gd->getGravity();
+        float temp = myConfig.isTempFormatF() ? convertCtoF(gd->getTempC())
+                                              : gd->getTempC();
+        float gravity = myConfig.isGravityPlato()
+                            ? convertToPlato(gd->getGravity())
+                            : gd->getGravity();
 
-          snprintf(v1, sizeof(v1), "%.3F%s", gravity,
-                   myConfig.isGravitySG() ? "SG" : "P");
-          snprintf(v2, sizeof(v2), "%.1F%s", temp,
-                   myConfig.isTempUnitC() ? "°C" : "°F");
-          snprintf(v3, sizeof(v3), "%.2FV", gd->getBattery());
-          snprintf(s, sizeof(s), "Gravmon (%s)", gd->getId());
+        snprintf(v1, sizeof(v1), "%.3F%s", gravity,
+                  myConfig.isGravitySG() ? "SG" : "P");
+        snprintf(v2, sizeof(v2), "%.1F%s", temp,
+                  myConfig.isTempUnitC() ? "°C" : "°F");
+        snprintf(v3, sizeof(v3), "%.2FV", gd->getBattery());
+        snprintf(s, sizeof(s), "Gravmon (%s)", gd->getId());
 
-          myDisplay.updateDevice(strlen(gd->getName()) ? gd->getName() : s, v1,
-                                 v2, v3, t, displayMeasurementIndex,
-                                 myMeasurementList.size());
-        } break;
-        case MeasurementType::Pressuremon: {
-          const PressureData* pd = entry->getPressureData();
+        myDisplay.updateDevice(strlen(gd->getName()) ? gd->getName() : s, v1,
+                                v2, v3, t, displayMeasurementIndex,
+                                myMeasurementList.size());
+      } break;
+      case MeasurementType::Pressuremon: {
+        const PressureData* pd = entry->getPressureData();
 
-          float temp = myConfig.isTempFormatF() ? convertCtoF(pd->getTempC())
-                                                : pd->getTempC();
-          float pressure = myConfig.isPressureBar()
-                               ? convertPsiPressureToBar(pd->getPressure())
-                           : myConfig.isPressureKpa()
-                               ? convertPsiPressureToKPa(pd->getPressure())
-                               : pd->getPressure();
-          float pressure1 =
-              myConfig.isPressureBar()   ?
-              convertPsiPressureToBar(pd->getPressure1()) :
-              myConfig.isPressureKpa() ?
-              convertPsiPressureToKPa(pd->getPressure1())
-                                         : pd->getPressure1();
+        float temp = myConfig.isTempFormatF() ? convertCtoF(pd->getTempC())
+                                              : pd->getTempC();
+        float pressure = myConfig.isPressureBar()
+                              ? convertPsiPressureToBar(pd->getPressure())
+                          : myConfig.isPressureKpa()
+                              ? convertPsiPressureToKPa(pd->getPressure())
+                              : pd->getPressure();
+        float pressure1 =
+            myConfig.isPressureBar()   ?
+            convertPsiPressureToBar(pd->getPressure1()) :
+            myConfig.isPressureKpa() ?
+            convertPsiPressureToKPa(pd->getPressure1())
+                                        : pd->getPressure1();
 
-          snprintf(v1, sizeof(v1), "%.3F%s", pressure,
-                   myConfig.getPressureUnit());
-          snprintf(v2, sizeof(v2), "%.1F%s", temp,
-                   myConfig.isTempUnitC() ? "°C" : "°F");
-          snprintf(v3, sizeof(v3), "%.2FV", pd->getBattery());
-          snprintf(s, sizeof(s), "Pressmon (%s)", pd->getId());
+        snprintf(v1, sizeof(v1), "%.3F%s", pressure,
+                  myConfig.getPressureUnit());
+        snprintf(v2, sizeof(v2), "%.1F%s", temp,
+                  myConfig.isTempUnitC() ? "°C" : "°F");
+        snprintf(v3, sizeof(v3), "%.2FV", pd->getBattery());
+        snprintf(s, sizeof(s), "Pressmon (%s)", pd->getId());
 
-          myDisplay.updateDevice(strlen(pd->getName()) ? pd->getName() : s, v1,
-                                 v2, v3, t, displayMeasurementIndex,
-                                 myMeasurementList.size());
-        } break;
-        case MeasurementType::Chamber: {
-          const ChamberData* cd = entry->getChamberData();
+        myDisplay.updateDevice(strlen(pd->getName()) ? pd->getName() : s, v1,
+                                v2, v3, t, displayMeasurementIndex,
+                                myMeasurementList.size());
+      } break;
+      case MeasurementType::Chamber: {
+        const ChamberData* cd = entry->getChamberData();
 
-          float chamberTemp = myConfig.isTempFormatF()
-                                  ? convertCtoF(cd->getChamberTempC())
-                                  : cd->getChamberTempC();
-          float beerTemp = myConfig.isTempFormatF()
-                               ? convertCtoF(cd->getBeerTempC())
-                               : cd->getBeerTempC();
+        float chamberTemp = myConfig.isTempFormatF()
+                                ? convertCtoF(cd->getChamberTempC())
+                                : cd->getChamberTempC();
+        float beerTemp = myConfig.isTempFormatF()
+                              ? convertCtoF(cd->getBeerTempC())
+                              : cd->getBeerTempC();
 
-          snprintf(v1, sizeof(v1), "C: %.1F%s", chamberTemp,
-                   myConfig.isTempUnitC() ? "°C" : "°F");
-          snprintf(v2, sizeof(v2), "B: %.1F%s", beerTemp,
-                   myConfig.isTempUnitC() ? "°C" : "°F");
-          snprintf(v3, sizeof(v3), "");
-          snprintf(s, sizeof(s), "Chamber (%s)", cd->getId());
+        snprintf(v1, sizeof(v1), "C: %.1F%s", chamberTemp,
+                  myConfig.isTempUnitC() ? "°C" : "°F");
+        snprintf(v2, sizeof(v2), "B: %.1F%s", beerTemp,
+                  myConfig.isTempUnitC() ? "°C" : "°F");
+        snprintf(v3, sizeof(v3), "");
+        snprintf(s, sizeof(s), "Chamber (%s)", cd->getId());
 
-          myDisplay.updateDevice(s, v1, v2, v3, t, displayMeasurementIndex,
-                                 myMeasurementList.size());
-        } break;
-        case MeasurementType::TiltPro:
-        case MeasurementType::Tilt: {
-          const TiltData* td = entry->getTiltData();
+        myDisplay.updateDevice(s, v1, v2, v3, t, displayMeasurementIndex,
+                                myMeasurementList.size());
+      } break;
+      case MeasurementType::TiltPro:
+      case MeasurementType::Tilt: {
+        const TiltData* td = entry->getTiltData();
 
-          float temp = myConfig.isTempFormatF() ? convertCtoF(td->getTempC())
-                                                : td->getTempC();
-          float gravity = myConfig.isGravityPlato()
-                              ? convertToPlato(td->getGravity())
-                              : td->getGravity();
+        float temp = myConfig.isTempFormatF() ? convertCtoF(td->getTempC())
+                                              : td->getTempC();
+        float gravity = myConfig.isGravityPlato()
+                            ? convertToPlato(td->getGravity())
+                            : td->getGravity();
 
-          snprintf(v1, sizeof(v1), "%.3F%s", gravity,
-                   myConfig.isGravitySG() ? "SG" : "P");
-          snprintf(v2, sizeof(v2), "%.1F%s", temp,
-                   myConfig.isTempUnitC() ? "°C" : "°F");
-          snprintf(v3, sizeof(v3), "");
-          snprintf(s, sizeof(s), "Tilt: %s", td->getId());
+        snprintf(v1, sizeof(v1), "%.3F%s", gravity,
+                  myConfig.isGravitySG() ? "SG" : "P");
+        snprintf(v2, sizeof(v2), "%.1F%s", temp,
+                  myConfig.isTempUnitC() ? "°C" : "°F");
+        snprintf(v3, sizeof(v3), "");
+        snprintf(s, sizeof(s), "Tilt: %s", td->getId());
 
-          myDisplay.updateDevice(s, v1, v2, v3, t, displayMeasurementIndex,
-                                 myMeasurementList.size());
-        } break;
-      }
-
-      displayMeasurementIndex++;
+        myDisplay.updateDevice(s, v1, v2, v3, t, displayMeasurementIndex,
+                                myMeasurementList.size());
+      } break;
     }
   }
 }
 
 void gestureLeft() {
+  displayTimer.reset();
   displayMeasurementIndex--;
 
   if (displayMeasurementIndex < 0 && myMeasurementList.size())
@@ -404,12 +404,12 @@ void gestureLeft() {
 }
 
 void gestureRight() {
+  displayTimer.reset();
   displayMeasurementIndex++;
 
   if (displayMeasurementIndex >= myMeasurementList.size())
     displayMeasurementIndex = 0;
 }
-
 
 void addGravityLogEntry(const char* id, const tm* timeinfo, float gravitySG,
                         float tempC) {

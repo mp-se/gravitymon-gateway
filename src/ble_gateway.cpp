@@ -337,11 +337,12 @@ bool BleScanner::scan() {
   Log.notice(F("BLE : Starting %s scan." CR),
              _activeScan ? "ACTIVE" : "PASSIVE");
   _bleScan->setActiveScan(_activeScan);
+  _bleScan->start(_scanTime * 1000, false, true);
 
-  NimBLEScanResults foundDevices =
-      _bleScan->getResults(_scanTime * 1000, false);
+  // NimBLEScanResults foundDevices =
+  //     _bleScan->getResults(_scanTime * 1000, false);
+  // _bleScan->clearResults();  // delete results scan buffer to release memory
 
-  _bleScan->clearResults();  // delete results scan buffer to release memory
   Log.notice(F("BLE : Scanning completed." CR));
   return true;
 }
