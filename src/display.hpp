@@ -68,12 +68,12 @@ enum FontSize { FONT_9 = 9, FONT_12 = 12, FONT_18 = 18, FONT_24 = 24 };
 
 class Display {
  public:
-  enum Rotation {
+  // enum Rotation {
     // ROTATION_0 = 0, // Not supported
-    ROTATION_90 = 1,
+    // ROTATION_90 = 1,
     // ROTATION_180 = 2,  // Not supported
-    ROTATION_270 = 3
-  };
+    // ROTATION_270 = 3
+  // };
 
  private:
 #if defined(ENABLE_TFT)
@@ -81,21 +81,21 @@ class Display {
   uint32_t _backgroundColor = TFT_BLACK;
 #endif
   FontSize _fontSize = FontSize::FONT_9;
-  Rotation _rotation = ROTATION_90;
-  // uint16_t _touchCalibrationlData[5] = {0, 0, 0, 0, 0};
+  // Rotation _rotation = ROTATION_90;
+  uint16_t _touchCalibrationlData[5] = {0, 0, 0, 0, 0};
 
  public:
   Display();
   void setup();
   void createUI();
-  // void calibrateTouch();
+  void calibrateTouch();
 
   void clear(uint32_t color = TFT_BLACK);
   void setFont(FontSize f);
   void printLine(int l, const String& text);
   void printLineCentered(int l, const String& text);
-  Rotation getRotation() { return _rotation; }
-  void setRotation(Rotation rotation);
+  // Rotation getRotation() { return _rotation; }
+  // void setRotation(Rotation rotation);
 
   void updateDevice(const char* name, const char* value1, const char* value2,
                     const char* value3, const char* timestamp, int index,
@@ -104,8 +104,9 @@ class Display {
   void updateStatus(const char* status, bool darkmode);
 
   // LVGL methods
-  // bool getTouch(uint16_t* x, uint16_t* y);  // Check for touch callback
+  bool getTouch(uint16_t* x, uint16_t* y);  // Check for touch callback
   // void handleButtonEvent(char btn);
+  void handleGestureEventEvent(char gesture);
 };
 
 // Wrappers to simplify interaction with LVGL
@@ -114,7 +115,8 @@ lv_obj_t* createLabel(const char* label, int32_t x, int32_t y, int32_t w,
                       int32_t h, lv_style_t* style);
 void updateLabel(lv_obj_t* obj, const char* label);
 void setStyle(lv_obj_t* obj, lv_style_t* style);
-// void touchscreenHandler(lv_indev_t* indev, lv_indev_data_t* data);
+void touchScreenHandler(lv_indev_t* indev, lv_indev_data_t* data);
+void gestureScreenHandler(lv_event_t *e);
 void log_print(lv_log_level_t level, const char* buf);
 void lvgl_loop_handler(void* parameter);
 

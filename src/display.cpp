@@ -28,12 +28,13 @@ SOFTWARE.
 #include <fonts.hpp>
 #include <log.hpp>
 #include <looptimer.hpp>
+#include <Touch_CST328.h>
 
 #if defined(ENABLE_TFT)
 TaskHandle_t lvglTaskHandler;
 struct LVGL_Data lvglData;
 
-// constexpr auto TTF_CALIBRATION_FILENAME = "/tft.dat";
+constexpr auto TTF_CALIBRATION_FILENAME = "/tft.dat";
 
 Display::Display() { _tft = new TFT_eSPI(); }
 
@@ -42,9 +43,15 @@ void Display::setup() {
 
   _tft->init();
   _tft->setSwapBytes(true);
-  _tft->setRotation(1);  // TODO: Allow rotation to be set in configuration
+  _tft->setRotation(1);  // 90 degrees
   clear();
   setFont(FontSize::FONT_9);
+
+#if TOUCH_CS==-1 // Using CST328 touch on waveshare
+  if(!Touch_Init()) {
+    Log.error(F("DISP: Unable to initialize CST328 touch controller." CR));
+  }
+#endif
 }
 
 void Display::setFont(FontSize f) {
@@ -114,16 +121,20 @@ void Display::createUI() {
   lvglData._display =
       lv_tft_espi_create(TFT_WIDTH, TFT_HEIGHT, draw_buf, DRAW_BUF_SIZE);
 
-  if (_rotation == Rotation::ROTATION_90) {
-    lv_display_set_rotation(lvglData._display, LV_DISPLAY_ROTATION_90);
-  } else {  // Rotation::ROTATION_270
-    lv_display_set_rotation(lvglData._display, LV_DISPLAY_ROTATION_270);
-  }
+  // if (_rotation == Rotation::ROTATION_90) {
+  lv_display_set_rotation(lvglData._display, LV_DISPLAY_ROTATION_90);
+  // } else {  // Rotation::ROTATION_270
+  //   lv_display_set_rotation(lvglData._display, LV_DISPLAY_ROTATION_270);
+  // }
 
   // Initialize an LVGL input device object (Touchscreen)
-  // lv_indev_t *indev = lv_indev_create();
-  // lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
-  // lv_indev_set_read_cb(indev, touchscreenHandler);
+  lv_indev_t *indev = lv_indev_create();
+  lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
+  lv_indev_set_read_cb(indev, touchScreenHandler);
+
+  // Register gesture event handler for the main screen
+  lv_obj_t *scr = lv_scr_act();
+  lv_obj_add_event_cb(scr, gestureScreenHandler, LV_EVENT_GESTURE, NULL);
 
   // Create components
   lv_style_init(&lvglData._font12);
@@ -206,103 +217,151 @@ void Display::updateStatus(const char *status, bool darkmode) {
   lvglData._darkmode = darkmode;
 }
 
-// void Display::calibrateTouch() {
-// #if defined(ENABLE_LVGL)
-//   if (!_tft) return;
+void Display::calibrateTouch() {
+#if defined(ENABLE_LVGL) && TOUCH_CS!=-1 // Only needed when using TFT_eSPI touch handler
+  if (!_tft) return;
 
-//   uint16_t x, y, pressed, i = 0;
+  uint16_t x, y, pressed, i = 0;
 
-//   myDisplay.printLineCentered(4, "Press screen to calibrate");
+  myDisplay.printLineCentered(4, "Press screen to calibrate");
 
-//   do {
-//     delay(300);
-//     pressed = _tft->getTouch(&x, &y, 600);
-//     // Log.info(F("DISP: Screen touched %d." CR), pressed);
-//   } while (!pressed && ++i < 10);
+  do {
+    delay(300);
+    pressed = _tft->getTouch(&x, &y, 600);
+    // Log.info(F("DISP: Screen touched %d." CR), pressed);
+  } while (!pressed && ++i < 10);
 
-//   if (pressed) {
-//     clear(TFT_GREEN);
-//     myDisplay.printLineCentered(4, "Touch detected");
-//     Log.info(F("DISP: Touch screen pressed, force calibration." CR));
-//     delay(3000);
-//   }
+  if (pressed) {
+    clear(TFT_GREEN);
+    myDisplay.printLineCentered(4, "Touch detected");
+    Log.info(F("DISP: Touch screen pressed, force calibration." CR));
+    delay(3000);
+  }
 
-//   File file = LittleFS.open(TTF_CALIBRATION_FILENAME, "r");
+  File file = LittleFS.open(TTF_CALIBRATION_FILENAME, "r");
 
-//   if (file) {
-//     Log.info(F("DISP: Loading touch calibration data from file." CR));
-//     file.read(reinterpret_cast<uint8_t *>(&this->_touchCalibrationlData),
-//               sizeof(_touchCalibrationlData));
-//     file.close();
-//   } else {
-//     _touchCalibrationlData[0] = 0;
-//   }
+  if (file) {
+    Log.info(F("DISP: Loading touch calibration data from file." CR));
+    file.read(reinterpret_cast<uint8_t *>(&this->_touchCalibrationlData),
+              sizeof(_touchCalibrationlData));
+    file.close();
+  } else {
+    _touchCalibrationlData[0] = 0;
+  }
 
-//   if (pressed || (_touchCalibrationlData[0] == 0)) {
-//     Log.info(F("DISP: Running calibration sequence." CR));
+  if (pressed || (_touchCalibrationlData[0] == 0)) {
+    Log.info(F("DISP: Running calibration sequence." CR));
 
-//     clear();
-//     myDisplay.printLineCentered(4, "Calibration started");
-//     _tft->calibrateTouch(_touchCalibrationlData, TFT_GREEN, TFT_BLACK, 15);
+    clear();
+    myDisplay.printLineCentered(4, "Calibration started");
+    _tft->calibrateTouch(_touchCalibrationlData, TFT_GREEN, TFT_BLACK, 15);
 
-//     file = LittleFS.open(TTF_CALIBRATION_FILENAME, "w");
+    file = LittleFS.open(TTF_CALIBRATION_FILENAME, "w");
 
-//     if (file) {
-//       file.write(reinterpret_cast<uint8_t *>(&this->_touchCalibrationlData),
-//                  sizeof(_touchCalibrationlData));
-//       file.close();
-//     } else {
-//       Log.warning(F("DISP: Failed to write calibration data to file." CR));
-//     }
+    if (file) {
+      file.write(reinterpret_cast<uint8_t *>(&this->_touchCalibrationlData),
+                 sizeof(_touchCalibrationlData));
+      file.close();
+    } else {
+      Log.warning(F("DISP: Failed to write calibration data to file." CR));
+    }
 
-//     myDisplay.printLineCentered(4, "Touch calibration completed");
-//     delay(3000);
-//   }
+    myDisplay.printLineCentered(4, "Touch calibration completed");
+    delay(3000);
+  }
 
-//   myDisplay.printLineCentered(4, "");
-// #endif
-// }
+  myDisplay.printLineCentered(4, "");
+#endif
+}
 
-// bool Display::getTouch(uint16_t *x, uint16_t *y) {
-// #if defined(ENABLE_TFT)
-//   uint16_t xt, yt;
-//   uint8_t b = _tft->getTouch(&xt, &yt);
+bool Display::getTouch(uint16_t *x, uint16_t *y) {
+#if defined(ENABLE_TFT)
 
-//   if (b) {
-//     if (xt < 0) xt = 0;
-//     if (yt < 0) yt = 0;
+#if TOUCH_CS==-1 // Using CST328 touch on waveshare
+  uint16_t xt[CST328_LCD_TOUCH_MAX_POINTS] = {0};
+  uint16_t yt[CST328_LCD_TOUCH_MAX_POINTS] = {0};
+  uint16_t strength[CST328_LCD_TOUCH_MAX_POINTS] = {0};
+  uint8_t cnt = 0;
 
-//     if (_rotation == Rotation::ROTATION_90) {
-//       *x = yt;
-//       *y = TFT_HEIGHT - xt;
-//     } else {  // Rotation::ROTATION_270
-//       *x = yt;
-//       *y = TFT_HEIGHT - xt;
-//     }
-//   }
+  Touch_Read_Data();
+  uint8_t b = Touch_Get_XY(xt, yt, strength, &cnt, uint8_t CST328_LCD_TOUCH_MAX_POINTS);
 
-//   return b;
-// #else
-//   return false;
-// #endif
-// }
+  if (b && cnt > 0) {
+    // if (_rotation == Rotation::ROTATION_90) {
+    //   *x = yt[0];
+    //   *y = TFT_HEIGHT - xt[0];
+    // } else {  // Rotation::ROTATION_270
+    //   *x = yt[0];
+    //   *y = TFT_HEIGHT - xt[0];
+    // }
+
+    *x = TFT_WIDTH - xt[0];
+    *y = yt[0];
+    return true;
+  }
+#else
+  uint16_t xt, yt;
+  uint8_t b = _tft->getTouch(&xt, &yt);
+
+  if (b) {
+    if (xt < 0) xt = 0;
+    if (yt < 0) yt = 0;
+
+    // if (_rotation == Rotation::ROTATION_90) {
+    *x = yt;
+    *y = TFT_HEIGHT - xt;
+    // } else {  // Rotation::ROTATION_270
+    //   *x = yt;
+    //   *y = TFT_HEIGHT - xt;
+    // }
+    return true;
+  }
+#endif
+  return false;
+#else
+  return false;
+#endif
+}
 
 // LVGL Wrappers and Handlers
 // **************************************************************************************************
 
-// void touchscreenHandler(lv_indev_t *indev, lv_indev_data_t *data) {
-//   uint16_t x = 0, y = 0;
+void touchScreenHandler(lv_indev_t *indev, lv_indev_data_t *data) {
+  uint16_t x = 0, y = 0;
 
-//   if (myDisplay.getTouch(&x, &y)) {
-//     data->state = LV_INDEV_STATE_PRESSED;
-//     data->point.x = x;
-//     data->point.y = y;
+  if (myDisplay.getTouch(&x, &y)) {
+    data->state = LV_INDEV_STATE_PRESSED;
+    data->point.x = x;
+    data->point.y = y;
 
-//     // Log.notice(F("LVGL : %d:%d." CR), x, y);
-//   } else {
-//     data->state = LV_INDEV_STATE_RELEASED;
-//   }
-// }
+    // Log.notice(F("LVGL : %d:%d." CR), x, y);
+  } else {
+    data->state = LV_INDEV_STATE_RELEASED;
+  }
+}
+
+void gestureScreenHandler(lv_event_t *e) {
+    lv_event_code_t code = lv_event_get_code(e);
+    if (code == LV_EVENT_GESTURE) {
+        lv_dir_t gesture = lv_indev_get_gesture_dir(lv_indev_get_act());
+        switch (gesture) {
+            case LV_DIR_LEFT:
+              Log.info(F("DISP: Gesture LEFT." CR));
+                break;
+            case LV_DIR_RIGHT:
+              Log.info(F("DISP: Gesture RIGHT." CR));
+                break;
+            case LV_DIR_TOP:
+              Log.info(F("DISP: Gesture UP." CR));
+                break;
+            case LV_DIR_BOTTOM:
+              Log.info(F("DISP: Gesture DOWN." CR));
+                break;
+            default:
+                break;
+        }
+    }
+}
 
 void log_print(lv_log_level_t level, const char *buf) {
   LV_UNUSED(level);

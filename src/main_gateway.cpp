@@ -152,7 +152,7 @@ void setup() {
       } else {
         myWifi.connect(false, WIFI_AP);
       }
-      // myDisplay.calibrateTouch();
+      myDisplay.calibrateTouch();
       break;
   }
 
@@ -231,6 +231,23 @@ void setup() {
   delay(1000);
   myDisplay.createUI();
 #endif
+
+#define CREATE_TESTDATA 1
+
+#if defined(CREATE_TESTDATA)
+  std::unique_ptr<MeasurementBaseData> gravityData1;
+  gravityData1.reset(new GravityData(MeasurementSource::HttpPost, "123456", "grav-1",
+                                      "token1", 22.1, 1.045, 45.2, 3.78, 0,
+                                      -67, 900));
+  myMeasurementList.updateData(gravityData1);
+
+  std::unique_ptr<MeasurementBaseData> gravityData2;
+  gravityData2.reset(new GravityData(MeasurementSource::HttpPost, "789ABC", "grav-2",
+                                      "token2", 10.2, 1.025, 35.2, 3.58, 0,
+                                      -78, 900));
+ myMeasurementList.updateData(gravityData2);
+#endif
+
   updateDisplayStatus();
 }
 
