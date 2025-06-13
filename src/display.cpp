@@ -299,7 +299,7 @@ bool Display::getTouch(uint16_t *x, uint16_t *y) {
     // }
 
     *x = TFT_WIDTH - xt[0];
-    *y = yt[0];
+    *y = TFT_HEIGHT - yt[0];
     return true;
   }
 #else
@@ -343,6 +343,9 @@ void touchScreenHandler(lv_indev_t *indev, lv_indev_data_t *data) {
   }
 }
 
+void gestureLeft();
+void gestureRight();
+
 void gestureScreenHandler(lv_event_t *e) {
   lv_event_code_t code = lv_event_get_code(e);
   if (code == LV_EVENT_GESTURE) {
@@ -350,15 +353,17 @@ void gestureScreenHandler(lv_event_t *e) {
     switch (gesture) {
       case LV_DIR_LEFT:
         Log.info(F("DISP: Gesture LEFT." CR));
+        gestureLeft();
         break;
       case LV_DIR_RIGHT:
         Log.info(F("DISP: Gesture RIGHT." CR));
+        gestureRight();
         break;
       case LV_DIR_TOP:
-        Log.info(F("DISP: Gesture UP." CR));
+        // Log.info(F("DISP: Gesture UP." CR));
         break;
       case LV_DIR_BOTTOM:
-        Log.info(F("DISP: Gesture DOWN." CR));
+        // Log.info(F("DISP: Gesture DOWN." CR));
         break;
       default:
         break;

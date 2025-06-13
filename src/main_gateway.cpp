@@ -58,11 +58,11 @@ constexpr auto CFG_AP_PASS = "password";
 #endif
 
 void controller();
-// void renderDisplayHeader();
-// void renderDisplayLogs();
 void updateDisplayStatus();
 void updateDisplayLogs();
 void checkSleepMode(float angle, float volt);
+void gestureLeft();
+void gestureRight();
 
 SerialDebug mySerial;
 GravmonGatewayConfig myConfig(CFG_APPNAME, CFG_FILENAME);
@@ -74,7 +74,7 @@ Display myDisplay;
 BatteryVoltage myBatteryVoltage(
     &myConfig);  // Needs to be defined but not used in gateway
 MeasurementList myMeasurementList;  // Data recevied from http or bluetooth
-LoopTimer controllerTimer(5000), displayTimer(2000);
+LoopTimer controllerTimer(5000), displayTimer(1000);
 
 bool sleepModeAlwaysSkip =
     false;  // Needs to be defined but not used in gateway
@@ -247,6 +247,12 @@ void setup() {
                                      "grav-2", "token2", 10.2, 1.025, 35.2,
                                      3.58, 0, -78, 900));
   myMeasurementList.updateData(gravityData2);
+
+  std::unique_ptr<MeasurementBaseData> gravityData3;
+  gravityData3.reset(new GravityData(MeasurementSource::HttpPost, "DEF123",
+                                     "grav-3", "token3", 14.2, 1.085, 67.2,
+                                     4.08, 0, -74, 600));
+  myMeasurementList.updateData(gravityData3);
 #endif
 
   updateDisplayStatus();
@@ -283,7 +289,6 @@ void loop() {
     if (myMeasurementList.size() == 0) {  // No data to display
       myDisplay.updateDevice("No data received", "", "", "", "", 0, 0);
     } else {
-      // If the index is out of bounds, start over
       if (displayMeasurementIndex >= myMeasurementList.size())
         displayMeasurementIndex = 0;
 
@@ -324,12 +329,12 @@ void loop() {
                            : myConfig.isPressureKpa()
                                ? convertPsiPressureToKPa(pd->getPressure())
                                : pd->getPressure();
-          // float pressure1 =
-          //     myConfig.isPressureBar()   ?
-          //     convertPsiPressureToBar(pd->getPressure1()) :
-          //     myConfig.isPressureKpa() ?
-          //     convertPsiPressureToKPa(pd->getPressure1())
-          //                                : pd->getPressure1();
+          float pressure1 =
+              myConfig.isPressureBar()   ?
+              convertPsiPressureToBar(pd->getPressure1()) :
+              myConfig.isPressureKpa() ?
+              convertPsiPressureToKPa(pd->getPressure1())
+                                         : pd->getPressure1();
 
           snprintf(v1, sizeof(v1), "%.3F%s", pressure,
                    myConfig.getPressureUnit());
@@ -388,6 +393,23 @@ void loop() {
     }
   }
 }
+
+void gestureLeft() {
+  displayMeasurementIndex--;
+
+  if (displayMeasurementIndex < 0 && myMeasurementList.size())
+    displayMeasurementIndex = myMeasurementList.size() - 1;
+  else if (displayMeasurementIndex < 0)
+    displayMeasurementIndex = 0;
+}
+
+void gestureRight() {
+  displayMeasurementIndex++;
+
+  if (displayMeasurementIndex >= myMeasurementList.size())
+    displayMeasurementIndex = 0;
+}
+
 
 void addGravityLogEntry(const char* id, const tm* timeinfo, float gravitySG,
                         float tempC) {
