@@ -69,10 +69,10 @@ enum FontSize { FONT_9 = 9, FONT_12 = 12, FONT_18 = 18, FONT_24 = 24 };
 class Display {
  public:
   // enum Rotation {
-    // ROTATION_0 = 0, // Not supported
-    // ROTATION_90 = 1,
-    // ROTATION_180 = 2,  // Not supported
-    // ROTATION_270 = 3
+  // ROTATION_0 = 0, // Not supported
+  // ROTATION_90 = 1,
+  // ROTATION_180 = 2,  // Not supported
+  // ROTATION_270 = 3
   // };
 
  private:
@@ -116,7 +116,7 @@ lv_obj_t* createLabel(const char* label, int32_t x, int32_t y, int32_t w,
 void updateLabel(lv_obj_t* obj, const char* label);
 void setStyle(lv_obj_t* obj, lv_style_t* style);
 void touchScreenHandler(lv_indev_t* indev, lv_indev_data_t* data);
-void gestureScreenHandler(lv_event_t *e);
+void gestureScreenHandler(lv_event_t* e);
 void log_print(lv_log_level_t level, const char* buf);
 void lvgl_loop_handler(void* parameter);
 

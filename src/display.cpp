@@ -23,12 +23,13 @@ SOFTWARE.
  */
 #if defined(GATEWAY)
 
+#include <Touch_CST328.h>
+
 #include <cstdio>
 #include <display.hpp>
 #include <fonts.hpp>
 #include <log.hpp>
 #include <looptimer.hpp>
-#include <Touch_CST328.h>
 
 #if defined(ENABLE_TFT)
 TaskHandle_t lvglTaskHandler;
@@ -47,8 +48,8 @@ void Display::setup() {
   clear();
   setFont(FontSize::FONT_9);
 
-#if TOUCH_CS==-1 // Using CST328 touch on waveshare
-  if(!Touch_Init()) {
+#if TOUCH_CS == -1  // Using CST328 touch on waveshare
+  if (!Touch_Init()) {
     Log.error(F("DISP: Unable to initialize CST328 touch controller." CR));
   }
 #endif
@@ -218,7 +219,8 @@ void Display::updateStatus(const char *status, bool darkmode) {
 }
 
 void Display::calibrateTouch() {
-#if defined(ENABLE_LVGL) && TOUCH_CS!=-1 // Only needed when using TFT_eSPI touch handler
+#if defined(ENABLE_LVGL) && \
+    TOUCH_CS != -1  // Only needed when using TFT_eSPI touch handler
   if (!_tft) return;
 
   uint16_t x, y, pressed, i = 0;
@@ -277,14 +279,15 @@ void Display::calibrateTouch() {
 bool Display::getTouch(uint16_t *x, uint16_t *y) {
 #if defined(ENABLE_TFT)
 
-#if TOUCH_CS==-1 // Using CST328 touch on waveshare
+#if TOUCH_CS == -1  // Using CST328 touch on waveshare
   uint16_t xt[CST328_LCD_TOUCH_MAX_POINTS] = {0};
   uint16_t yt[CST328_LCD_TOUCH_MAX_POINTS] = {0};
   uint16_t strength[CST328_LCD_TOUCH_MAX_POINTS] = {0};
   uint8_t cnt = 0;
 
   Touch_Read_Data();
-  uint8_t b = Touch_Get_XY(xt, yt, strength, &cnt, uint8_t CST328_LCD_TOUCH_MAX_POINTS);
+  uint8_t b =
+      Touch_Get_XY(xt, yt, strength, &cnt, uint8_t CST328_LCD_TOUCH_MAX_POINTS);
 
   if (b && cnt > 0) {
     // if (_rotation == Rotation::ROTATION_90) {
@@ -341,26 +344,26 @@ void touchScreenHandler(lv_indev_t *indev, lv_indev_data_t *data) {
 }
 
 void gestureScreenHandler(lv_event_t *e) {
-    lv_event_code_t code = lv_event_get_code(e);
-    if (code == LV_EVENT_GESTURE) {
-        lv_dir_t gesture = lv_indev_get_gesture_dir(lv_indev_get_act());
-        switch (gesture) {
-            case LV_DIR_LEFT:
-              Log.info(F("DISP: Gesture LEFT." CR));
-                break;
-            case LV_DIR_RIGHT:
-              Log.info(F("DISP: Gesture RIGHT." CR));
-                break;
-            case LV_DIR_TOP:
-              Log.info(F("DISP: Gesture UP." CR));
-                break;
-            case LV_DIR_BOTTOM:
-              Log.info(F("DISP: Gesture DOWN." CR));
-                break;
-            default:
-                break;
-        }
+  lv_event_code_t code = lv_event_get_code(e);
+  if (code == LV_EVENT_GESTURE) {
+    lv_dir_t gesture = lv_indev_get_gesture_dir(lv_indev_get_act());
+    switch (gesture) {
+      case LV_DIR_LEFT:
+        Log.info(F("DISP: Gesture LEFT." CR));
+        break;
+      case LV_DIR_RIGHT:
+        Log.info(F("DISP: Gesture RIGHT." CR));
+        break;
+      case LV_DIR_TOP:
+        Log.info(F("DISP: Gesture UP." CR));
+        break;
+      case LV_DIR_BOTTOM:
+        Log.info(F("DISP: Gesture DOWN." CR));
+        break;
+      default:
+        break;
     }
+  }
 }
 
 void log_print(lv_log_level_t level, const char *buf) {
@@ -392,7 +395,7 @@ void lvgl_loop_handler(void *parameter) {
       lv_obj_t *scr = lv_scr_act();
       lv_color_t color;
 
-      if(lvglData._darkmode) { 
+      if (lvglData._darkmode) {
         lv_obj_set_style_bg_color(scr, lv_color_hex(0x1F1F1F), LV_PART_MAIN);
         lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, LV_PART_MAIN);
         color = lv_color_white();

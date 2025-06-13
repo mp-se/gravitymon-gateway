@@ -45,6 +45,7 @@ SOFTWARE.
 #include <deque>
 #include <looptimer.hpp>
 #include <measurement.hpp>
+#include <memory>
 #include <uptime.hpp>
 
 constexpr auto CFG_FILENAME = "/gravitymon-gw.json";
@@ -94,7 +95,7 @@ void setup() {
 
   delay(2000);
 
-  #if defined(ENABLE_TFT)
+#if defined(ENABLE_TFT)
   Log.notice(F("Main: TOUCH_CS %d." CR), TOUCH_CS);
   Log.notice(F("Main: TFT_BL %d." CR), TFT_BL);
   Log.notice(F("Main: TFT_DC %d." CR), TFT_DC);
@@ -103,7 +104,7 @@ void setup() {
   Log.notice(F("Main: TFT_SCLK %d." CR), TFT_SCLK);
   Log.notice(F("Main: TFT_RST %d." CR), TFT_RST);
   Log.notice(F("Main: TFT_CS %d." CR), TFT_CS);
-  #endif
+#endif
 
   Log.notice(F("Main: Initialize display." CR));
   myDisplay.setup();
@@ -236,16 +237,16 @@ void setup() {
 
 #if defined(CREATE_TESTDATA)
   std::unique_ptr<MeasurementBaseData> gravityData1;
-  gravityData1.reset(new GravityData(MeasurementSource::HttpPost, "123456", "grav-1",
-                                      "token1", 22.1, 1.045, 45.2, 3.78, 0,
-                                      -67, 900));
+  gravityData1.reset(new GravityData(MeasurementSource::HttpPost, "123456",
+                                     "grav-1", "token1", 22.1, 1.045, 45.2,
+                                     3.78, 0, -67, 900));
   myMeasurementList.updateData(gravityData1);
 
   std::unique_ptr<MeasurementBaseData> gravityData2;
-  gravityData2.reset(new GravityData(MeasurementSource::HttpPost, "789ABC", "grav-2",
-                                      "token2", 10.2, 1.025, 35.2, 3.58, 0,
-                                      -78, 900));
- myMeasurementList.updateData(gravityData2);
+  gravityData2.reset(new GravityData(MeasurementSource::HttpPost, "789ABC",
+                                     "grav-2", "token2", 10.2, 1.025, 35.2,
+                                     3.58, 0, -78, 900));
+  myMeasurementList.updateData(gravityData2);
 #endif
 
   updateDisplayStatus();
