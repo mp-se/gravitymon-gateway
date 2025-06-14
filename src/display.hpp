@@ -44,6 +44,9 @@ struct LVGL_Data {
   lv_obj_t* _txtHistory[5];
   lv_obj_t* _txtStatusbar;
 
+  lv_obj_t* _btnLeft;
+  lv_obj_t* _btnRight;
+
   lv_style_t _font12;
   lv_style_t _font12c;
   lv_style_t _font16c;
@@ -113,12 +116,18 @@ class Display {
 #if defined(ENABLE_TFT)
 lv_obj_t* createLabel(const char* label, int32_t x, int32_t y, int32_t w,
                       int32_t h, lv_style_t* style);
+lv_obj_t* createButton(const char* label, int32_t x, int32_t y, int32_t w,
+                       int32_t h, lv_event_cb_t handler);
 void updateLabel(lv_obj_t* obj, const char* label);
 void setStyle(lv_obj_t* obj, lv_style_t* style);
 void touchScreenHandler(lv_indev_t* indev, lv_indev_data_t* data);
 void gestureScreenHandler(lv_event_t* e);
 void log_print(lv_log_level_t level, const char* buf);
 void lvgl_loop_handler(void* parameter);
+void btnLeftEventHandler(lv_event_t* e);
+void btnRightEventHandler(lv_event_t* e);
+void gestureLeft();
+void gestureRight();
 
 extern struct LVGL_Data lvglData;
 #endif

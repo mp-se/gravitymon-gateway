@@ -171,18 +171,21 @@ void Display::createUI() {
   lvglData._txtDeviceIndex =
       createLabel("", 260, 5, 54, 36, &lvglData._font16c);
   lvglData._txtDeviceValue1 =
-      createLabel("", 5, 45, 100, 36, &lvglData._font20c);
+      createLabel("", 30, 45, 75, 36, &lvglData._font16c);
   lvglData._txtDeviceValue2 =
-      createLabel("", 110, 45, 100, 36, &lvglData._font20c);
+      createLabel("", 110, 45, 100, 36, &lvglData._font16c);
   lvglData._txtDeviceValue3 =
-      createLabel("", 215, 45, 100, 36, &lvglData._font20c);
+      createLabel("", 215, 45, 75, 36, &lvglData._font16c);
   lvglData._txtDeviceTimeStamp =
-      createLabel("", 5, 85, 310, 26, &lvglData._font16c);
+      createLabel("", 30, 85, 260, 26, &lvglData._font16c);
   lvglData._txtStatusbar = createLabel("", 5, 219, 310, 18, &lvglData._font12c);
 
   for (int i = 0; i < 5; i++)
     lvglData._txtHistory[i] =
         createLabel("", 5, 114 + (i * 21), 310, 18, &lvglData._font12);
+
+  lvglData._btnLeft = createButton("<", 5, 45, 25, 66, btnLeftEventHandler);
+  lvglData._btnRight = createButton(">", 290, 45, 26, 66, btnRightEventHandler);
 
   xTaskCreatePinnedToCore(lvgl_loop_handler,  // Function to implement the task
                           "LVGL_Handler",     // Name of the task
@@ -230,7 +233,7 @@ void Display::calibrateTouch() {
   do {
     delay(300);
     pressed = _tft->getTouch(&x, &y, 600);
-    // Log.info(F("DISP: Screen touched %d." CR), pressed);
+    Log.info(F("DISP: Screen touched %d." CR), pressed);
   } while (!pressed && ++i < 10);
 
   if (pressed) {
@@ -337,14 +340,23 @@ void touchScreenHandler(lv_indev_t *indev, lv_indev_data_t *data) {
     data->point.x = x;
     data->point.y = y;
 
-    // Log.notice(F("LVGL : %d:%d." CR), x, y);
+    Log.notice(F("LVGL : %d:%d." CR), x, y);
   } else {
     data->state = LV_INDEV_STATE_RELEASED;
   }
 }
 
-void gestureLeft();
-void gestureRight();
+void btnLeftEventHandler(lv_event_t *e) {
+  if (lv_event_get_code(e) == LV_EVENT_CLICKED) {
+    gestureLeft();
+  }
+}
+
+void btnRightEventHandler(lv_event_t *e) {
+  if (lv_event_get_code(e) == LV_EVENT_CLICKED) {
+    gestureRight();
+  }
+}
 
 void gestureScreenHandler(lv_event_t *e) {
   lv_event_code_t code = lv_event_get_code(e);
@@ -360,10 +372,10 @@ void gestureScreenHandler(lv_event_t *e) {
         gestureRight();
         break;
       case LV_DIR_TOP:
-        // Log.info(F("DISP: Gesture UP." CR));
+        Log.info(F("DISP: Gesture UP." CR));
         break;
       case LV_DIR_BOTTOM:
-        // Log.info(F("DISP: Gesture DOWN." CR));
+        Log.info(F("DISP: Gesture DOWN." CR));
         break;
       default:
         break;
@@ -374,6 +386,19 @@ void gestureScreenHandler(lv_event_t *e) {
 void log_print(lv_log_level_t level, const char *buf) {
   LV_UNUSED(level);
   Log.notice(F("LVGL: %s." CR), buf);
+}
+
+lv_obj_t *createButton(const char *label, int32_t x, int32_t y, int32_t w,
+                       int32_t h, lv_event_cb_t handler) {
+  lv_obj_t *btn;
+  btn = lv_button_create(lv_screen_active());
+  lv_obj_set_size(btn, w, h);
+  lv_obj_set_pos(btn, x, y);
+  lv_obj_add_event_cb(btn, handler, LV_EVENT_ALL, NULL);
+  lv_obj_t *lbl = lv_label_create(btn);
+  lv_label_set_text(lbl, label);
+  lv_obj_center(lbl);
+  return btn;
 }
 
 lv_obj_t *createLabel(const char *label, int32_t x, int32_t y, int32_t w,
