@@ -36,6 +36,7 @@ constexpr auto PARAM_GRAVITY_DEVICE = "gravity_device";
 constexpr auto PARAM_PRESSURE_DEVICE = "pressure_device";
 constexpr auto PARAM_TEMPERATURE_DEVICE = "temperature_device";
 constexpr auto PARAM_DEVICE = "device";
+constexpr auto PARAM_NAME = "name";
 constexpr auto PARAM_TYPE = "type";
 constexpr auto PARAM_SOURCE = "source";
 constexpr auto PARAM_GRAVITY = "gravity";
@@ -68,6 +69,7 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
         Log.notice("Loop: Processing Gravitymon data %d." CR, i);
         const GravityData *gd = entry->getGravityData();
 
+        gravityDevices[gravIdx][PARAM_NAME] = gd->getName();
         gravityDevices[gravIdx][PARAM_DEVICE] = gd->getId();
         gravityDevices[gravIdx][PARAM_GRAVITY] = gd->getGravity();
         gravityDevices[gravIdx][PARAM_TEMP] = gd->getTempC();
@@ -82,6 +84,7 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
         Log.notice("Loop: Processing Pressuremon data %d." CR, i);
         const PressureData *pd = entry->getPressureData();
 
+        pressureDevices[pressIdx][PARAM_NAME] = pd->getName();
         pressureDevices[pressIdx][PARAM_DEVICE] = pd->getId();
         pressureDevices[pressIdx][PARAM_PRESSURE] = pd->getPressure();
         pressureDevices[pressIdx][PARAM_PRESSURE1] = pd->getPressure1();
@@ -98,6 +101,7 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
         Log.notice("Loop: Processing Tilt data %d." CR, i);
         const TiltData *td = entry->getTiltData();
 
+        gravityDevices[gravIdx][PARAM_NAME] = td->getTiltColor();
         gravityDevices[gravIdx][PARAM_DEVICE] = td->getId();
         gravityDevices[gravIdx][PARAM_GRAVITY] = td->getGravity();
         gravityDevices[gravIdx][PARAM_TEMP] = td->getTempC();
@@ -112,6 +116,7 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
         Log.notice("Loop: Processing Tilt data %d." CR, i);
         const ChamberData *cd = entry->getChamberData();
 
+        temperatureDevices[tempIdx][PARAM_NAME] = "";
         temperatureDevices[tempIdx][PARAM_DEVICE] = cd->getId();
         temperatureDevices[tempIdx][PARAM_CHAMBER_TEMP] = cd->getChamberTempC();
         temperatureDevices[tempIdx][PARAM_BEER_TEMP] = cd->getBeerTempC();
