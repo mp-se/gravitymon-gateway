@@ -45,7 +45,7 @@ class GatewayWebServer : public BrewingWebServer {
   void doWebCalibrateStatus(JsonObject &obj) {}
   void doWebConfigWrite() {}
   void doTaskSensorCalibration() {}
-  void doTaskPushTestSetup(TemplatingEngine &engine, BrewingPush &push) {}
+  void doTaskPushTestSetup(TemplatingEngine &engine, BrewingPush &push);
   void doTaskHardwareScanning(JsonObject &obj) {}
 
   virtual void loop();
