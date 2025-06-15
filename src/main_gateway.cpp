@@ -37,7 +37,7 @@ SOFTWARE.
 #include <utils.hpp>
 #include <web_gateway.hpp>
 #include <wificonnection.hpp>
-#if defined(ENABLE_SD_CARD)
+#if defined(ENABLE_SD)
 #include <sd.h>
 #endif
 #include <battery.hpp>
@@ -189,8 +189,7 @@ void setup() {
       break;
   }
 
-    // Testing some SD access
-#if defined(ENABLE_SD_CARD)
+#if defined(ENABLE_SD)
   if (!SD.begin(5)) {
     Log.error(F("Main: Failed to mount SD card." CR));
   } else {
