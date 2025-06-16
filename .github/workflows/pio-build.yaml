@@ -26,6 +26,7 @@ jobs:
           gzip -f html/favicon.ico
 
           ls -alr
+          ls -alr boards
 
           # echo "Checkout shared code"
           # git clone -b dev https://github.com/mp-se/gravitymon gravitymon-gateway 
