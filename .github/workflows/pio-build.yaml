@@ -25,8 +25,7 @@ jobs:
           cp gravitymon-gateway-ui/dist/favicon.ico html/favicon.ico
           gzip -f html/favicon.ico
 
-          ls
-          ls boards
+          ls -alr
 
           # echo "Checkout shared code"
           # git clone -b dev https://github.com/mp-se/gravitymon gravitymon-gateway 
