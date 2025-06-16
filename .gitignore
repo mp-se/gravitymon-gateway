@@ -3,5 +3,5 @@
 *.map
 .env/*
 *.pyc
-*.json
+version.json
 .DS_Store
