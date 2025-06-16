@@ -157,7 +157,7 @@ void BleScanner::proccesGravitymonBeacon(const std::string &advertStringHex,
     temp = static_cast<float>((*(payload + 22) << 8) | *(payload + 23)) / 1000;
 
     char chip[20];
-    snprintf(&chip[0], sizeof(chip), "%6x", chipId);
+    snprintf(chip, sizeof(chip), "%06x", chipId);
 
     std::unique_ptr<MeasurementBaseData> gravityData;
     gravityData.reset(new GravityData(MeasurementSource::BleBeacon, chip, "",
@@ -193,7 +193,7 @@ void BleScanner::processGravitymonEddystoneBeacon(
            (payload[36]);
 
   char chip[20];
-  snprintf(&chip[0], sizeof(chip), "%6x", chipId);
+  snprintf(chip, sizeof(chip), "%06x", chipId);
 
   std::unique_ptr<MeasurementBaseData> gravityData;
   gravityData.reset(new GravityData(MeasurementSource::BleEddyStone, chip, "",
@@ -229,7 +229,7 @@ void BleScanner::proccesPressuremonBeacon(const std::string &advertStringHex,
     temp = static_cast<float>((*(payload + 22) << 8) | *(payload + 23)) / 1000;
 
     char chip[20];
-    snprintf(&chip[0], sizeof(chip), "%6x", chipId);
+    snprintf(chip, sizeof(chip), "%06x", chipId);
 
     std::unique_ptr<MeasurementBaseData> pressureData;
     pressureData.reset(new PressureData(MeasurementSource::BleBeacon, chip, "",
@@ -265,7 +265,7 @@ void BleScanner::processPressuremonEddystoneBeacon(
            (payload[36]);
 
   char chip[20];
-  snprintf(&chip[0], sizeof(chip), "%6x", chipId);
+  snprintf(chip, sizeof(chip), "%06x", chipId);
 
   std::unique_ptr<MeasurementBaseData> pressureData;
   pressureData.reset(new PressureData(MeasurementSource::BleEddyStone, chip, "",
@@ -297,7 +297,7 @@ void BleScanner::proccesChamberBeacon(const std::string &advertStringHex,
         static_cast<float>((*(payload + 18) << 8) | *(payload + 19)) / 1000;
 
     char chip[20];
-    snprintf(&chip[0], sizeof(chip), "%6x", chipId);
+    snprintf(chip, sizeof(chip), "%06x", chipId);
 
     std::unique_ptr<MeasurementBaseData> chamberData;
     chamberData.reset(new ChamberData(MeasurementSource::BleBeacon, chip,
@@ -337,11 +337,12 @@ bool BleScanner::scan() {
   Log.notice(F("BLE : Starting %s scan." CR),
              _activeScan ? "ACTIVE" : "PASSIVE");
   _bleScan->setActiveScan(_activeScan);
+  _bleScan->start(_scanTime * 1000, false, true);
 
-  NimBLEScanResults foundDevices =
-      _bleScan->getResults(_scanTime * 1000, false);
+  // NimBLEScanResults foundDevices =
+  //     _bleScan->getResults(_scanTime * 1000, false);
+  // _bleScan->clearResults();  // delete results scan buffer to release memory
 
-  _bleScan->clearResults();  // delete results scan buffer to release memory
   Log.notice(F("BLE : Scanning completed." CR));
   return true;
 }

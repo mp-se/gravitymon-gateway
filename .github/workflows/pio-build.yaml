@@ -41,7 +41,7 @@ jobs:
       - name: PlatformIO Run
         uses: karniv00l/platformio-run-action@v1
         with:
-          environments: "gateway32s3pro-release,gateway32pro-release,gateway32s3wave-release"
+          environments: "gateway32s3wave-release,gateway32s3pro-release,gateway32pro-release"
           jobs: 6
           silent: false
           verbose: true

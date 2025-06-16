@@ -27,6 +27,7 @@ SOFTWARE.
 
 #include <ble_gateway.hpp>
 #include <config_gateway.hpp>
+#include <push_gateway.hpp>
 #include <measurement.hpp>
 #include <memory>
 #include <uptime.hpp>
@@ -36,6 +37,7 @@ constexpr auto PARAM_GRAVITY_DEVICE = "gravity_device";
 constexpr auto PARAM_PRESSURE_DEVICE = "pressure_device";
 constexpr auto PARAM_TEMPERATURE_DEVICE = "temperature_device";
 constexpr auto PARAM_DEVICE = "device";
+constexpr auto PARAM_NAME = "name";
 constexpr auto PARAM_TYPE = "type";
 constexpr auto PARAM_SOURCE = "source";
 constexpr auto PARAM_GRAVITY = "gravity";
@@ -68,6 +70,7 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
         Log.notice("Loop: Processing Gravitymon data %d." CR, i);
         const GravityData *gd = entry->getGravityData();
 
+        gravityDevices[gravIdx][PARAM_NAME] = gd->getName();
         gravityDevices[gravIdx][PARAM_DEVICE] = gd->getId();
         gravityDevices[gravIdx][PARAM_GRAVITY] = gd->getGravity();
         gravityDevices[gravIdx][PARAM_TEMP] = gd->getTempC();
@@ -82,6 +85,7 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
         Log.notice("Loop: Processing Pressuremon data %d." CR, i);
         const PressureData *pd = entry->getPressureData();
 
+        pressureDevices[pressIdx][PARAM_NAME] = pd->getName();
         pressureDevices[pressIdx][PARAM_DEVICE] = pd->getId();
         pressureDevices[pressIdx][PARAM_PRESSURE] = pd->getPressure();
         pressureDevices[pressIdx][PARAM_PRESSURE1] = pd->getPressure1();
@@ -98,6 +102,7 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
         Log.notice("Loop: Processing Tilt data %d." CR, i);
         const TiltData *td = entry->getTiltData();
 
+        gravityDevices[gravIdx][PARAM_NAME] = td->getTiltColor();
         gravityDevices[gravIdx][PARAM_DEVICE] = td->getId();
         gravityDevices[gravIdx][PARAM_GRAVITY] = td->getGravity();
         gravityDevices[gravIdx][PARAM_TEMP] = td->getTempC();
@@ -112,6 +117,7 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
         Log.notice("Loop: Processing Tilt data %d." CR, i);
         const ChamberData *cd = entry->getChamberData();
 
+        temperatureDevices[tempIdx][PARAM_NAME] = "";
         temperatureDevices[tempIdx][PARAM_DEVICE] = cd->getId();
         temperatureDevices[tempIdx][PARAM_CHAMBER_TEMP] = cd->getChamberTempC();
         temperatureDevices[tempIdx][PARAM_BEER_TEMP] = cd->getBeerTempC();
@@ -214,7 +220,7 @@ void GatewayWebServer::webHandleRemotePost(AsyncWebServerRequest *request,
 
 void GatewayWebServer::loop() {
   BrewingWebServer::loop();
- 
+
   // Process data that was received in posts
   while (!_postData.empty()) {
     String data = _postData.front();
@@ -301,6 +307,91 @@ void GatewayWebServer::loop() {
 
     _postData.pop();
   }
+}
+
+
+void GatewayWebServer::doTaskPushTestSetup(TemplatingEngine &engine,
+                                              BrewingPush &push) {
+
+  Log.notice(F("WEB : Running scheduled push test for %s" CR),
+             _pushTestTarget.c_str());
+
+  if (!_pushTestTarget.compareTo(PARAM_FORMAT_POST_GRAVITY) &&
+      _gatewayConfig->hasTargetHttpPost()) {
+    setupTemplateEngineGravityGateway(_gatewayConfig, engine, 32.12, 1.015, 22.15, 3.78, 300, "012345", "token", "grav-test");
+    String tpl = push.getTemplate(BrewingPush::GRAVITY_TEMPLATE_HTTP1);
+    String doc = engine.create(tpl.c_str());
+    push.sendHttpPost(doc);
+    _pushTestEnabled = true;
+  } else if (!_pushTestTarget.compareTo(PARAM_FORMAT_POST2_GRAVITY) &&
+             _gatewayConfig->hasTargetHttpPost2()) {
+    setupTemplateEngineGravityGateway(_gatewayConfig, engine, 32.12, 1.015, 22.15, 3.78, 300, "012345", "token", "grav-test");
+    String tpl = push.getTemplate(BrewingPush::GRAVITY_TEMPLATE_HTTP2);
+    String doc = engine.create(tpl.c_str());
+    push.sendHttpPost2(doc);
+    _pushTestEnabled = true;
+  } else if (!_pushTestTarget.compareTo(PARAM_FORMAT_GET_GRAVITY) &&
+             _gatewayConfig->hasTargetHttpGet()) {
+    setupTemplateEngineGravityGateway(_gatewayConfig, engine, 32.12, 1.015, 22.15, 3.78, 300, "012345", "token", "grav-test");
+    String tpl = push.getTemplate(BrewingPush::GRAVITY_TEMPLATE_HTTP3);
+    String doc = engine.create(tpl.c_str());
+    push.sendHttpGet(doc);
+    _pushTestEnabled = true;
+  } else if (!_pushTestTarget.compareTo(PARAM_FORMAT_INFLUXDB_GRAVITY) &&
+             _gatewayConfig->hasTargetInfluxDb2()) {
+    setupTemplateEngineGravityGateway(_gatewayConfig, engine, 32.12, 1.015, 22.15, 3.78, 300, "012345", "token", "grav-test");
+    String tpl = push.getTemplate(BrewingPush::GRAVITY_TEMPLATE_INFLUX);
+    String doc = engine.create(tpl.c_str());
+    push.sendInfluxDb2(doc);
+    _pushTestEnabled = true;
+  } else if (!_pushTestTarget.compareTo(PARAM_FORMAT_MQTT_GRAVITY) &&
+             _gatewayConfig->hasTargetMqtt()) {
+    setupTemplateEngineGravityGateway(_gatewayConfig, engine, 32.12, 1.015, 22.15, 3.78, 300, "012345", "token", "grav-test");
+    String tpl = push.getTemplate(BrewingPush::GRAVITY_TEMPLATE_MQTT);
+    String doc = engine.create(tpl.c_str());
+    push.sendMqtt(doc);
+    _pushTestEnabled = true;
+  }
+
+  else if (!_pushTestTarget.compareTo(PARAM_FORMAT_POST_PRESSURE) &&
+      _gatewayConfig->hasTargetHttpPost()) {
+    setupTemplateEnginePressureGateway(_gatewayConfig, engine, 32.12, 1.015, 22.15, 3.78, 300, "012345", "token", "press-test");
+    String tpl = push.getTemplate(BrewingPush::PRESSURE_TEMPLATE_HTTP1);
+    String doc = engine.create(tpl.c_str());
+    push.sendHttpPost(doc);
+    _pushTestEnabled = true;
+  } else if (!_pushTestTarget.compareTo(PARAM_FORMAT_POST2_PRESSURE) &&
+             _gatewayConfig->hasTargetHttpPost2()) {
+    setupTemplateEnginePressureGateway(_gatewayConfig, engine, 1.234, 2.345, 22.15, 3.78, 300, "012345", "token", "press-test");
+    String tpl = push.getTemplate(BrewingPush::PRESSURE_TEMPLATE_HTTP2);
+    String doc = engine.create(tpl.c_str());
+    push.sendHttpPost2(doc);
+    _pushTestEnabled = true;
+  } else if (!_pushTestTarget.compareTo(PARAM_FORMAT_GET_PRESSURE) &&
+             _gatewayConfig->hasTargetHttpGet()) {
+    setupTemplateEnginePressureGateway(_gatewayConfig, engine, 1.234, 2.345, 22.15, 3.78, 300, "012345", "token", "press-test");
+    String tpl = push.getTemplate(BrewingPush::PRESSURE_TEMPLATE_HTTP3);
+    String doc = engine.create(tpl.c_str());
+    push.sendHttpGet(doc);
+    _pushTestEnabled = true;
+  } else if (!_pushTestTarget.compareTo(PARAM_FORMAT_INFLUXDB_PRESSURE) &&
+             _gatewayConfig->hasTargetInfluxDb2()) {
+    setupTemplateEnginePressureGateway(_gatewayConfig, engine, 1.234, 2.345, 22.15, 3.78, 300, "012345", "token", "press-test");
+    String tpl = push.getTemplate(BrewingPush::PRESSURE_TEMPLATE_INFLUX);
+    String doc = engine.create(tpl.c_str());
+    push.sendInfluxDb2(doc);
+    _pushTestEnabled = true;
+  } else if (!_pushTestTarget.compareTo(PARAM_FORMAT_MQTT_PRESSURE) &&
+             _gatewayConfig->hasTargetMqtt()) {
+    setupTemplateEnginePressureGateway(_gatewayConfig, engine, 1.234, 2.345, 22.15, 3.78, 300, "012345", "token", "press-test");
+    String tpl = push.getTemplate(BrewingPush::PRESSURE_TEMPLATE_MQTT);
+    String doc = engine.create(tpl.c_str());
+    push.sendMqtt(doc);
+    _pushTestEnabled = true;
+  }
+
+  engine.freeMemory();
+  push.clearTemplate();
 }
 
 #endif  // GATEWAY

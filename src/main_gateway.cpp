@@ -37,7 +37,7 @@ SOFTWARE.
 #include <utils.hpp>
 #include <web_gateway.hpp>
 #include <wificonnection.hpp>
-#if defined(ENABLE_SD_CARD)
+#if defined(ENABLE_SD)
 #include <sd.h>
 #endif
 #include <battery.hpp>
@@ -45,6 +45,7 @@ SOFTWARE.
 #include <deque>
 #include <looptimer.hpp>
 #include <measurement.hpp>
+#include <memory>
 #include <uptime.hpp>
 
 constexpr auto CFG_FILENAME = "/gravitymon-gw.json";
@@ -57,11 +58,11 @@ constexpr auto CFG_AP_PASS = "password";
 #endif
 
 void controller();
-// void renderDisplayHeader();
-// void renderDisplayLogs();
 void updateDisplayStatus();
 void updateDisplayLogs();
 void checkSleepMode(float angle, float volt);
+void gestureLeft();
+void gestureRight();
 
 SerialDebug mySerial;
 GravmonGatewayConfig myConfig(CFG_APPNAME, CFG_FILENAME);
@@ -73,7 +74,9 @@ Display myDisplay;
 BatteryVoltage myBatteryVoltage(
     &myConfig);  // Needs to be defined but not used in gateway
 MeasurementList myMeasurementList;  // Data recevied from http or bluetooth
-LoopTimer controllerTimer(5000), displayTimer(2000);
+LoopTimer controllerTimer(5000);
+LoopTimer cycleTimer(4000);   // Cycle through the devices on the display
+LoopTimer displayTimer(100);  // Process text updates for displuy
 
 bool sleepModeAlwaysSkip =
     false;  // Needs to be defined but not used in gateway
@@ -94,6 +97,7 @@ void setup() {
 
   delay(2000);
 
+#if defined(ENABLE_TFT)
   Log.notice(F("Main: TOUCH_CS %d." CR), TOUCH_CS);
   Log.notice(F("Main: TFT_BL %d." CR), TFT_BL);
   Log.notice(F("Main: TFT_DC %d." CR), TFT_DC);
@@ -102,6 +106,7 @@ void setup() {
   Log.notice(F("Main: TFT_SCLK %d." CR), TFT_SCLK);
   Log.notice(F("Main: TFT_RST %d." CR), TFT_RST);
   Log.notice(F("Main: TFT_CS %d." CR), TFT_CS);
+#endif
 
   Log.notice(F("Main: Initialize display." CR));
   myDisplay.setup();
@@ -150,6 +155,7 @@ void setup() {
       } else {
         myWifi.connect(false, WIFI_AP);
       }
+      myDisplay.calibrateTouch();
       break;
   }
 
@@ -183,8 +189,7 @@ void setup() {
       break;
   }
 
-    // Testing some SD access
-#if defined(ENABLE_SD_CARD)
+#if defined(ENABLE_SD)
   if (!SD.begin(5)) {
     Log.error(F("Main: Failed to mount SD card." CR));
   } else {
@@ -228,6 +233,41 @@ void setup() {
   delay(1000);
   myDisplay.createUI();
 #endif
+
+  // #define CREATE_TESTDATA 1
+
+#if defined(CREATE_TESTDATA)
+  std::unique_ptr<MeasurementBaseData> gravityData1;
+  gravityData1.reset(new GravityData(MeasurementSource::HttpPost, "123456",
+                                     "grav-1", "token1", 22.1, 1.045, 45.2,
+                                     3.78, 0, -67, 900));
+  myMeasurementList.updateData(gravityData1);
+
+  std::unique_ptr<MeasurementBaseData> pressureData1;
+  pressureData1.reset(new PressureData(MeasurementSource::HttpPost, "321654",
+                                       "press-1", "token", 10.2, 105, 106, 3.58,
+                                       0, -78, 900));
+  myMeasurementList.updateData(pressureData1);
+
+  std::unique_ptr<MeasurementBaseData> gravityData2;
+  gravityData2.reset(new GravityData(MeasurementSource::HttpPost, "789ABC",
+                                     "grav-2", "token2", 10.2, 1.025, 35.2,
+                                     3.58, 0, -78, 900));
+  myMeasurementList.updateData(gravityData2);
+
+  std::unique_ptr<MeasurementBaseData> gravityData3;
+  gravityData3.reset(new GravityData(MeasurementSource::HttpPost, "DEF123",
+                                     "grav-3", "token3", 14.2, 1.085, 67.2,
+                                     4.08, 0, -74, 600));
+  myMeasurementList.updateData(gravityData3);
+
+  myDisplay.updateHistory("Line 1", 0);
+  myDisplay.updateHistory("Line 2", 1);
+  myDisplay.updateHistory("Line 3", 2);
+  myDisplay.updateHistory("Line 4", 3);
+  myDisplay.updateHistory("Line 5", 4);
+#endif
+
   updateDisplayStatus();
 }
 
@@ -241,7 +281,6 @@ void loop() {
       if (!myWifi.isConnected()) {
         Log.warning(F("Loop: Wifi was disconnected, trying to reconnect." CR));
         myWifi.connect();
-        updateDisplayStatus();
       }
       controller();
       break;
@@ -255,13 +294,19 @@ void loop() {
     logUpdated = false;
   }
 
+  if (cycleTimer.hasExpired()) {
+    cycleTimer.reset();
+    displayMeasurementIndex++;
+  }
+
   if (displayTimer.hasExpired()) {
     displayTimer.reset();
+
+    updateDisplayStatus();
 
     if (myMeasurementList.size() == 0) {  // No data to display
       myDisplay.updateDevice("No data received", "", "", "", "", 0, 0);
     } else {
-      // If the index is out of bounds, start over
       if (displayMeasurementIndex >= myMeasurementList.size())
         displayMeasurementIndex = 0;
 
@@ -281,10 +326,10 @@ void loop() {
                               ? convertToPlato(gd->getGravity())
                               : gd->getGravity();
 
-          snprintf(v1, sizeof(v1), "%.3F%s", gravity,
-                   myConfig.isGravitySG() ? "SG" : "P");
-          snprintf(v2, sizeof(v2), "%.1F%s", temp,
+          snprintf(v1, sizeof(v1), "%.1F%s", temp,
                    myConfig.isTempUnitC() ? "°C" : "°F");
+          snprintf(v2, sizeof(v2), "%.3F%s", gravity,
+                   myConfig.isGravitySG() ? "SG" : "P");
           snprintf(v3, sizeof(v3), "%.2FV", gd->getBattery());
           snprintf(s, sizeof(s), "Gravmon (%s)", gd->getId());
 
@@ -302,17 +347,16 @@ void loop() {
                            : myConfig.isPressureKpa()
                                ? convertPsiPressureToKPa(pd->getPressure())
                                : pd->getPressure();
-          // float pressure1 =
-          //     myConfig.isPressureBar()   ?
-          //     convertPsiPressureToBar(pd->getPressure1()) :
-          //     myConfig.isPressureKpa() ?
-          //     convertPsiPressureToKPa(pd->getPressure1())
-          //                                : pd->getPressure1();
+          float pressure1 = myConfig.isPressureBar()
+                                ? convertPsiPressureToBar(pd->getPressure1())
+                            : myConfig.isPressureKpa()
+                                ? convertPsiPressureToKPa(pd->getPressure1())
+                                : pd->getPressure1();
 
-          snprintf(v1, sizeof(v1), "%.3F%s", pressure,
-                   myConfig.getPressureUnit());
-          snprintf(v2, sizeof(v2), "%.1F%s", temp,
+          snprintf(v1, sizeof(v1), "%.1F%s", temp,
                    myConfig.isTempUnitC() ? "°C" : "°F");
+          snprintf(v2, sizeof(v2), "%.2F%s", pressure,
+                   myConfig.getPressureUnit());
           snprintf(v3, sizeof(v3), "%.2FV", pd->getBattery());
           snprintf(s, sizeof(s), "Pressmon (%s)", pd->getId());
 
@@ -350,10 +394,10 @@ void loop() {
                               ? convertToPlato(td->getGravity())
                               : td->getGravity();
 
-          snprintf(v1, sizeof(v1), "%.3F%s", gravity,
-                   myConfig.isGravitySG() ? "SG" : "P");
-          snprintf(v2, sizeof(v2), "%.1F%s", temp,
+          snprintf(v1, sizeof(v1), "%.1F%s", temp,
                    myConfig.isTempUnitC() ? "°C" : "°F");
+          snprintf(v2, sizeof(v2), "%.3F%s", gravity,
+                   myConfig.isGravitySG() ? "SG" : "P");
           snprintf(v3, sizeof(v3), "");
           snprintf(s, sizeof(s), "Tilt: %s", td->getId());
 
@@ -361,10 +405,26 @@ void loop() {
                                  myMeasurementList.size());
         } break;
       }
-
-      displayMeasurementIndex++;
     }
   }
+}
+
+void gestureLeft() {
+  displayTimer.reset();
+  displayMeasurementIndex--;
+
+  if (displayMeasurementIndex < 0 && myMeasurementList.size())
+    displayMeasurementIndex = myMeasurementList.size() - 1;
+  else if (displayMeasurementIndex < 0)
+    displayMeasurementIndex = 0;
+}
+
+void gestureRight() {
+  displayTimer.reset();
+  displayMeasurementIndex++;
+
+  if (displayMeasurementIndex >= myMeasurementList.size())
+    displayMeasurementIndex = 0;
 }
 
 void addGravityLogEntry(const char* id, const tm* timeinfo, float gravitySG,
@@ -528,31 +588,27 @@ void controller() {
   }
 }
 
-// void renderDisplayHeader() {
-//   myDisplay.printLineCentered(0, "GravityMon Gateway");
-// }
-
 void updateDisplayStatus() {
   char info[80];
 
   switch (runMode) {
     case RunMode::measurementMode:
       if (strlen(myConfig.getWifiDirectSSID())) {
-        snprintf(&info[0], sizeof(info), "%s - %s",
+        snprintf(info, sizeof(info), "%s - %s",
                  WiFi.localIP().toString().c_str(),
                  myConfig.getWifiDirectSSID());
       } else {
-        snprintf(&info[0], sizeof(info), "%s",
+        snprintf(info, sizeof(info), "%s",
                  WiFi.localIP().toString().c_str());
       }
       break;
 
     case RunMode::wifiSetupMode:
-      snprintf(&info[0], sizeof(info), "Wifi Setup - 192.168.4.1");
+      snprintf(info, sizeof(info), "Wifi Setup - 192.168.4.1");
       break;
   }
 
-  myDisplay.updateStatus(info);
+  myDisplay.updateStatus(info, myConfig.getDarkMode());
 }
 
 void updateDisplayLogs() {

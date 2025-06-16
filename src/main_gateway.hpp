@@ -28,23 +28,13 @@ SOFTWARE.
 
 #include <templating.hpp>
 
-void setupTemplateEngineGravityGateway(TemplatingEngine& engine, float angle,
-                                       float gravitySG, float tempC,
-                                       float voltage, int interval,
-                                       const char* id, const char* token,
-                                       const char* name);
-
-void setupTemplateEnginePressureGateway(TemplatingEngine& engine,
-                                        float pressurePsi, float pressurePsi1,
-                                        float tempC, float voltage,
-                                        int interval, const char* id,
-                                        const char* token, const char* name);
-
 // Defines that needs to be there for the common base but not used in the
 // gateway
 #if defined(LOLIN_D32_PRO)
 #define PIN_VOLT T0
 #elif defined(LOLIN_S3)
+#define PIN_VOLT A3
+#elif defined(LOLIN_D32)
 #define PIN_VOLT A3
 #endif
 
