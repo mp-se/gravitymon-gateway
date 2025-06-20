@@ -91,6 +91,8 @@ int displayMeasurementIndex =
 
 void setup() {
   // Main startup
+  delay(2000);
+
   Log.notice(F("Main: Started setup for %s." CR), myConfig.getID());
   printBuildOptions();
   detectChipRevision();
@@ -106,6 +108,9 @@ void setup() {
   Log.notice(F("Main: TFT_SCLK %d." CR), TFT_SCLK);
   Log.notice(F("Main: TFT_RST %d." CR), TFT_RST);
   Log.notice(F("Main: TFT_CS %d." CR), TFT_CS);
+#endif
+#if defined(ENABLE_SD)
+  Log.notice(F("Main: SS %d." CR), SS);
 #endif
 
   Log.notice(F("Main: Initialize display." CR));
@@ -190,7 +195,7 @@ void setup() {
   }
 
 #if defined(ENABLE_SD)
-  if (!SD.begin(5)) {
+  if (!SD.begin(SS)) {
     Log.error(F("Main: Failed to mount SD card." CR));
   } else {
     uint8_t cardType = SD.cardType();

@@ -32,6 +32,7 @@ SOFTWARE.
 #include <memory>
 #include <uptime.hpp>
 #include <web_gateway.hpp>
+#include <SD.h>
 
 constexpr auto PARAM_GRAVITY_DEVICE = "gravity_device";
 constexpr auto PARAM_PRESSURE_DEVICE = "pressure_device";
@@ -145,6 +146,10 @@ bool GatewayWebServer::setupWebServer(const char *serviceName) {
   AsyncCallbackJsonWebHandler *handler;
   handler = new AsyncCallbackJsonWebHandler(
       "/post", std::bind(&GatewayWebServer::webHandleRemotePost, this,
+                         std::placeholders::_1, std::placeholders::_2));
+  _server->addHandler(handler);
+  handler = new AsyncCallbackJsonWebHandler(
+      "/api/sd", std::bind(&GatewayWebServer::webHandleSecureDigital, this,
                          std::placeholders::_1, std::placeholders::_2));
   _server->addHandler(handler);
   return b;
@@ -309,7 +314,6 @@ void GatewayWebServer::loop() {
   }
 }
 
-
 void GatewayWebServer::doTaskPushTestSetup(TemplatingEngine &engine,
                                               BrewingPush &push) {
 
@@ -393,6 +397,80 @@ void GatewayWebServer::doTaskPushTestSetup(TemplatingEngine &engine,
   engine.freeMemory();
   push.clearTemplate();
 }
+
+void GatewayWebServer::webHandleSecureDigital(AsyncWebServerRequest *request,
+                                        JsonVariant &json) {
+  if (!isAuthenticated(request)) {
+    return;
+  }
+
+  Log.notice(F("WEB : webServer callback for /api/sd." CR));
+  JsonObject obj = json.as<JsonObject>();
+
+  if (!obj[PARAM_COMMAND].isNull()) {
+    if (obj[PARAM_COMMAND] == String("dir")) {
+      Log.notice(F("WEB : File system listing requested." CR));
+      AsyncJsonResponse *response = new AsyncJsonResponse(false);
+      JsonObject obj = response->getRoot().as<JsonObject>();
+
+      obj[PARAM_TOTAL] = SD.totalBytes();
+      obj[PARAM_USED] = SD.usedBytes();
+      obj[PARAM_FREE] = SD.totalBytes() - SD.usedBytes();
+
+      File root = SD.open("/");
+      File f = root.openNextFile();
+      int i = 0;
+
+      JsonArray arr = obj[PARAM_FILES].to<JsonArray>();
+      while (f) {
+        Log.notice(F("WEB : %s." CR), f.name());
+        if(!String(f.name()).startsWith(".")) { // Ignore files with . (hidden files)
+          arr[i][PARAM_FILE] = "/" + String(f.name());
+          arr[i][PARAM_SIZE] = static_cast<int>(f.size());
+          i++;
+        }
+        f = root.openNextFile();
+      }
+      f.close();
+      root.close();
+
+      response->setLength();
+      request->send(response);
+    } else if (obj[PARAM_COMMAND] == String("del")) {
+      Log.notice(F("WEB : File system delete requested." CR));
+
+      if (!obj[PARAM_FILE].isNull()) {
+        String f = obj[PARAM_FILE];
+        SD.remove(f);
+        request->send(200);
+      } else {
+        request->send(400);
+      }
+    } else if (obj[PARAM_COMMAND] == String("get")) {
+      Log.notice(F("WEB : File system get requested." CR));
+      if (!obj[PARAM_FILE].isNull()) {
+        String f = obj[PARAM_FILE];
+
+        if (SD.exists(obj[PARAM_FILE].as<String>())) {
+          AsyncWebServerResponse *response =
+              request->beginResponse(SD, f, "");
+          request->send(response);
+        } else {
+          request->send(404);
+        }
+      } else {
+        request->send(400);
+      }
+    } else {
+      Log.warning(F("WEB : Unknown file system command." CR));
+      request->send(400);
+    }
+  } else {
+    Log.warning(F("WEB : Unknown file system command." CR));
+    request->send(400);
+  }
+}
+
 
 #endif  // GATEWAY
 
