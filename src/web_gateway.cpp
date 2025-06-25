@@ -27,12 +27,12 @@ SOFTWARE.
 
 #include <ble_gateway.hpp>
 #include <config_gateway.hpp>
-#include <push_gateway.hpp>
 #include <measurement.hpp>
 #include <memory>
+#include <push_gateway.hpp>
+#include <sdcard.hpp>
 #include <uptime.hpp>
 #include <web_gateway.hpp>
-#include <SD.h>
 
 constexpr auto PARAM_GRAVITY_DEVICE = "gravity_device";
 constexpr auto PARAM_PRESSURE_DEVICE = "pressure_device";
@@ -53,6 +53,11 @@ constexpr auto PARAM_UPTIME_SECONDS = "uptime_seconds";
 constexpr auto PARAM_UPTIME_MINUTES = "uptime_minutes";
 constexpr auto PARAM_UPTIME_HOURS = "uptime_hours";
 constexpr auto PARAM_UPTIME_DAYS = "uptime_days";
+constexpr auto PARAM_SD = "sd_enabled";
+
+#if defined(ENABLE_SD)
+extern SdCard mySdCard;
+#endif
 
 GatewayWebServer::GatewayWebServer(GravmonGatewayConfig *config)
     : BrewingWebServer(config), _gatewayConfig(config) {}
@@ -138,6 +143,11 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
   obj[PARAM_UPTIME_MINUTES] = myUptime.getMinutes();
   obj[PARAM_UPTIME_HOURS] = myUptime.getHours();
   obj[PARAM_UPTIME_DAYS] = myUptime.getDays();
+#if defined(ENABLE_SD)
+  obj[PARAM_SD] = true;
+#else
+  obj[PARAM_SD] = false;
+#endif
 }
 
 bool GatewayWebServer::setupWebServer(const char *serviceName) {
@@ -150,7 +160,7 @@ bool GatewayWebServer::setupWebServer(const char *serviceName) {
   _server->addHandler(handler);
   handler = new AsyncCallbackJsonWebHandler(
       "/api/sd", std::bind(&GatewayWebServer::webHandleSecureDigital, this,
-                         std::placeholders::_1, std::placeholders::_2));
+                           std::placeholders::_1, std::placeholders::_2));
   _server->addHandler(handler);
   return b;
 }
@@ -315,79 +325,97 @@ void GatewayWebServer::loop() {
 }
 
 void GatewayWebServer::doTaskPushTestSetup(TemplatingEngine &engine,
-                                              BrewingPush &push) {
-
+                                           BrewingPush &push) {
   Log.notice(F("WEB : Running scheduled push test for %s" CR),
              _pushTestTarget.c_str());
 
   if (!_pushTestTarget.compareTo(PARAM_FORMAT_POST_GRAVITY) &&
       _gatewayConfig->hasTargetHttpPost()) {
-    setupTemplateEngineGravityGateway(_gatewayConfig, engine, 32.12, 1.015, 22.15, 3.78, 300, "012345", "token", "grav-test");
+    setupTemplateEngineGravityGateway(_gatewayConfig, engine, 32.12, 1.015,
+                                      22.15, 3.78, 300, "012345", "token",
+                                      "grav-test");
     String tpl = push.getTemplate(BrewingPush::GRAVITY_TEMPLATE_HTTP1);
     String doc = engine.create(tpl.c_str());
     push.sendHttpPost(doc);
     _pushTestEnabled = true;
   } else if (!_pushTestTarget.compareTo(PARAM_FORMAT_POST2_GRAVITY) &&
              _gatewayConfig->hasTargetHttpPost2()) {
-    setupTemplateEngineGravityGateway(_gatewayConfig, engine, 32.12, 1.015, 22.15, 3.78, 300, "012345", "token", "grav-test");
+    setupTemplateEngineGravityGateway(_gatewayConfig, engine, 32.12, 1.015,
+                                      22.15, 3.78, 300, "012345", "token",
+                                      "grav-test");
     String tpl = push.getTemplate(BrewingPush::GRAVITY_TEMPLATE_HTTP2);
     String doc = engine.create(tpl.c_str());
     push.sendHttpPost2(doc);
     _pushTestEnabled = true;
   } else if (!_pushTestTarget.compareTo(PARAM_FORMAT_GET_GRAVITY) &&
              _gatewayConfig->hasTargetHttpGet()) {
-    setupTemplateEngineGravityGateway(_gatewayConfig, engine, 32.12, 1.015, 22.15, 3.78, 300, "012345", "token", "grav-test");
+    setupTemplateEngineGravityGateway(_gatewayConfig, engine, 32.12, 1.015,
+                                      22.15, 3.78, 300, "012345", "token",
+                                      "grav-test");
     String tpl = push.getTemplate(BrewingPush::GRAVITY_TEMPLATE_HTTP3);
     String doc = engine.create(tpl.c_str());
     push.sendHttpGet(doc);
     _pushTestEnabled = true;
   } else if (!_pushTestTarget.compareTo(PARAM_FORMAT_INFLUXDB_GRAVITY) &&
              _gatewayConfig->hasTargetInfluxDb2()) {
-    setupTemplateEngineGravityGateway(_gatewayConfig, engine, 32.12, 1.015, 22.15, 3.78, 300, "012345", "token", "grav-test");
+    setupTemplateEngineGravityGateway(_gatewayConfig, engine, 32.12, 1.015,
+                                      22.15, 3.78, 300, "012345", "token",
+                                      "grav-test");
     String tpl = push.getTemplate(BrewingPush::GRAVITY_TEMPLATE_INFLUX);
     String doc = engine.create(tpl.c_str());
     push.sendInfluxDb2(doc);
     _pushTestEnabled = true;
   } else if (!_pushTestTarget.compareTo(PARAM_FORMAT_MQTT_GRAVITY) &&
              _gatewayConfig->hasTargetMqtt()) {
-    setupTemplateEngineGravityGateway(_gatewayConfig, engine, 32.12, 1.015, 22.15, 3.78, 300, "012345", "token", "grav-test");
+    setupTemplateEngineGravityGateway(_gatewayConfig, engine, 32.12, 1.015,
+                                      22.15, 3.78, 300, "012345", "token",
+                                      "grav-test");
     String tpl = push.getTemplate(BrewingPush::GRAVITY_TEMPLATE_MQTT);
     String doc = engine.create(tpl.c_str());
     push.sendMqtt(doc);
+    
     _pushTestEnabled = true;
-  }
-
-  else if (!_pushTestTarget.compareTo(PARAM_FORMAT_POST_PRESSURE) &&
-      _gatewayConfig->hasTargetHttpPost()) {
-    setupTemplateEnginePressureGateway(_gatewayConfig, engine, 32.12, 1.015, 22.15, 3.78, 300, "012345", "token", "press-test");
+  } else if (!_pushTestTarget.compareTo(PARAM_FORMAT_POST_PRESSURE) &&
+           _gatewayConfig->hasTargetHttpPost()) {
+    setupTemplateEnginePressureGateway(_gatewayConfig, engine, 32.12, 1.015,
+                                       22.15, 3.78, 300, "012345", "token",
+                                       "press-test");
     String tpl = push.getTemplate(BrewingPush::PRESSURE_TEMPLATE_HTTP1);
     String doc = engine.create(tpl.c_str());
     push.sendHttpPost(doc);
     _pushTestEnabled = true;
   } else if (!_pushTestTarget.compareTo(PARAM_FORMAT_POST2_PRESSURE) &&
              _gatewayConfig->hasTargetHttpPost2()) {
-    setupTemplateEnginePressureGateway(_gatewayConfig, engine, 1.234, 2.345, 22.15, 3.78, 300, "012345", "token", "press-test");
+    setupTemplateEnginePressureGateway(_gatewayConfig, engine, 1.234, 2.345,
+                                       22.15, 3.78, 300, "012345", "token",
+                                       "press-test");
     String tpl = push.getTemplate(BrewingPush::PRESSURE_TEMPLATE_HTTP2);
     String doc = engine.create(tpl.c_str());
     push.sendHttpPost2(doc);
     _pushTestEnabled = true;
   } else if (!_pushTestTarget.compareTo(PARAM_FORMAT_GET_PRESSURE) &&
              _gatewayConfig->hasTargetHttpGet()) {
-    setupTemplateEnginePressureGateway(_gatewayConfig, engine, 1.234, 2.345, 22.15, 3.78, 300, "012345", "token", "press-test");
+    setupTemplateEnginePressureGateway(_gatewayConfig, engine, 1.234, 2.345,
+                                       22.15, 3.78, 300, "012345", "token",
+                                       "press-test");
     String tpl = push.getTemplate(BrewingPush::PRESSURE_TEMPLATE_HTTP3);
     String doc = engine.create(tpl.c_str());
     push.sendHttpGet(doc);
     _pushTestEnabled = true;
   } else if (!_pushTestTarget.compareTo(PARAM_FORMAT_INFLUXDB_PRESSURE) &&
              _gatewayConfig->hasTargetInfluxDb2()) {
-    setupTemplateEnginePressureGateway(_gatewayConfig, engine, 1.234, 2.345, 22.15, 3.78, 300, "012345", "token", "press-test");
+    setupTemplateEnginePressureGateway(_gatewayConfig, engine, 1.234, 2.345,
+                                       22.15, 3.78, 300, "012345", "token",
+                                       "press-test");
     String tpl = push.getTemplate(BrewingPush::PRESSURE_TEMPLATE_INFLUX);
     String doc = engine.create(tpl.c_str());
     push.sendInfluxDb2(doc);
     _pushTestEnabled = true;
   } else if (!_pushTestTarget.compareTo(PARAM_FORMAT_MQTT_PRESSURE) &&
              _gatewayConfig->hasTargetMqtt()) {
-    setupTemplateEnginePressureGateway(_gatewayConfig, engine, 1.234, 2.345, 22.15, 3.78, 300, "012345", "token", "press-test");
+    setupTemplateEnginePressureGateway(_gatewayConfig, engine, 1.234, 2.345,
+                                       22.15, 3.78, 300, "012345", "token",
+                                       "press-test");
     String tpl = push.getTemplate(BrewingPush::PRESSURE_TEMPLATE_MQTT);
     String doc = engine.create(tpl.c_str());
     push.sendMqtt(doc);
@@ -399,12 +427,13 @@ void GatewayWebServer::doTaskPushTestSetup(TemplatingEngine &engine,
 }
 
 void GatewayWebServer::webHandleSecureDigital(AsyncWebServerRequest *request,
-                                        JsonVariant &json) {
+                                              JsonVariant &json) {
   if (!isAuthenticated(request)) {
     return;
   }
 
   Log.notice(F("WEB : webServer callback for /api/sd." CR));
+#if defined(ENABLE_SD)
   JsonObject obj = json.as<JsonObject>();
 
   if (!obj[PARAM_COMMAND].isNull()) {
@@ -413,18 +442,19 @@ void GatewayWebServer::webHandleSecureDigital(AsyncWebServerRequest *request,
       AsyncJsonResponse *response = new AsyncJsonResponse(false);
       JsonObject obj = response->getRoot().as<JsonObject>();
 
-      obj[PARAM_TOTAL] = SD.totalBytes();
-      obj[PARAM_USED] = SD.usedBytes();
-      obj[PARAM_FREE] = SD.totalBytes() - SD.usedBytes();
+      // obj[PARAM_TOTAL] = mySdCard.totalBytes();
+      // obj[PARAM_USED] = mySdCard.usedBytes();
+      // obj[PARAM_FREE] = mySdCard.totalBytes() - mySdCard.usedBytes();
 
-      File root = SD.open("/");
+      File root = mySdCard.open("/", FILE_READ);
       File f = root.openNextFile();
       int i = 0;
 
       JsonArray arr = obj[PARAM_FILES].to<JsonArray>();
       while (f) {
         Log.notice(F("WEB : %s." CR), f.name());
-        if(!String(f.name()).startsWith(".")) { // Ignore files with . (hidden files)
+        if (!String(f.name()).startsWith(
+                ".")) {  // Ignore files with . (hidden files)
           arr[i][PARAM_FILE] = "/" + String(f.name());
           arr[i][PARAM_SIZE] = static_cast<int>(f.size());
           i++;
@@ -441,7 +471,7 @@ void GatewayWebServer::webHandleSecureDigital(AsyncWebServerRequest *request,
 
       if (!obj[PARAM_FILE].isNull()) {
         String f = obj[PARAM_FILE];
-        SD.remove(f);
+        mySdCard.remove(f);
         request->send(200);
       } else {
         request->send(400);
@@ -451,9 +481,9 @@ void GatewayWebServer::webHandleSecureDigital(AsyncWebServerRequest *request,
       if (!obj[PARAM_FILE].isNull()) {
         String f = obj[PARAM_FILE];
 
-        if (SD.exists(obj[PARAM_FILE].as<String>())) {
+        if (mySdCard.exists(obj[PARAM_FILE].as<String>())) {
           AsyncWebServerResponse *response =
-              request->beginResponse(SD, f, "");
+              request->beginResponse(mySdCard.getFS(), f, "");
           request->send(response);
         } else {
           request->send(404);
@@ -469,8 +499,8 @@ void GatewayWebServer::webHandleSecureDigital(AsyncWebServerRequest *request,
     Log.warning(F("WEB : Unknown file system command." CR));
     request->send(400);
   }
+#endif
 }
-
 
 #endif  // GATEWAY
 

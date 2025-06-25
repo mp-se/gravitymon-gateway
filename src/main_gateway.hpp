@@ -32,9 +32,9 @@ SOFTWARE.
 // gateway
 #if defined(LOLIN_D32_PRO)
 #define PIN_VOLT T0
-#elif defined(LOLIN_S3)
+#elif defined(LOLIN_S3_PRO)
 #define PIN_VOLT A3
-#elif defined(LOLIN_D32)
+#elif defined(WAVESHARE_S3_TFT)
 #define PIN_VOLT A3
 #endif
 

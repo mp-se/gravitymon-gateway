@@ -38,7 +38,8 @@ class GatewayWebServer : public BrewingWebServer {
  public:
   explicit GatewayWebServer(GravmonGatewayConfig *config);
   void webHandleRemotePost(AsyncWebServerRequest *request, JsonVariant &json);
-  void webHandleSecureDigital(AsyncWebServerRequest *request, JsonVariant &json);
+  void webHandleSecureDigital(AsyncWebServerRequest *request,
+                              JsonVariant &json);
 
   void doWebStatus(JsonObject &obj);
   bool setupWebServer(const char *serviceName);
