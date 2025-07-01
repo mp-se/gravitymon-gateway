@@ -23,30 +23,28 @@ SOFTWARE.
  */
 #if defined(GATEWAY)
 
+#include <battery.hpp>
 #include <ble_gateway.hpp>
 #include <config_gateway.hpp>
+#include <cstdio>
+#include <deque>
 #include <display.hpp>
 #include <helper.hpp>
 #include <led.hpp>
 #include <log.hpp>
+#include <looptimer.hpp>
 #include <main.hpp>
 #include <main_gateway.hpp>
+#include <measurement.hpp>
+#include <memory>
 #include <push_gateway.hpp>
 #include <pushtarget.hpp>
+#include <sdcard.hpp>
 #include <serialws.hpp>
+#include <uptime.hpp>
 #include <utils.hpp>
 #include <web_gateway.hpp>
 #include <wificonnection.hpp>
-#if defined(ENABLE_SD)
-#include <sd.h>
-#endif
-#include <battery.hpp>
-#include <cstdio>
-#include <deque>
-#include <looptimer.hpp>
-#include <measurement.hpp>
-#include <memory>
-#include <uptime.hpp>
 
 constexpr auto CFG_FILENAME = "/gravitymon-gw.json";
 constexpr auto CFG_AP_SSID = "Gateway";
@@ -88,9 +86,14 @@ std::deque<String> logEntryList;  // Last number of events
 bool logUpdated = true;           // If the history log should be updated
 int displayMeasurementIndex =
     0;  // What entry is shown on the top of the display
+#if defined(ENABLE_SD)
+SdCard mySdCard;
+#endif
 
 void setup() {
   // Main startup
+  delay(2000);
+
   Log.notice(F("Main: Started setup for %s." CR), myConfig.getID());
   printBuildOptions();
   detectChipRevision();
@@ -118,6 +121,12 @@ void setup() {
   myWifi.init();  // double reset check
   checkResetReason();
   myConfig.loadFile();
+
+  mySdCard.begin();
+
+  File f = mySdCard.open("/test.log", FILE_APPEND, true);
+  f.println("Test log entry");
+  f.close();
 
   // No stored config, move to portal
   if (!myWifi.hasConfig()) {
@@ -188,36 +197,6 @@ void setup() {
     default:
       break;
   }
-
-#if defined(ENABLE_SD)
-  if (!SD.begin(5)) {
-    Log.error(F("Main: Failed to mount SD card." CR));
-  } else {
-    uint8_t cardType = SD.cardType();
-    String type("Unknown");
-
-    switch (cardType) {
-      case CARD_NONE:
-        type = "No memory";
-        break;
-
-      case CARD_MMC:
-        type = "MMC";
-        break;
-
-      case CARD_SD:
-        type = "SD";
-        break;
-
-      case CARD_SDHC:
-        type = "SDCH";
-        break;
-    }
-
-    uint64_t cardSize = SD.cardSize() / (1024 * 1024);
-    Log.info(F("Main: %s with %d MB attached." CR), type.c_str(), cardSize);
-  }
-#endif
 
   if (runMode == RunMode::measurementMode && myConfig.isBleEnable()) {
     Log.notice(F("Main: Initialize ble scanner." CR));
@@ -598,8 +577,7 @@ void updateDisplayStatus() {
                  WiFi.localIP().toString().c_str(),
                  myConfig.getWifiDirectSSID());
       } else {
-        snprintf(info, sizeof(info), "%s",
-                 WiFi.localIP().toString().c_str());
+        snprintf(info, sizeof(info), "%s", WiFi.localIP().toString().c_str());
       }
       break;
 
