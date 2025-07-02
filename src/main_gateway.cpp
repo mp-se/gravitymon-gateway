@@ -87,7 +87,7 @@ bool logUpdated = true;           // If the history log should be updated
 int displayMeasurementIndex =
     0;  // What entry is shown on the top of the display
 #if defined(ENABLE_SD)
-SdCard mySdCard;
+Storage mySdStorage;
 #endif
 
 void setup() {
@@ -97,8 +97,6 @@ void setup() {
   Log.notice(F("Main: Started setup for %s." CR), myConfig.getID());
   printBuildOptions();
   detectChipRevision();
-
-  delay(2000);
 
 #if defined(ENABLE_TFT)
   Log.notice(F("Main: TOUCH_CS %d." CR), TOUCH_CS);
@@ -122,11 +120,16 @@ void setup() {
   checkResetReason();
   myConfig.loadFile();
 
-  mySdCard.begin();
-
-  File f = mySdCard.open("/test.log", FILE_APPEND, true);
-  f.println("Test log entry");
-  f.close();
+#if defined(ENABLE_SD)
+#if defined(MMC_CLK) && defined(MMC_CMD) && defined(MMC_D0)
+  Log.notice(F("Main: Using SD_MMC." CR));
+  Log.notice(F("Main: MMC_CLK %d." CR), MMC_CLK);
+  Log.notice(F("Main: MMC_CMD %d." CR), MMC_CMD);
+  Log.notice(F("Main: MMC_D0 %d." CR), MMC_D0);
+#endif
+  myDisplay.printLineCentered(3, "Mounting SD card");
+  mySdStorage.begin();
+#endif
 
   // No stored config, move to portal
   if (!myWifi.hasConfig()) {

@@ -27,113 +27,153 @@ SOFTWARE.
 
 #if defined(ENABLE_SD)
 
-#include <FS.h>
-#include <SD_MMC.h>
-
 #include <log.hpp>
 
-#if defined(WAVESHARE_S3_TFT)
-#define SD_CLK_PIN 14
-#define SD_CMD_PIN 17
-#define SD_D0_PIN 16
-// #define SD_D1_PIN 18
-// #define SD_D2_PIN 15
-// #define SD_D3_PIN 21
-#define USE_1BIT_MODE true
-#else
-#error "Undefined board in sd.hpp"
+#if defined(MMC_CLK) && defined(MMC_CMD) && defined(MMC_D0)
+#include <SD_MMC.h>
+#define SD SD_MMC
 #endif
 
-class SdCard {
+class Storage {
  private:
   uint64_t _cardSize = 0;
   bool _hasCard = false;
 
-  // void disableD3() {
-  //   digitalWrite(SD_D3_PIN, LOW);
-  //   vTaskDelay(pdMS_TO_TICKS(10));
-  // }
-
-  // void enableD3() {
-  //   digitalWrite(SD_D3_PIN, HIGH);
-  //   vTaskDelay(pdMS_TO_TICKS(10));
-  // }
-
  public:
-  SdCard() {}
-  ~SdCard() {}
+  Storage() {}
+  ~Storage() { end(); }
 
   bool hasCard() const { return _hasCard; }
 
   bool begin() {
-    // pinMode(SD_D3_PIN, OUTPUT);
-    if (!SD_MMC.setPins(SD_CLK_PIN, SD_CMD_PIN, SD_D0_PIN)) {
-    // if (!SD_MMC.setPins(SD_CLK_PIN, SD_CMD_PIN, SD_D0_PIN, SD_D1_PIN, SD_D2_PIN, SD_D3_PIN)) {
-      Log.error(F("SD  : Pin change failed!" CR));
-      _hasCard = false;
-      return _hasCard;
-    }
-    // enableD3();
+#if defined(MMC_CLK) && defined(MMC_CMD) && defined(MMC_D0)
+    SD.setPins(MMC_CLK, MMC_CMD, MMC_D0);
+    if(SD.begin("/sdcard", true, false, 40000, 5)) {
+#else
+  #warning "SPI mode is not yet implemented"
+#endif
+      _hasCard = true;
+      _cardSize = SD.cardSize();
 
-    if (SD_MMC.begin("/sdcard", USE_1BIT_MODE, true)) {
-      Log.notice(F("SD  : card initialization successful" CR));
-    } else {
-      Log.error(F("SD  : card initialization failed!" CR));
-    }
-    uint8_t cardType = SD_MMC.cardType();
-    if (cardType == CARD_NONE) {
-      Log.warning(F("SD  : No SD card attached" CR));
-      _hasCard = false;
-      return _hasCard;
-    } else {
-      String type;
-
-      if (cardType == CARD_MMC) {
-        type = "MMC";
-      } else if (cardType == CARD_SD) {
-        type = "SDSC";
-      } else if (cardType == CARD_SDHC) {
-        type = "SDHC";
-      } else {
-        type = "UNKNOWN";
+      const char* type = "Unknown";
+      switch(SD.cardType()) {
+        case CARD_NONE:
+          type = "No Card";
+          break;
+        case CARD_MMC:
+          type = "MMC";
+          break;
+        case CARD_SD:
+          type = "SDSC";
+          break;
+        case CARD_SDHC:
+          type = "SDHC/SDXC";
+          break;
       }
-
-      Log.notice(F("SD  : SD Card Type %s" CR), type.c_str());
-
-      uint64_t totalBytes = SD_MMC.totalBytes();
-      uint64_t usedBytes = SD_MMC.usedBytes();
-
-      _cardSize = totalBytes / (1024 * 1024);
-      Log.notice(F("SD  : Total space: %d bytes" CR), totalBytes);
-      Log.notice(F("SD  : Used space: %d bytes" CR), usedBytes);
-      Log.notice(F("SD  : Free space: %d MB" CR), totalBytes - usedBytes);
+      Log.notice(F("SD  : Card initialized. Size: %l Mb, Type: %s." CR), _cardSize/1024/1024, type);
+    } else {
+      Log.error(F("SD  :Failed to initialize SD card." CR));
+      _hasCard = false;
     }
 
-    _hasCard = true;
+    listFiles();
+
     return _hasCard;
   }
 
-  void end() { SD_MMC.end(); }
-
-  File open(const String& path, const char* mode = FILE_READ,
-            bool create = false) {
-    if (create) {
-      Log.notice(F("SD  : Creating file %s" CR), path.c_str());
-      return SD_MMC.open(path.c_str(), FILE_WRITE);
-    }
-
-    return SD_MMC.open(path.c_str(), mode);
+  void end() {
+    SD.end();
   }
 
-  bool exists(const String& path) { return SD_MMC.exists(path.c_str()); }
-  bool remove(const String& path) { return SD_MMC.remove(path.c_str()); }
-  FS& getFS() { return SD_MMC; }
+  File open(const String &path, const char *mode = FILE_READ,
+              bool create = false) {
+    if (!_hasCard) {
+      Log.error(F("SD  : Card not initialized." CR));
+      return File();
+    }
 
-  uint64_t cardSize() { return _cardSize; }
-  uint64_t totalBytes() { return SD_MMC.totalBytes(); }
-  uint64_t usedBytes() { return SD_MMC.usedBytes(); }
+    if (create && !SD.exists(path)) { // Create file if it does not exist
+      File file = SD.open(path, FILE_WRITE);
+      if (!file) {
+        Log.error(F("SD  : Failed to create file." CR));
+        return File();
+      }
+    }
+
+    return SD.open(path, mode);
+  }
+
+  bool exists(const String &path) {
+    Serial.println("3");
+
+    if (!_hasCard) {
+      Log.error(F("SD  : Card not initialized." CR));
+      return false;
+    }
+    return SD.exists(path);
+  }
+
+  bool remove(const String &path) {
+    if (!_hasCard) {
+      Log.error(F("SD  : Card not initialized." CR));
+      return false;
+    }
+    return SD.remove(path);    
+  }
+
+  uint64_t totalBytes() const {
+    if (!_hasCard) {
+      Log.error(F("SD  : Card not initialized." CR));
+      return 0;
+    }
+    return SD.totalBytes();
+  }
+
+  uint64_t usedBytes() const {
+    if (!_hasCard) {
+      Log.error(F("SD  : Card not initialized." CR));
+      return 0;
+    }
+    return SD.usedBytes();
+  }
+
+  FS& getFS() const {
+    return SD;
+  }
+
+  void listFiles(const char* dir = "/", uint8_t levels = 0) {
+    if (!_hasCard) {
+      Log.error(F("SD  : Card not initialized." CR));
+      return;
+    }
+    File root = SD.open(dir);
+    if (!root) {
+      Log.error(F("SD  : Failed to open directory %s." CR), dir);
+      return;
+    }
+    if (!root.isDirectory()) {
+      Log.error(F("SD  : Not a directory: %s." CR), dir);
+      root.close();
+      return;
+    }
+    File file = root.openNextFile();
+    while (file) {
+      if (file.isDirectory()) {
+        Log.notice(F("SD  : Dir : %s" CR), file.name());
+        if (levels) {
+          listFiles(file.name(), levels - 1);
+        }
+      } else {
+        Log.notice(F("SD  : File : %s  Size : %d" CR), file.name(), file.size());
+      }
+      file = root.openNextFile();
+    }
+    root.close();
+  }
 };
 
 #endif  // ENABLE_SD
 
 #endif  // SRC_SD_HPP_
+
+// EOF

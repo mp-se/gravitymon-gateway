@@ -56,7 +56,7 @@ constexpr auto PARAM_UPTIME_DAYS = "uptime_days";
 constexpr auto PARAM_SD = "sd_enabled";
 
 #if defined(ENABLE_SD)
-extern SdCard mySdCard;
+extern Storage mySdStorage;
 #endif
 
 GatewayWebServer::GatewayWebServer(GravmonGatewayConfig *config)
@@ -144,7 +144,7 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
   obj[PARAM_UPTIME_HOURS] = myUptime.getHours();
   obj[PARAM_UPTIME_DAYS] = myUptime.getDays();
 #if defined(ENABLE_SD)
-  obj[PARAM_SD] = true;
+  obj[PARAM_SD] = mySdStorage.hasCard();
 #else
   obj[PARAM_SD] = false;
 #endif
@@ -162,6 +162,9 @@ bool GatewayWebServer::setupWebServer(const char *serviceName) {
       "/api/sd", std::bind(&GatewayWebServer::webHandleSecureDigital, this,
                            std::placeholders::_1, std::placeholders::_2));
   _server->addHandler(handler);
+#if defined(ENABLE_SD)
+  _server->serveStatic("/sd", SD, "/");
+#endif
   return b;
 }
 
@@ -373,10 +376,10 @@ void GatewayWebServer::doTaskPushTestSetup(TemplatingEngine &engine,
     String tpl = push.getTemplate(BrewingPush::GRAVITY_TEMPLATE_MQTT);
     String doc = engine.create(tpl.c_str());
     push.sendMqtt(doc);
-    
+
     _pushTestEnabled = true;
   } else if (!_pushTestTarget.compareTo(PARAM_FORMAT_POST_PRESSURE) &&
-           _gatewayConfig->hasTargetHttpPost()) {
+             _gatewayConfig->hasTargetHttpPost()) {
     setupTemplateEnginePressureGateway(_gatewayConfig, engine, 32.12, 1.015,
                                        22.15, 3.78, 300, "012345", "token",
                                        "press-test");
@@ -442,11 +445,11 @@ void GatewayWebServer::webHandleSecureDigital(AsyncWebServerRequest *request,
       AsyncJsonResponse *response = new AsyncJsonResponse(false);
       JsonObject obj = response->getRoot().as<JsonObject>();
 
-      // obj[PARAM_TOTAL] = mySdCard.totalBytes();
-      // obj[PARAM_USED] = mySdCard.usedBytes();
-      // obj[PARAM_FREE] = mySdCard.totalBytes() - mySdCard.usedBytes();
+      obj[PARAM_TOTAL] = mySdStorage.totalBytes();
+      obj[PARAM_USED] = mySdStorage.usedBytes();
+      obj[PARAM_FREE] = mySdStorage.totalBytes() - mySdStorage.usedBytes();
 
-      File root = mySdCard.open("/", FILE_READ);
+      File root = mySdStorage.open("/", FILE_READ);
       File f = root.openNextFile();
       int i = 0;
 
@@ -471,19 +474,22 @@ void GatewayWebServer::webHandleSecureDigital(AsyncWebServerRequest *request,
 
       if (!obj[PARAM_FILE].isNull()) {
         String f = obj[PARAM_FILE];
-        mySdCard.remove(f);
+        mySdStorage.remove(f);
         request->send(200);
       } else {
         request->send(400);
       }
-    } else if (obj[PARAM_COMMAND] == String("get")) {
-      Log.notice(F("WEB : File system get requested." CR));
+    } /* else if (obj[PARAM_COMMAND] == String("get")) {
+      
+      // We use serve static from the SD card instead since this crashes the esp
+
       if (!obj[PARAM_FILE].isNull()) {
         String f = obj[PARAM_FILE];
 
-        if (mySdCard.exists(obj[PARAM_FILE].as<String>())) {
+        Log.notice(F("WEB : File system get requested %s." CR), f.c_str());
+        if (mySdStorage.exists(obj[PARAM_FILE].as<String>())) {
           AsyncWebServerResponse *response =
-              request->beginResponse(mySdCard.getFS(), f, "");
+              request->beginResponse(mySdStorage.getFS(), f, "");
           request->send(response);
         } else {
           request->send(404);
@@ -491,7 +497,7 @@ void GatewayWebServer::webHandleSecureDigital(AsyncWebServerRequest *request,
       } else {
         request->send(400);
       }
-    } else {
+    } */  else {
       Log.warning(F("WEB : Unknown file system command." CR));
       request->send(400);
     }

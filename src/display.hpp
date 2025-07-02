@@ -93,6 +93,14 @@ class Display {
   void createUI();
   void calibrateTouch();
 
+  SPIClass& getSPI() {
+#if defined(ENABLE_TFT)
+    return _tft->getSPIinstance();
+#else
+    return SPI;
+#endif
+  }
+
   void clear(uint32_t color);
   void setFont(FontSize f);
   void printLine(int l, const String& text);
