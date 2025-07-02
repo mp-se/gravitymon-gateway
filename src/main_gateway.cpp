@@ -121,14 +121,16 @@ void setup() {
   myConfig.loadFile();
 
 #if defined(ENABLE_SD)
-#if defined(MMC_CLK) && defined(MMC_CMD) && defined(MMC_D0)
-  Log.notice(F("Main: Using SD_MMC." CR));
+ myDisplay.printLineCentered(3, "Mounting SD card");
+ #if defined(MMC_CLK) && defined(MMC_CMD) && defined(MMC_D0)
   Log.notice(F("Main: MMC_CLK %d." CR), MMC_CLK);
   Log.notice(F("Main: MMC_CMD %d." CR), MMC_CMD);
   Log.notice(F("Main: MMC_D0 %d." CR), MMC_D0);
-#endif
-  myDisplay.printLineCentered(3, "Mounting SD card");
   mySdStorage.begin();
+  #elif defined(SD_CS)
+  Log.notice(F("Main: SD_CS %d." CR), SD_CS);
+  mySdStorage.begin(myDisplay.getSPI());
+  #endif
 #endif
 
   // No stored config, move to portal

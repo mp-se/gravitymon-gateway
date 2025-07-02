@@ -32,6 +32,10 @@ SOFTWARE.
 #if defined(MMC_CLK) && defined(MMC_CMD) && defined(MMC_D0)
 #include <SD_MMC.h>
 #define SD SD_MMC
+#elif defined(SD_CS)
+#include <SPI.h>
+#include <SD.h>
+#define SD SD
 #endif
 
 class Storage {
@@ -45,12 +49,15 @@ class Storage {
 
   bool hasCard() const { return _hasCard; }
 
-  bool begin() {
 #if defined(MMC_CLK) && defined(MMC_CMD) && defined(MMC_D0)
+  bool begin() {
     SD.setPins(MMC_CLK, MMC_CMD, MMC_D0);
     if(SD.begin("/sdcard", true, false, 40000, 5)) {
 #else
-  #warning "SPI mode is not yet implemented"
+  bool begin(SPIClass& spi) {
+    pinMode(SD_CS, OUTPUT);
+    digitalWrite(SD_CS, HIGH); // Deselect the SD card
+    if(SD.begin(SD_CS, SPI, 4000000)) {
 #endif
       _hasCard = true;
       _cardSize = SD.cardSize();
