@@ -480,7 +480,7 @@ void GatewayWebServer::webHandleSecureDigital(AsyncWebServerRequest *request,
         request->send(400);
       }
     } /* else if (obj[PARAM_COMMAND] == String("get")) {
-      
+
       // We use serve static from the SD card instead since this crashes the esp
 
       if (!obj[PARAM_FILE].isNull()) {
@@ -497,7 +497,8 @@ void GatewayWebServer::webHandleSecureDigital(AsyncWebServerRequest *request,
       } else {
         request->send(400);
       }
-    } */  else {
+    } */
+    else {
       Log.warning(F("WEB : Unknown file system command." CR));
       request->send(400);
     }

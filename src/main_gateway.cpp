@@ -121,16 +121,17 @@ void setup() {
   myConfig.loadFile();
 
 #if defined(ENABLE_SD)
- myDisplay.printLineCentered(3, "Mounting SD card");
- #if defined(MMC_CLK) && defined(MMC_CMD) && defined(MMC_D0)
+  myDisplay.printLineCentered(3, "Mounting SD card");
+#if defined(MMC_CLK) && defined(MMC_CMD) && defined(MMC_D0)
   Log.notice(F("Main: MMC_CLK %d." CR), MMC_CLK);
   Log.notice(F("Main: MMC_CMD %d." CR), MMC_CMD);
   Log.notice(F("Main: MMC_D0 %d." CR), MMC_D0);
   mySdStorage.begin();
-  #elif defined(SD_CS)
-  Log.notice(F("Main: SD_CS %d." CR), SD_CS);
-  mySdStorage.begin(myDisplay.getSPI());
-  #endif
+#elif defined(SD_CS)
+  #error "SD card with SPI not yet supported."
+  // Log.notice(F("Main: SD_CS %d." CR), SD_CS);
+  // mySdStorage.begin(myDisplay.getSPI());
+#endif
 #endif
 
   // No stored config, move to portal
@@ -204,6 +205,7 @@ void setup() {
   }
 
   if (runMode == RunMode::measurementMode && myConfig.isBleEnable()) {
+    myDisplay.printLineCentered(3, "Setting up BLE scanner");
     Log.notice(F("Main: Initialize ble scanner." CR));
     bleScanner.setScanTime(myConfig.getBleScanTime());
     bleScanner.setAllowActiveScan(myConfig.getBleActiveScan());
@@ -218,7 +220,7 @@ void setup() {
   myDisplay.createUI();
 #endif
 
-  // #define CREATE_TESTDATA 1
+#define CREATE_TESTDATA
 
 #if defined(CREATE_TESTDATA)
   std::unique_ptr<MeasurementBaseData> gravityData1;
@@ -281,6 +283,18 @@ void loop() {
   if (cycleTimer.hasExpired()) {
     cycleTimer.reset();
     displayMeasurementIndex++;
+
+#if defined(ENABLE_SD)
+    if (!mySdStorage.hasCard()) {
+      Log.notice(F("Loop: SD card not mounted, retry mounting." CR));
+      mySdStorage.end();
+#if defined(MMC_CLK) && defined(MMC_CMD) && defined(MMC_D0)
+      mySdStorage.begin();
+#elif defined(SD_CS)
+      // mySdStorage.begin(myDisplay.getSPI());
+#endif
+    }
+#endif
   }
 
   if (displayTimer.hasExpired()) {

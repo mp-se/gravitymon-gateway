@@ -31,9 +31,9 @@ SOFTWARE.
 
 #if defined(ENABLE_TFT)
 #include <lvgl.h>
-
 #include "TFT_eSPI.h"
 
+// Methods for locking SPI bus in multitasking environment
 struct LVGL_Data {
   lv_obj_t* _txtDeviceName;
   lv_obj_t* _txtDeviceIndex;
@@ -80,7 +80,7 @@ class Display {
 
  private:
 #if defined(ENABLE_TFT)
-  TFT_eSPI* _tft = NULL;
+  TFT_eSPI* _tft = nullptr;
   uint32_t _backgroundColor = TFT_BLACK;
   uint16_t _touchCalibrationlData[5] = {0, 0, 0, 0, 0};
 #endif
@@ -100,7 +100,7 @@ class Display {
     return SPI;
 #endif
   }
-
+  
   void clear(uint32_t color);
   void setFont(FontSize f);
   void printLine(int l, const String& text);

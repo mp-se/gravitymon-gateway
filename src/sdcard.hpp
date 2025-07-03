@@ -33,9 +33,10 @@ SOFTWARE.
 #include <SD_MMC.h>
 #define SD SD_MMC
 #elif defined(SD_CS)
-#include <SPI.h>
-#include <SD.h>
-#define SD SD
+#error "SD card is not yet supported on boards with shared SPI"
+// #include <SD.h>
+// #include <SPI.h>
+// #define SD SD
 #endif
 
 class Storage {
@@ -52,18 +53,18 @@ class Storage {
 #if defined(MMC_CLK) && defined(MMC_CMD) && defined(MMC_D0)
   bool begin() {
     SD.setPins(MMC_CLK, MMC_CMD, MMC_D0);
-    if(SD.begin("/sdcard", true, false, 40000, 5)) {
+    if (SD.begin("/sdcard", true, false, 40000, 5)) {
 #else
-  bool begin(SPIClass& spi) {
-    pinMode(SD_CS, OUTPUT);
-    digitalWrite(SD_CS, HIGH); // Deselect the SD card
-    if(SD.begin(SD_CS, SPI, 4000000)) {
+  // bool begin(SPIClass &spi) {
+  //   pinMode(SD_CS, OUTPUT);
+  //   digitalWrite(SD_CS, HIGH);  // Deselect the SD card
+  //   if (SD.begin(SD_CS, SPI, 4000000)) {
 #endif
       _hasCard = true;
       _cardSize = SD.cardSize();
 
-      const char* type = "Unknown";
-      switch(SD.cardType()) {
+      const char *type = "Unknown";
+      switch (SD.cardType()) {
         case CARD_NONE:
           type = "No Card";
           break;
@@ -77,7 +78,8 @@ class Storage {
           type = "SDHC/SDXC";
           break;
       }
-      Log.notice(F("SD  : Card initialized. Size: %l Mb, Type: %s." CR), _cardSize/1024/1024, type);
+      Log.notice(F("SD  : Card initialized. Size: %d Mb, Type: %s." CR),
+                 _cardSize / 1024 / 1024, type);
     } else {
       Log.error(F("SD  :Failed to initialize SD card." CR));
       _hasCard = false;
@@ -88,18 +90,16 @@ class Storage {
     return _hasCard;
   }
 
-  void end() {
-    SD.end();
-  }
+  void end() { SD.end(); }
 
   File open(const String &path, const char *mode = FILE_READ,
-              bool create = false) {
+            bool create = false) {
     if (!_hasCard) {
       Log.error(F("SD  : Card not initialized." CR));
       return File();
     }
 
-    if (create && !SD.exists(path)) { // Create file if it does not exist
+    if (create && !SD.exists(path)) {  // Create file if it does not exist
       File file = SD.open(path, FILE_WRITE);
       if (!file) {
         Log.error(F("SD  : Failed to create file." CR));
@@ -125,7 +125,7 @@ class Storage {
       Log.error(F("SD  : Card not initialized." CR));
       return false;
     }
-    return SD.remove(path);    
+    return SD.remove(path);
   }
 
   uint64_t totalBytes() const {
@@ -144,11 +144,9 @@ class Storage {
     return SD.usedBytes();
   }
 
-  FS& getFS() const {
-    return SD;
-  }
+  FS &getFS() const { return SD; }
 
-  void listFiles(const char* dir = "/", uint8_t levels = 0) {
+  void listFiles(const char *dir = "/", uint8_t levels = 0) {
     if (!_hasCard) {
       Log.error(F("SD  : Card not initialized." CR));
       return;
@@ -171,7 +169,8 @@ class Storage {
           listFiles(file.name(), levels - 1);
         }
       } else {
-        Log.notice(F("SD  : File : %s  Size : %d" CR), file.name(), file.size());
+        Log.notice(F("SD  : File : %s  Size : %d" CR), file.name(),
+                   file.size());
       }
       file = root.openNextFile();
     }
