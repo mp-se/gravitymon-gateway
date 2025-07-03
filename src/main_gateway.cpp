@@ -128,9 +128,8 @@ void setup() {
   Log.notice(F("Main: MMC_D0 %d." CR), MMC_D0);
   mySdStorage.begin();
 #elif defined(SD_CS)
-  #error "SD card with SPI not yet supported."
-  // Log.notice(F("Main: SD_CS %d." CR), SD_CS);
-  // mySdStorage.begin(myDisplay.getSPI());
+  Log.notice(F("Main: SD_CS %d." CR), SD_CS);
+  mySdStorage.begin(myDisplay.getSPI());
 #endif
 #endif
 
@@ -291,7 +290,7 @@ void loop() {
 #if defined(MMC_CLK) && defined(MMC_CMD) && defined(MMC_D0)
       mySdStorage.begin();
 #elif defined(SD_CS)
-      // mySdStorage.begin(myDisplay.getSPI());
+      mySdStorage.begin(myDisplay.getSPI());
 #endif
     }
 #endif

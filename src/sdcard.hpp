@@ -33,10 +33,9 @@ SOFTWARE.
 #include <SD_MMC.h>
 #define SD SD_MMC
 #elif defined(SD_CS)
-#error "SD card is not yet supported on boards with shared SPI"
-// #include <SD.h>
-// #include <SPI.h>
-// #define SD SD
+#include <SD.h>
+#include <SPI.h>
+#define SD SD
 #endif
 
 class Storage {
@@ -55,10 +54,10 @@ class Storage {
     SD.setPins(MMC_CLK, MMC_CMD, MMC_D0);
     if (SD.begin("/sdcard", true, false, 40000, 5)) {
 #else
-  // bool begin(SPIClass &spi) {
-  //   pinMode(SD_CS, OUTPUT);
-  //   digitalWrite(SD_CS, HIGH);  // Deselect the SD card
-  //   if (SD.begin(SD_CS, SPI, 4000000)) {
+  bool begin(SPIClass &spi) {
+    pinMode(SD_CS, OUTPUT);
+    digitalWrite(SD_CS, HIGH);  // Deselect the SD card
+    if (SD.begin(SD_CS, SPI, 4000000)) {
 #endif
       _hasCard = true;
       _cardSize = SD.cardSize();
