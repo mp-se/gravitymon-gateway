@@ -39,7 +39,8 @@ SOFTWARE.
 #include <memory>
 #include <push_gateway.hpp>
 #include <pushtarget.hpp>
-#include <sdcard.hpp>
+#include <sdcard_sdfat.hpp>
+#include <sdcard_mmc.hpp>
 #include <serialws.hpp>
 #include <uptime.hpp>
 #include <utils.hpp>
@@ -86,7 +87,7 @@ std::deque<String> logEntryList;  // Last number of events
 bool logUpdated = true;           // If the history log should be updated
 int displayMeasurementIndex =
     0;  // What entry is shown on the top of the display
-#if defined(ENABLE_SD)
+#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SDFAT)
 Storage mySdStorage;
 #endif
 
@@ -120,17 +121,18 @@ void setup() {
   checkResetReason();
   myConfig.loadFile();
 
-#if defined(ENABLE_SD)
-  myDisplay.printLineCentered(3, "Mounting SD card");
-#if defined(MMC_CLK) && defined(MMC_CMD) && defined(MMC_D0)
+#if defined(ENABLE_SD_MMC)
+  myDisplay.printLineCentered(3, "Mounting SD (MMC) card");
   Log.notice(F("Main: MMC_CLK %d." CR), MMC_CLK);
   Log.notice(F("Main: MMC_CMD %d." CR), MMC_CMD);
   Log.notice(F("Main: MMC_D0 %d." CR), MMC_D0);
-  mySdStorage.begin();
-#elif defined(SD_CS)
-  Log.notice(F("Main: SD_CS %d." CR), SD_CS);
-  mySdStorage.begin(myDisplay.getSPI());
+  mySdStorage.begin(MMC_CLK, MMC_CMD, MMC_D0);
 #endif
+
+#if defined(ENABLE_SD_SDFAT)
+  myDisplay.printLineCentered(3, "Mounting SD (SPI) card");
+  Log.notice(F("Main: SD_CS %d." CR), SD_CS);
+  mySdStorage.begin(myDisplay.getSPI(), SD_CS);
 #endif
 
   // No stored config, move to portal
@@ -283,17 +285,22 @@ void loop() {
     cycleTimer.reset();
     displayMeasurementIndex++;
 
-#if defined(ENABLE_SD)
+#if defined(ENABLE_SD_MMC)
     if (!mySdStorage.hasCard()) {
       Log.notice(F("Loop: SD card not mounted, retry mounting." CR));
       mySdStorage.end();
-#if defined(MMC_CLK) && defined(MMC_CMD) && defined(MMC_D0)
-      mySdStorage.begin();
-#elif defined(SD_CS)
-      mySdStorage.begin(myDisplay.getSPI());
-#endif
+      mySdStorage.begin(MMC_CLK, MMC_CMD, MMC_D0);
     }
 #endif
+
+#if defined(ENABLE_SD_SDFAT)
+    if (!mySdStorage.hasCard()) {
+      Log.notice(F("Loop: SD card not mounted, retry mounting." CR));
+      mySdStorage.end();
+      mySdStorage.begin(myDisplay.getSPI(), SD_CS);
+    }
+#endif
+
   }
 
   if (displayTimer.hasExpired()) {

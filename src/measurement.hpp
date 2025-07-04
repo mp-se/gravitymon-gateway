@@ -32,11 +32,12 @@ SOFTWARE.
 #include <cstdio>
 #include <deque>
 #include <memory>
-#include <sdcard.hpp>
+#include <sdcard_mmc.hpp>
+#include <sdcard_sdfat.hpp>
 #include <utility>
 #include <utils.hpp>
 
-#if defined(ENABLE_SD)
+#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SDFAT)
 extern Storage mySdStorage;
 #endif
 
@@ -481,7 +482,7 @@ class MeasurementList {
 
     int i = findMeasurementById(data->getId());
 
-#if defined(ENABLE_SD)
+#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SDFAT)
     if (mySdStorage.hasCard()) {
       File file = mySdStorage.open("/data.csv", FILE_APPEND, true);
       if (file) {
