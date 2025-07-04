@@ -163,7 +163,7 @@ bool GatewayWebServer::setupWebServer(const char *serviceName) {
                            std::placeholders::_1, std::placeholders::_2));
   _server->addHandler(handler);
 #if defined(ENABLE_SD)
-  _server->serveStatic("/sd", SD, "/");
+  _server->serveStatic("/sd", mySdStorage.getFS(), "/");
 #endif
   return b;
 }
