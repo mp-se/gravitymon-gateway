@@ -395,7 +395,7 @@ class ChamberData : public MeasurementBaseData {
     // 13,
 
     snprintf(buffer, sizeof(buffer),
-             "1,%s,%s,%s,%s,%s,"
+             "1,%s,%s,%s,%s,"
              "%.2f,%.2f,%d,,,,,,",
              getTypeAsString(), getSourceAsString(), getCreatedAsString(),
              getId(), getChamberTempC(), getBeerTempC(), getRssi());

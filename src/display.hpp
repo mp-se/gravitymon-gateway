@@ -31,6 +31,7 @@ SOFTWARE.
 
 #if defined(ENABLE_TFT)
 #include <lvgl.h>
+
 #include "TFT_eSPI.h"
 
 // Methods for locking SPI bus in multitasking environment
@@ -100,7 +101,7 @@ class Display {
     return SPI;
 #endif
   }
-  
+
   void clear(uint32_t color);
   void setFont(FontSize f);
   void printLine(int l, const String& text);
