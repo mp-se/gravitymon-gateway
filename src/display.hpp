@@ -26,6 +26,7 @@ SOFTWARE.
 
 #if defined(GATEWAY)
 
+#include <SPI.h>
 #include <config_gateway.hpp>
 #include <main.hpp>
 

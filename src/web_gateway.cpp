@@ -32,6 +32,7 @@ SOFTWARE.
 #include <push_gateway.hpp>
 #include <sdcard_mmc.hpp>
 #include <sdcard_sdfat.hpp>
+#include <sdcard_sd.hpp>
 #include <uptime.hpp>
 #include <web_gateway.hpp>
 
@@ -56,7 +57,7 @@ constexpr auto PARAM_UPTIME_HOURS = "uptime_hours";
 constexpr auto PARAM_UPTIME_DAYS = "uptime_days";
 constexpr auto PARAM_SD = "sd_enabled";
 
-#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SDFAT)
+#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SDFAT) || defined(ENABLE_SD_SD)
 extern Storage mySdStorage;
 #endif
 
@@ -144,7 +145,7 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
   obj[PARAM_UPTIME_MINUTES] = myUptime.getMinutes();
   obj[PARAM_UPTIME_HOURS] = myUptime.getHours();
   obj[PARAM_UPTIME_DAYS] = myUptime.getDays();
-#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SDFAT)
+#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SDFAT) || defined(ENABLE_SD_SD)
   obj[PARAM_SD] = mySdStorage.hasCard();
 #else
   obj[PARAM_SD] = false;
@@ -163,7 +164,7 @@ bool GatewayWebServer::setupWebServer(const char *serviceName) {
       "/api/sd", std::bind(&GatewayWebServer::webHandleSecureDigital, this,
                            std::placeholders::_1, std::placeholders::_2));
   _server->addHandler(handler);
-#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SDFAT)
+#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SDFAT) || defined(ENABLE_SD_SD)
   _server->serveStatic("/sd", mySdStorage.getFS(), "/");
 #endif
   return b;
@@ -437,7 +438,7 @@ void GatewayWebServer::webHandleSecureDigital(AsyncWebServerRequest *request,
   }
 
   Log.notice(F("WEB : webServer callback for /api/sd." CR));
-#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SDFAT)
+#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SDFAT) || defined(ENABLE_SD_SD)
   JsonObject obj = json.as<JsonObject>();
 
   if (!obj[PARAM_COMMAND].isNull()) {

@@ -25,12 +25,18 @@ SOFTWARE.
 #ifndef SRC_SDCARD_SDFAT_HPP_
 #define SRC_SDCARD_SDFAT_HPP_
 
+/**
+ * Note! This is experimental and the SDFat implementation is not working at the moment. 
+ * 
+ * Leaving the code here for now.
+*/
+
 #if defined(ENABLE_SD_SDFAT)
 
 #define DISABLE_FS_H_WARNING
-#define SDFAT_FILE_TYPE 3
-#define ENABLE_DEDICATED_SPI 0
-#define SPI_DRIVER_SELECT 2
+// #define ENABLE_DEDICATED_SPI 1
+// #define SDFAT_FILE_TYPE 3
+// #define SPI_DRIVER_SELECT 2
 
 #include <FS.h>
 #include <SdFat.h>
@@ -158,14 +164,14 @@ class Storage {
   bool hasCard() const { return _hasCard; }
 
   // Initialize SD card using a shared SPI bus (SPIClass reference)
-  bool begin(SPIClass& spi, uint8_t csPin, uint32_t speed = SD_SCK_MHZ(4)) {
-    pinMode(csPin, OUTPUT);
-    digitalWrite(csPin, HIGH);
-    // Use SdSpiConfig to specify the SPI bus and CS pin (shared SPI)
+  bool begin(uint8_t csPin, SPIClass* spi = nullptr, uint32_t speed = SD_SCK_MHZ(4)) {
+    // pinMode(csPin, OUTPUT);
+    // digitalWrite(csPin, HIGH);
     // SdSpiConfig spiConfig(csPin, SHARED_SPI, speed, &spi);
-    SdSpiConfig spiConfig(csPin);
-    if (_sd.begin(spiConfig)) {
-    // if (_sd.begin(csPin, spi)) {
+    // SdSpiConfig spiConfig(csPin);
+    // if (_sd.begin(spiConfig)) {
+    // if (_sd.begin(csPin)) {
+    if (!_sd.begin(SdSpiConfig(SD_CS, DEDICATED_SPI, SD_SCK_MHZ(25)))) {
       _hasCard = true;
       _cardSize = _fs.cardSize();
       Log.notice(F("SD  : Card initialized (shared SPI). Size: %d Mb." CR),

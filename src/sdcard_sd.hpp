@@ -25,6 +25,11 @@ SOFTWARE.
 #ifndef SRC_SDCARD_SD_HPP_
 #define SRC_SDCARD_SD_HPP_
 
+/**
+ * This implementation of SD card support does not work in combination 
+ * with the TFT due to conflicts with the SPI bus and multithreading (especially lvgl library).
+ */
+
 #if defined(ENABLE_SD_SD)
 
 #include <log.hpp>
@@ -41,9 +46,8 @@ class Storage {
 
   bool hasCard() const { return _hasCard; }
 
-  bool begin(uint8_t clk, uint8_t cmd, uint8_t d0) {
-    SD.setPins(clk, cmd, d0);
-    if (SD.begin("/sdcard", true, false, 40000, 5)) {
+  bool begin(uint8_t cs) {
+    if (SD.begin(cs)) {
       _hasCard = true;
       _cardSize = SD.cardSize();
 

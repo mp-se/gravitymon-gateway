@@ -34,10 +34,11 @@ SOFTWARE.
 #include <memory>
 #include <sdcard_mmc.hpp>
 #include <sdcard_sdfat.hpp>
+#include <sdcard_sd.hpp>
 #include <utility>
 #include <utils.hpp>
 
-#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SDFAT)
+#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SDFAT) || defined(ENABLE_SD_SD)
 extern Storage mySdStorage;
 #endif
 
