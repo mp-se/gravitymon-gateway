@@ -255,6 +255,21 @@ void setup() {
                                      4.08, 0, -74, 600));
   myMeasurementList.updateData(gravityData3);
 
+  std::unique_ptr<MeasurementBaseData> tiltData1;
+  tiltData1.reset(new TiltData(MeasurementSource::BleBeacon, TiltColor::Red,
+                                     14.2, 1.085, 10, -72, false));
+  myMeasurementList.updateData(tiltData1);
+
+  std::unique_ptr<MeasurementBaseData> tiltData2;
+  tiltData2.reset(new TiltData(MeasurementSource::BleBeacon, TiltColor::Blue,
+                                     14.2, 1.085, 10, -72, true));
+  myMeasurementList.updateData(tiltData2);
+
+  std::unique_ptr<MeasurementBaseData> chamberData1;
+  chamberData1.reset(new ChamberData(MeasurementSource::BleBeacon, "FFF111",
+                                     14.2, 18.3, -72));
+  myMeasurementList.updateData(chamberData1);
+
   myDisplay.updateHistory("Line 1", 0);
   myDisplay.updateHistory("Line 2", 1);
   myDisplay.updateHistory("Line 3", 2);
@@ -318,6 +333,47 @@ void loop() {
     }
 #endif
 
+// --- Log file rotation: allow up to 4 log files (log.txt, log1.txt, log2.txt, log3.txt, log4.txt) ---
+#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SDFAT) || defined(ENABLE_SD_SD)
+    const char* logBase = "/data";
+    const char* logExt = ".csv";
+    const size_t maxLogs = 4;
+    static size_t maxLogFileSize = 1024; // bytes, can be changed at runtime
+    char logFileName[40];
+    snprintf(logFileName, sizeof(logFileName), "%s%s", logBase, logExt); // /data.csv
+    if (mySdStorage.hasCard()) {
+      fs::File logFile = mySdStorage.open(logFileName, "r");
+      if (logFile) {
+        size_t logSize = logFile.size();
+        logFile.close();
+        if (logSize > maxLogFileSize) {
+          // Rotate: data3.csv->data4.csv, data2.csv->data3.csv, data1.csv->data2.csv, data.csv->data1.csv
+          for (int i = maxLogs - 1; i >= 1; --i) {
+            char oldName[24], newName[24];
+            snprintf(oldName, sizeof(oldName), "%s%d%s", logBase, i, logExt); // /data1.csv, /data2.csv, ...
+            snprintf(newName, sizeof(newName), "%s%d%s", logBase, i + 1, logExt); // /data2.csv, /data3.csv, ...
+            if (mySdStorage.exists(oldName)) {
+              mySdStorage.remove(newName); // Remove if exists
+              if (mySdStorage.rename(oldName, newName)) {
+                Log.notice(F("Loop: Log rotation: %s -> %s" CR), oldName, newName);
+              } else {
+                Log.error(F("Loop: Log rotation failed: %s -> %s" CR), oldName, newName);
+              }
+            }
+          }
+          // data.csv -> data1.csv
+          char firstRotated[40];
+          snprintf(firstRotated, sizeof(firstRotated), "%s1%s", logBase, logExt);
+          mySdStorage.remove(firstRotated); // Remove if exists
+          if (mySdStorage.rename(logFileName, firstRotated)) {
+            Log.notice(F("Loop: Log rotation: %s -> %s" CR), logFileName, firstRotated);
+          } else {
+            Log.error(F("Loop: Log rotation failed: %s -> %s" CR), logFileName, firstRotated);
+          }
+        }
+      }
+    }
+#endif
   }
 
   if (displayTimer.hasExpired()) {

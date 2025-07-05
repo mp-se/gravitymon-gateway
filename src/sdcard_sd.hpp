@@ -36,7 +36,7 @@ SOFTWARE.
 #include <SD.h>
 
 class Storage {
- private:
+public:
   uint64_t _cardSize = 0;
   bool _hasCard = false;
 
@@ -114,6 +114,14 @@ class Storage {
       return false;
     }
     return SD.remove(path);
+  }
+
+  bool rename(const String& from, const String& to) {
+    if (!_hasCard) {
+      Log.error(F("SD  : Card not initialized." CR));
+      return false;
+    }
+    return SD.rename(from, to);
   }
 
   uint64_t totalBytes() const {

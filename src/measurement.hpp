@@ -483,7 +483,7 @@ class MeasurementList {
 
     int i = findMeasurementById(data->getId());
 
-#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SDFAT)
+#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SDFAT) || defined(ENABLE_SD_SD)
     if (mySdStorage.hasCard()) {
       File file = mySdStorage.open("/data.csv", FILE_APPEND, true);
       if (file) {

@@ -219,6 +219,14 @@ class Storage {
     return _fs.remove(path.c_str());
   }
 
+  bool rename(const String& from, const String& to) {
+    if (!_hasCard) {
+      Log.error(F("SD  : Card not initialized." CR));
+      return false;
+    }
+    return _fs.rename(from.c_str(), to.c_str());
+  }
+
   uint64_t totalBytes() const {
     if (!_hasCard) {
       Log.error(F("SD  : Card not initialized." CR));
