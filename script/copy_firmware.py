@@ -14,35 +14,46 @@ def after_build(source, target, env):
 
     # Gateway
 
-    if name == "gateway32pro-release" :
-        target = dir + "/bin/firmware32pro.bin"
+    if name == "gateway32pro-tft" :
+        target = dir + "/bin/firmware32pro-tft.bin"
         source = dir + "/.pio/build/" + name + "/firmware.bin"
         print( "Copy file : " + source + " -> " + target )
         shutil.copyfile( source, target )
 
-        target = dir + "/bin/partitions32pro.bin"
+        target = dir + "/bin/partitions32pro-tft.bin"
         source = dir + "/.pio/build/" + name + "/partitions.bin"
         print( "Copy file : " + source + " -> " + target )
         shutil.copyfile( source, target )
 
-    elif name == "gateway32s3pro-release" :
-        target = dir + "/bin/firmware32s3pro.bin"
+    elif name == "gateway32s3pro-tft" :
+        target = dir + "/bin/firmware32s3pro-tft.bin"
         source = dir + "/.pio/build/" + name + "/firmware.bin"
         print( "Copy file : " + source + " -> " + target )
         shutil.copyfile( source, target )
 
-        target = dir + "/bin/partitions32s3pro.bin"
+        target = dir + "/bin/partitions32s3pro-tft.bin"
         source = dir + "/.pio/build/" + name + "/partitions.bin"
         print( "Copy file : " + source + " -> " + target )
         shutil.copyfile( source, target )
 
-    elif name == "gateway32s3wave-release" :
-        target = dir + "/bin/firmware32s3wave.bin"
+    elif name == "gateway32s3pro-sd" :
+        target = dir + "/bin/firmware32s3pro-sd.bin"
         source = dir + "/.pio/build/" + name + "/firmware.bin"
         print( "Copy file : " + source + " -> " + target )
         shutil.copyfile( source, target )
 
-        target = dir + "/bin/partitions32s3wave.bin"
+        target = dir + "/bin/partitions32s3pro-sd.bin"
+        source = dir + "/.pio/build/" + name + "/partitions.bin"
+        print( "Copy file : " + source + " -> " + target )
+        shutil.copyfile( source, target )
+
+    elif name == "gateway32s3wave-tft-sd" :
+        target = dir + "/bin/firmware32s3wave-tft-sd.bin"
+        source = dir + "/.pio/build/" + name + "/firmware.bin"
+        print( "Copy file : " + source + " -> " + target )
+        shutil.copyfile( source, target )
+
+        target = dir + "/bin/partitions32s3wave-tft-sd.bin"
         source = dir + "/.pio/build/" + name + "/partitions.bin"
         print( "Copy file : " + source + " -> " + target )
         shutil.copyfile( source, target )

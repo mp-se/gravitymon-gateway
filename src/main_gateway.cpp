@@ -39,7 +39,6 @@ SOFTWARE.
 #include <memory>
 #include <push_gateway.hpp>
 #include <pushtarget.hpp>
-#include <sdcard_sdfat.hpp>
 #include <sdcard_mmc.hpp>
 #include <sdcard_sd.hpp>
 #include <serialws.hpp>
@@ -88,7 +87,7 @@ std::deque<String> logEntryList;  // Last number of events
 bool logUpdated = true;           // If the history log should be updated
 int displayMeasurementIndex =
     0;  // What entry is shown on the top of the display
-#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SDFAT) || defined(ENABLE_SD_SD)
+#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SD)
 Storage mySdStorage;
 #endif
 
@@ -128,13 +127,6 @@ void setup() {
   Log.notice(F("Main: MMC_CMD %d." CR), MMC_CMD);
   Log.notice(F("Main: MMC_D0 %d." CR), MMC_D0);
   mySdStorage.begin(MMC_CLK, MMC_CMD, MMC_D0);
-#endif
-
-#if defined(ENABLE_SD_SDFAT)
-  myDisplay.printLineCentered(3, "Mounting SD (SDFat) card");
-  Log.notice(F("Main: SD_CS %d." CR), SD_CS);
-  mySdStorage.begin(SD_CS);
-  // mySdStorage.begin( SD_CS, myDisplay.getSPI());
 #endif
 
 #if defined(ENABLE_SD_SD)
@@ -315,15 +307,6 @@ void loop() {
     }
 #endif
 
-#if defined(ENABLE_SD_SDFAT)
-    if (!mySdStorage.hasCard()) {
-      Log.notice(F("Loop: SD card not mounted, retry mounting." CR));
-      mySdStorage.end();
-      mySdStorage.begin(SD_CS);
-      // mySdStorage.begin(SD_CS, myDisplay.getSPI());
-    }
-#endif
-
 #if defined(ENABLE_SD_SD)
     if (!mySdStorage.hasCard()) {
       Log.notice(F("Loop: SD card not mounted, retry mounting." CR));
@@ -334,7 +317,7 @@ void loop() {
 #endif
 
 // --- Log file rotation: allow up to 4 log files (log.txt, log1.txt, log2.txt, log3.txt, log4.txt) ---
-#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SDFAT) || defined(ENABLE_SD_SD)
+#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SD)
     const char* logBase = "/data";
     const char* logExt = ".csv";
     const size_t maxLogs = 4;

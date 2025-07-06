@@ -33,12 +33,11 @@ SOFTWARE.
 #include <deque>
 #include <memory>
 #include <sdcard_mmc.hpp>
-#include <sdcard_sdfat.hpp>
 #include <sdcard_sd.hpp>
 #include <utility>
 #include <utils.hpp>
 
-#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SDFAT) || defined(ENABLE_SD_SD)
+#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SD)
 extern Storage mySdStorage;
 #endif
 
@@ -83,7 +82,7 @@ class MeasurementBaseData {
   }
   virtual ~MeasurementBaseData() {}
 
-  virtual void writeToFile(File& file) const = 0;
+  virtual void writeToFile(File& file) const {}
 
   const char* getCreatedAsString() const { return _created.c_str(); }
 
@@ -483,7 +482,7 @@ class MeasurementList {
 
     int i = findMeasurementById(data->getId());
 
-#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SDFAT) || defined(ENABLE_SD_SD)
+#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SD)
     if (mySdStorage.hasCard()) {
       File file = mySdStorage.open("/data.csv", FILE_APPEND, true);
       if (file) {
