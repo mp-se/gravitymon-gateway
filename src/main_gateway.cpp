@@ -338,7 +338,7 @@ void loop() {
     const char* logBase = "/data";
     const char* logExt = ".csv";
     const size_t maxLogs = 4;
-    static size_t maxLogFileSize = 1024; // bytes, can be changed at runtime
+    static size_t maxLogFileSize = 16768; // bytes, can be changed at runtime
     char logFileName[40];
     snprintf(logFileName, sizeof(logFileName), "%s%s", logBase, logExt); // /data.csv
     if (mySdStorage.hasCard()) {
