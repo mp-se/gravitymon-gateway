@@ -23,6 +23,8 @@ SOFTWARE.
  */
 #if defined(GATEWAY)
 
+// #define CREATE_TESTDATA
+
 #include <battery.hpp>
 #include <ble_gateway.hpp>
 #include <config_gateway.hpp>
@@ -219,8 +221,6 @@ void setup() {
   delay(1000);
   myDisplay.createUI();
 #endif
-
-#define CREATE_TESTDATA
 
 #if defined(CREATE_TESTDATA)
   std::unique_ptr<MeasurementBaseData> gravityData1;
