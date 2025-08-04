@@ -47,8 +47,9 @@ class GatewayWebServer : public BrewingWebServer {
   void doTaskSensorCalibration() {}
   void doTaskPushTestSetup(TemplatingEngine &engine, BrewingPush &push);
   void doTaskHardwareScanning(JsonObject &obj) {}
+  void doWebFeature(JsonObject &obj) {}
 
-  virtual void loop();
+  void loop();
 };
 
 // Global instance created
