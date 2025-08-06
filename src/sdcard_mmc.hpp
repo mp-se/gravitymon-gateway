@@ -25,7 +25,7 @@ SOFTWARE.
 #ifndef SRC_SDCARD_MMC_HPP_
 #define SRC_SDCARD_MMC_HPP_
 
-#if defined(ENABLE_SD_MMC)
+#if defined(ENABLE_MMC)
 
 #include <log.hpp>
 #include <SD_MMC.h>
@@ -170,7 +170,7 @@ public:
   }
 };
 
-#endif  // ENABLE_SD_MMC
+#endif  // ENABLE_MMC
 
 #endif  // SRC_SDCARD_MMC_HPP_
 

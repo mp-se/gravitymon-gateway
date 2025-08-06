@@ -30,7 +30,7 @@ SOFTWARE.
  * with the TFT due to conflicts with the SPI bus and multithreading (especially lvgl library).
  */
 
-#if defined(ENABLE_SD_SD)
+#if defined(ENABLE_SD)
 
 #include <log.hpp>
 #include <SD.h>
@@ -46,8 +46,8 @@ public:
 
   bool hasCard() const { return _hasCard; }
 
-  bool begin(uint8_t cs) {
-    if (SD.begin(cs)) {
+  bool begin(uint8_t cs, SPIClass &spi) {
+    if (SD.begin(cs, spi)) {
       _hasCard = true;
       _cardSize = SD.cardSize();
 
@@ -174,7 +174,7 @@ public:
   }
 };
 
-#endif  // ENABLE_SD_SD
+#endif  // ENABLE_SD
 
 #endif  // SRC_SDCARD_SD_HPP_
 

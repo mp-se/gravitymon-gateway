@@ -89,7 +89,7 @@ std::deque<String> logEntryList;  // Last number of events
 bool logUpdated = true;           // If the history log should be updated
 int displayMeasurementIndex =
     0;  // What entry is shown on the top of the display
-#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SD)
+#if defined(ENABLE_MMC) || defined(ENABLE_SD)
 Storage mySdStorage;
 #endif
 
@@ -123,7 +123,7 @@ void setup() {
   checkResetReason();
   myConfig.loadFile();
 
-#if defined(ENABLE_SD_MMC)
+#if defined(ENABLE_MMC)
   myDisplay.printLineCentered(3, "Mounting SD (SD_MMC) card");
   Log.notice(F("Main: MMC_CLK %d." CR), MMC_CLK);
   Log.notice(F("Main: MMC_CMD %d." CR), MMC_CMD);
@@ -131,10 +131,14 @@ void setup() {
   mySdStorage.begin(MMC_CLK, MMC_CMD, MMC_D0);
 #endif
 
-#if defined(ENABLE_SD_SD)
+#if defined(ENABLE_SD)
   myDisplay.printLineCentered(3, "Mounting SD (SD) card");
-  mySdStorage.begin(SD_CS);
-#endif
+  #if defined(ENABLE_TFT)
+  mySdStorage.begin(SD_CS, myDisplay.getSPI());
+  #else
+  mySdStorage.begin(SD_CS, SPI);
+  #endif // ENABLE_TFT
+#endif // ENABLE_SD
 
   // No stored config, move to portal
   if (!myWifi.hasConfig()) {
@@ -299,7 +303,7 @@ void loop() {
     cycleTimer.reset();
     displayMeasurementIndex++;
 
-#if defined(ENABLE_SD_MMC)
+#if defined(ENABLE_MMC)
     if (!mySdStorage.hasCard()) {
       Log.notice(F("Loop: SD card not mounted, retry mounting." CR));
       mySdStorage.end();
@@ -307,17 +311,20 @@ void loop() {
     }
 #endif
 
-#if defined(ENABLE_SD_SD)
+#if defined(ENABLE_SD)
     if (!mySdStorage.hasCard()) {
       Log.notice(F("Loop: SD card not mounted, retry mounting." CR));
       mySdStorage.end();
-      mySdStorage.begin(SD_CS);
-      // mySdStorage.begin(SD_CS, myDisplay.getSPI());
+  #if defined(ENABLE_TFT)
+      mySdStorage.begin(SD_CS, myDisplay.getSPI());
+  #else
+      mySdStorage.begin(SD_CS, SPI);
+  #endif // ENABLE_TFT
     }
-#endif
+#endif // ENABLE_SD
 
 // --- Log file rotation: allow up to 4 log files (log.txt, log1.txt, log2.txt, log3.txt, log4.txt) ---
-#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SD)
+#if defined(ENABLE_MMC) || defined(ENABLE_SD)
     const char* logBase = "/data";
     const char* logExt = ".csv";
     const size_t maxLogs = 4;

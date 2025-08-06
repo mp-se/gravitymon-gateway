@@ -25,24 +25,13 @@ def after_build(source, target, env):
         print( "Copy file : " + source + " -> " + target )
         shutil.copyfile( source, target )
 
-    elif name == "gateway32s3pro-tft" :
-        target = dir + "/bin/firmware32s3pro-tft.bin"
+    elif name == "gateway32s3pro-tft-sd" :
+        target = dir + "/bin/firmware32s3pro-tft-sd.bin"
         source = dir + "/.pio/build/" + name + "/firmware.bin"
         print( "Copy file : " + source + " -> " + target )
         shutil.copyfile( source, target )
 
-        target = dir + "/bin/partitions32s3pro-tft.bin"
-        source = dir + "/.pio/build/" + name + "/partitions.bin"
-        print( "Copy file : " + source + " -> " + target )
-        shutil.copyfile( source, target )
-
-    elif name == "gateway32s3pro-sd" :
-        target = dir + "/bin/firmware32s3pro-sd.bin"
-        source = dir + "/.pio/build/" + name + "/firmware.bin"
-        print( "Copy file : " + source + " -> " + target )
-        shutil.copyfile( source, target )
-
-        target = dir + "/bin/partitions32s3pro-sd.bin"
+        target = dir + "/bin/partitions32s3pro-tft-sd.bin"
         source = dir + "/.pio/build/" + name + "/partitions.bin"
         print( "Copy file : " + source + " -> " + target )
         shutil.copyfile( source, target )

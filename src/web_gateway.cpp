@@ -34,6 +34,7 @@ SOFTWARE.
 #include <sdcard_sd.hpp>
 #include <uptime.hpp>
 #include <web_gateway.hpp>
+#include <main_gateway.hpp>
 
 constexpr auto PARAM_GRAVITY_DEVICE = "gravity_device";
 constexpr auto PARAM_PRESSURE_DEVICE = "pressure_device";
@@ -54,14 +55,31 @@ constexpr auto PARAM_UPTIME_SECONDS = "uptime_seconds";
 constexpr auto PARAM_UPTIME_MINUTES = "uptime_minutes";
 constexpr auto PARAM_UPTIME_HOURS = "uptime_hours";
 constexpr auto PARAM_UPTIME_DAYS = "uptime_days";
-constexpr auto PARAM_SD = "sd_enabled";
+constexpr auto PARAM_SD_MOUNTED = "sd_mounted";
+constexpr auto PARAM_SD = "sd";
+constexpr auto PARAM_TFT = "tft";
 
-#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SD)
+#if defined(ENABLE_MMC) || defined(ENABLE_SD)
 extern Storage mySdStorage;
 #endif
 
 GatewayWebServer::GatewayWebServer(GravmonGatewayConfig *config)
     : BrewingWebServer(config), _gatewayConfig(config) {}
+
+void GatewayWebServer::doWebFeature(JsonObject &obj) {
+  obj[PARAM_FIRMWARE_FILE] = CFG_FILENAMEBIN;
+#if defined(ENABLE_MMC) || defined(ENABLE_SD)
+  obj[PARAM_SD] = true;
+#else
+  obj[PARAM_SD] = false;
+#endif
+
+#if defined(ENABLE_TFT)
+  obj[PARAM_TFT] = true;
+#else
+  obj[PARAM_TFT] = false;
+#endif
+}
 
 void GatewayWebServer::doWebStatus(JsonObject &obj) {
   JsonArray gravityDevices = obj[PARAM_GRAVITY_DEVICE].to<JsonArray>();
@@ -144,10 +162,10 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
   obj[PARAM_UPTIME_MINUTES] = myUptime.getMinutes();
   obj[PARAM_UPTIME_HOURS] = myUptime.getHours();
   obj[PARAM_UPTIME_DAYS] = myUptime.getDays();
-#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SD)
-  obj[PARAM_SD] = mySdStorage.hasCard();
+#if defined(ENABLE_MMC) || defined(ENABLE_SD)
+  obj[PARAM_SD_MOUNTED] = mySdStorage.hasCard();
 #else
-  obj[PARAM_SD] = false;
+  obj[PARAM_SD_MOUNTED] = false;
 #endif
 }
 
@@ -163,7 +181,7 @@ bool GatewayWebServer::setupWebServer(const char *serviceName) {
       "/api/sd", std::bind(&GatewayWebServer::webHandleSecureDigital, this,
                            std::placeholders::_1, std::placeholders::_2));
   _server->addHandler(handler);
-#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SD)
+#if defined(ENABLE_MMC) || defined(ENABLE_SD)
   _server->serveStatic("/sd", mySdStorage.getFS(), "/");
 #endif
   return b;
@@ -437,7 +455,7 @@ void GatewayWebServer::webHandleSecureDigital(AsyncWebServerRequest *request,
   }
 
   Log.notice(F("WEB : webServer callback for /api/sd." CR));
-#if defined(ENABLE_SD_MMC) || defined(ENABLE_SD_SD)
+#if defined(ENABLE_MMC) || defined(ENABLE_SD)
   JsonObject obj = json.as<JsonObject>();
 
   if (!obj[PARAM_COMMAND].isNull()) {

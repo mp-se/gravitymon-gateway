@@ -32,10 +32,13 @@ SOFTWARE.
 // gateway
 #if defined(LOLIN_D32_PRO)
 #define PIN_VOLT T0
+#define CFG_FILENAMEBIN "firmware32pro-tft.bin"
 #elif defined(LOLIN_S3_PRO)
 #define PIN_VOLT A3
+#define CFG_FILENAMEBIN "firmware32s3pro-tft-sd.bin"
 #elif defined(WAVESHARE_S3_TFT)
 #define PIN_VOLT A3
+#define CFG_FILENAMEBIN "firmware32s3wave-tft-sd.bin"
 #endif
 
 #endif  // GATEWAY
