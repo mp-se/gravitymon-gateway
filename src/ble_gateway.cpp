@@ -47,11 +47,11 @@ constexpr auto SERV2_UUID = "1801";
 constexpr auto CHAR_UUID = "2AC4";
 
 void BleDeviceCallbacks::onResult(
-    const NimBLEAdvertisedDevice *advertisedDevice) {
-  Log.notice(F("BLE : %s,%s %d" CR),
-             advertisedDevice->getAddress().toString().c_str(),
-             advertisedDevice->getName().c_str(),
-              advertisedDevice->getManufacturerData().length());
+  const NimBLEAdvertisedDevice *advertisedDevice) {
+  // Log.notice(F("BLE : %s,%s %d" CR),
+  //            advertisedDevice->getAddress().toString().c_str(),
+  //            advertisedDevice->getName().c_str(),
+  //             advertisedDevice->getManufacturerData().length());
 
   if (advertisedDevice->getName() == "gravitymon") {
     bool eddyStone = false;
@@ -120,7 +120,7 @@ void BleDeviceCallbacks::onResult(
 
   // Check if we have a rapt v1/v2 iBeacon to process
 
-  if (advertisedDevice->getManufacturerData().length() >= 10) {
+  if (advertisedDevice->getManufacturerData().length() >= 24) {
     if (advertisedDevice->getManufacturerData()[0] == 0x52 &&
         advertisedDevice->getManufacturerData()[1] == 0x41 &&
         advertisedDevice->getManufacturerData()[2] == 0x50 &&

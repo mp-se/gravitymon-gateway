@@ -160,14 +160,14 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
         Log.notice("Loop: Processing Rapt data %d." CR, i);
         const RaptData *rd = entry->getRaptData();
 
-        gravityDevices[raptIdx][PARAM_DEVICE] = rd->getId();
-        gravityDevices[raptIdx][PARAM_GRAVITY] = rd->getGravity();
-        gravityDevices[raptIdx][PARAM_VELOCITY] = rd->getVelocity();
-        gravityDevices[raptIdx][PARAM_TEMP] = rd->getTempC();
-        gravityDevices[raptIdx][PARAM_UPDATE_TIME] = entry->getUpdateAge();
-        gravityDevices[raptIdx][PARAM_PUSH_TIME] = entry->getPushAge();
-        gravityDevices[raptIdx][PARAM_SOURCE] = rd->getSourceAsString();
-        gravityDevices[raptIdx][PARAM_TYPE] = rd->getTypeAsString();
+        raptDevices[raptIdx][PARAM_DEVICE] = rd->getId();
+        raptDevices[raptIdx][PARAM_GRAVITY] = rd->getGravity();
+        raptDevices[raptIdx][PARAM_VELOCITY] = rd->getVelocity();
+        raptDevices[raptIdx][PARAM_TEMP] = rd->getTempC();
+        raptDevices[raptIdx][PARAM_UPDATE_TIME] = entry->getUpdateAge();
+        raptDevices[raptIdx][PARAM_PUSH_TIME] = entry->getPushAge();
+        raptDevices[raptIdx][PARAM_SOURCE] = rd->getSourceAsString();
+        raptDevices[raptIdx][PARAM_TYPE] = rd->getTypeAsString();
         raptIdx++;
       } break;
     }
