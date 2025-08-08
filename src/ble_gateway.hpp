@@ -58,6 +58,9 @@ class BleScanner {
   void processGravitymonEddystoneBeacon(NimBLEAddress address,
                                         const std::vector<uint8_t> &payload);
 
+  void proccesRaptBeacon(const std::string &advertStringHex,
+                               NimBLEAddress address);
+
   void proccesPressuremonBeacon(const std::string &advertStringHex,
                                 NimBLEAddress address);
   void processPressuremonEddystoneBeacon(NimBLEAddress address,

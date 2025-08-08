@@ -48,6 +48,7 @@ enum MeasurementType {
   Gravitymon = 3,
   Pressuremon = 4,
   Chamber = 5,
+  Rapt = 6,
 };
 
 enum MeasurementSource {
@@ -99,6 +100,8 @@ class MeasurementBaseData {
         return "Pressuremon";
       case MeasurementType::Chamber:
         return "Chamber Controller";
+      case MeasurementType::Rapt:
+        return "RAPT Sensor";
       default:
         return "";
     }
@@ -404,6 +407,73 @@ class ChamberData : public MeasurementBaseData {
   }
 };
 
+class RaptData : public MeasurementBaseData {
+ private:
+  float _tempC = 0;
+  float _gravity = 0;
+  float _angle = 0;
+  float _velocity = 0;
+  float _battery = 0;
+  int _rssi = 0;
+  int _txPower = 0;
+
+ public:
+  // Note! For RAPT the last part of the MAC adress is used as ID since the payload does not contain that.
+  RaptData(MeasurementSource source, String id,
+              float tempC, float gravity, float velocity, float angle, float battery,
+              int txPower, int rssi)
+      : MeasurementBaseData(id, MeasurementType::Rapt, source) {
+    _tempC = tempC;
+    _velocity = velocity;
+    _gravity = gravity;
+    _angle = angle;
+    _battery = battery;
+    _txPower = txPower;
+    _rssi = rssi;
+  }
+  virtual ~RaptData() {}
+
+  float getTempC() const { return _tempC; }
+  float getGravity() const { return _gravity; }
+  float getVelocity() const { return _velocity; }
+  float getAngle() const { return _angle; }
+  float getBattery() const { return _battery; }
+  int getTxPower() const { return _txPower; }
+  int getRssi() const { return _rssi; }
+
+  void writeToFile(File& file) const {
+
+    // TODO: Not yet implemented for RAPT data 
+
+    char buffer[100];
+
+    // Data parameters
+    // ----------------------------------------
+    // 0, Format Version (1)
+    // 1, Type
+    // 2, Source
+    // 3, Created (timestamp)
+    // 4, ID
+    // 5, Name
+    // 6, Token
+    // 7, Temperature (C)
+    // 8, Gravity (SG)
+    // 9, Angle
+    // 10, Battery
+    // 11, Tx Power
+    // 12, Rssi
+    // 13, Interval
+
+    // snprintf(buffer, sizeof(buffer),
+    //          "1,%s,%s,%s,%s,%s,%s,"
+    //          "%.2f,%.4f,%.4f,%.2f,%d,%d,%d",
+    //          getTypeAsString(), getSourceAsString(), getCreatedAsString(),
+    //          getId(), getName(), getToken(), getTempC(), getGravity(),
+    //          getAngle(), getBattery(), getTxPower(), getRssi(), getInterval());
+    // file.println(buffer);
+  }
+};
+
 // Base class for measurement data keeping track of last updated and pushed
 class MeasurementEntry {
  private:
@@ -424,6 +494,9 @@ class MeasurementEntry {
   }
   const GravityData* getGravityData() const {
     return static_cast<GravityData*>(_measurement.get());
+  }
+  const RaptData* getRaptData() const {
+    return static_cast<RaptData*>(_measurement.get());
   }
   const PressureData* getPressureData() const {
     return static_cast<PressureData*>(_measurement.get());
@@ -473,7 +546,6 @@ class MeasurementList {
 
   void updateData(std::unique_ptr<MeasurementBaseData>& data) {
     if (data.get() == nullptr) {
-      // Serial.printf("Got invalid pointer for data\n");
       return;
     }
 
@@ -495,21 +567,15 @@ class MeasurementList {
 #endif
 
     if (i == -1) {
-      // Serial.printf("Creating new measurement entry %s\n",
-      // data->getId());
       std::unique_ptr<MeasurementEntry> entry;
 
       entry.reset(new MeasurementEntry(data->getId()));
       entry->setMeasurement(std::move(data));
       _list.push_back(std::move(entry));
     } else {
-      // Serial.printf("Updating measurement entry %s\n",
-      // data->getId());
       MeasurementEntry* entry = getMeasurementEntry(i);
 
       if (entry != nullptr) entry->setMeasurement(std::move(data));
-      // else
-      //   Serial.printf("Got invalid pointer from index %d\n", i);
     }
   }
 
@@ -521,7 +587,6 @@ class MeasurementList {
   int findMeasurementById(const String id) const {
     int i = 0;
     for (const std::unique_ptr<MeasurementEntry>& item : _list) {
-      // Serial.printf("Checking entry %s (%d)\n", item->getId(), i);
       if (id == item->getId()) {
         return i;
       }

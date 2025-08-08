@@ -78,6 +78,7 @@ MeasurementList myMeasurementList;  // Data recevied from http or bluetooth
 LoopTimer controllerTimer(5000);
 LoopTimer cycleTimer(4000);   // Cycle through the devices on the display
 LoopTimer displayTimer(100);  // Process text updates for displuy
+LoopTimer sdTimer(30000);   // Check if there is an SD card attached
 
 bool sleepModeAlwaysSkip =
     false;  // Needs to be defined but not used in gateway
@@ -299,10 +300,8 @@ void loop() {
     logUpdated = false;
   }
 
-  if (cycleTimer.hasExpired()) {
-    cycleTimer.reset();
-    displayMeasurementIndex++;
-
+  if (sdTimer.hasExpired()) {
+    sdTimer.reset();
 #if defined(ENABLE_MMC)
     if (!mySdStorage.hasCard()) {
       Log.notice(F("Loop: SD card not mounted, retry mounting." CR));
@@ -323,8 +322,14 @@ void loop() {
     }
 #endif // ENABLE_SD
 
-// --- Log file rotation: allow up to 4 log files (log.txt, log1.txt, log2.txt, log3.txt, log4.txt) ---
+  }
+
+  if (cycleTimer.hasExpired()) {
+    cycleTimer.reset();
+    displayMeasurementIndex++;
+
 #if defined(ENABLE_MMC) || defined(ENABLE_SD)
+    // --- Log file rotation: allow up to 4 log files (log.txt, log1.txt, log2.txt, log3.txt, log4.txt) ---
     const char* logBase = "/data";
     const char* logExt = ".csv";
     const size_t maxLogs = 4;
@@ -649,6 +654,33 @@ void controller() {
 
         case MeasurementType::Chamber: {
           Log.notice("Loop: Processing Chamber data %d." CR, i);
+        } break;
+
+        case MeasurementType::Rapt: {
+          Log.notice("Loop: Processing Rapt data %d." CR, i);
+
+          if (entry->isUpdated() &&
+              (entry->getPushAge() > myConfig.getPushResendTime())) {
+            const RaptData* rd = entry->getRaptData();
+
+            addGravityLogEntry(rd->getId(), entry->getTimeinfoUpdated(),
+                               rd->getGravity(), rd->getTempC());
+
+            // TemplatingEngine engine;
+
+            // setupTemplateEngineGravityGateway(
+            //     &myConfig, engine, gd->getAngle(), gd->getGravity(),
+            //     gd->getTempC(), gd->getBattery(), gd->getInterval(),
+            //     gd->getId(), gd->getToken(), gd->getName());
+            // push.sendAll(engine, BrewingPush::MeasurementType::GRAVITY,
+            //              myConfig.isHttpPostGravityEnable(),
+            //              myConfig.isHttpPost2GravityEnable(),
+            //              myConfig.isHttpGetGravityEnable(),
+            //              myConfig.isInfluxdb2GravityEnable(),
+            //              myConfig.isMqttGravityEnable());
+
+            entry->setPushed();
+          }
         } break;
       }
     }

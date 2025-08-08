@@ -39,11 +39,13 @@ SOFTWARE.
 constexpr auto PARAM_GRAVITY_DEVICE = "gravity_device";
 constexpr auto PARAM_PRESSURE_DEVICE = "pressure_device";
 constexpr auto PARAM_TEMPERATURE_DEVICE = "temperature_device";
+constexpr auto PARAM_RAPT_DEVICE = "rapt_device";
 constexpr auto PARAM_DEVICE = "device";
 constexpr auto PARAM_NAME = "name";
 constexpr auto PARAM_TYPE = "type";
 constexpr auto PARAM_SOURCE = "source";
 constexpr auto PARAM_GRAVITY = "gravity";
+constexpr auto PARAM_VELOCITY = "velocity";
 constexpr auto PARAM_PRESSURE = "pressure";
 constexpr auto PARAM_PRESSURE1 = "pressure1";
 constexpr auto PARAM_TEMP = "temp";
@@ -85,7 +87,8 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
   JsonArray gravityDevices = obj[PARAM_GRAVITY_DEVICE].to<JsonArray>();
   JsonArray pressureDevices = obj[PARAM_PRESSURE_DEVICE].to<JsonArray>();
   JsonArray temperatureDevices = obj[PARAM_TEMPERATURE_DEVICE].to<JsonArray>();
-  int gravIdx = 0, pressIdx = 0, tempIdx = 0;
+  JsonArray raptDevices = obj[PARAM_RAPT_DEVICE].to<JsonArray>();
+  int gravIdx = 0, pressIdx = 0, tempIdx = 0, raptIdx = 0;
 
   for (int i = 0; i < myMeasurementList.size(); i++) {
     MeasurementEntry *entry = myMeasurementList.getMeasurementEntry(i);
@@ -151,6 +154,21 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
         temperatureDevices[tempIdx][PARAM_SOURCE] = cd->getSourceAsString();
         temperatureDevices[tempIdx][PARAM_TYPE] = cd->getTypeAsString();
         tempIdx++;
+      } break;
+
+      case MeasurementType::Rapt: {
+        Log.notice("Loop: Processing Rapt data %d." CR, i);
+        const RaptData *rd = entry->getRaptData();
+
+        gravityDevices[raptIdx][PARAM_DEVICE] = rd->getId();
+        gravityDevices[raptIdx][PARAM_GRAVITY] = rd->getGravity();
+        gravityDevices[raptIdx][PARAM_VELOCITY] = rd->getVelocity();
+        gravityDevices[raptIdx][PARAM_TEMP] = rd->getTempC();
+        gravityDevices[raptIdx][PARAM_UPDATE_TIME] = entry->getUpdateAge();
+        gravityDevices[raptIdx][PARAM_PUSH_TIME] = entry->getPushAge();
+        gravityDevices[raptIdx][PARAM_SOURCE] = rd->getSourceAsString();
+        gravityDevices[raptIdx][PARAM_TYPE] = rd->getTypeAsString();
+        raptIdx++;
       } break;
     }
   }
