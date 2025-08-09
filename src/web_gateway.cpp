@@ -87,8 +87,7 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
   JsonArray gravityDevices = obj[PARAM_GRAVITY_DEVICE].to<JsonArray>();
   JsonArray pressureDevices = obj[PARAM_PRESSURE_DEVICE].to<JsonArray>();
   JsonArray temperatureDevices = obj[PARAM_TEMPERATURE_DEVICE].to<JsonArray>();
-  JsonArray raptDevices = obj[PARAM_RAPT_DEVICE].to<JsonArray>();
-  int gravIdx = 0, pressIdx = 0, tempIdx = 0, raptIdx = 0;
+  int gravIdx = 0, pressIdx = 0, tempIdx = 0;
 
   for (int i = 0; i < myMeasurementList.size(); i++) {
     MeasurementEntry *entry = myMeasurementList.getMeasurementEntry(i);
@@ -160,15 +159,16 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
         Log.notice("Loop: Processing Rapt data %d." CR, i);
         const RaptData *rd = entry->getRaptData();
 
-        raptDevices[raptIdx][PARAM_DEVICE] = rd->getId();
-        raptDevices[raptIdx][PARAM_GRAVITY] = rd->getGravity();
-        raptDevices[raptIdx][PARAM_VELOCITY] = rd->getVelocity();
-        raptDevices[raptIdx][PARAM_TEMP] = rd->getTempC();
-        raptDevices[raptIdx][PARAM_UPDATE_TIME] = entry->getUpdateAge();
-        raptDevices[raptIdx][PARAM_PUSH_TIME] = entry->getPushAge();
-        raptDevices[raptIdx][PARAM_SOURCE] = rd->getSourceAsString();
-        raptDevices[raptIdx][PARAM_TYPE] = rd->getTypeAsString();
-        raptIdx++;
+        gravityDevices[gravIdx][PARAM_NAME] = rd->getId();
+        gravityDevices[gravIdx][PARAM_DEVICE] = rd->getId();
+        gravityDevices[gravIdx][PARAM_GRAVITY] = rd->getGravity();
+        gravityDevices[gravIdx][PARAM_VELOCITY] = rd->getVelocity();
+        gravityDevices[gravIdx][PARAM_TEMP] = rd->getTempC();
+        gravityDevices[gravIdx][PARAM_UPDATE_TIME] = entry->getUpdateAge();
+        gravityDevices[gravIdx][PARAM_PUSH_TIME] = entry->getPushAge();
+        gravityDevices[gravIdx][PARAM_SOURCE] = rd->getSourceAsString();
+        gravityDevices[gravIdx][PARAM_TYPE] = rd->getTypeAsString();
+        gravIdx++;
       } break;
     }
   }
