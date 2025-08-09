@@ -27,11 +27,12 @@ SOFTWARE.
 
 #if defined(ENABLE_MMC)
 
-#include <log.hpp>
 #include <SD_MMC.h>
 
+#include <log.hpp>
+
 class Storage {
-public:
+ public:
   uint64_t _cardSize = 0;
   bool _hasCard = false;
 
@@ -112,7 +113,7 @@ public:
     return SD_MMC.remove(path);
   }
 
-  bool rename(const String& from, const String& to) {
+  bool rename(const String &from, const String &to) {
     if (!_hasCard) {
       Log.error(F("SD  : Card not initialized." CR));
       return false;

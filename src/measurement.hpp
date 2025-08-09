@@ -101,7 +101,7 @@ class MeasurementBaseData {
       case MeasurementType::Chamber:
         return "Chamber Controller";
       case MeasurementType::Rapt:
-        return "RAPT Sensor";
+        return "RAPT";
       default:
         return "";
     }
@@ -418,10 +418,10 @@ class RaptData : public MeasurementBaseData {
   int _txPower = 0;
 
  public:
-  // Note! For RAPT the last part of the MAC adress is used as ID since the payload does not contain that.
-  RaptData(MeasurementSource source, String id,
-              float tempC, float gravity, float velocity, float angle, float battery,
-              int txPower, int rssi)
+  // Note! For RAPT the last part of the MAC adress is used as ID since the
+  // payload does not contain that.
+  RaptData(MeasurementSource source, String id, float tempC, float gravity,
+           float velocity, float angle, float battery, int txPower, int rssi)
       : MeasurementBaseData(id, MeasurementType::Rapt, source) {
     _tempC = tempC;
     _velocity = velocity;
@@ -442,8 +442,7 @@ class RaptData : public MeasurementBaseData {
   int getRssi() const { return _rssi; }
 
   void writeToFile(File& file) const {
-
-    // TODO: Not yet implemented for RAPT data 
+    // TODO: Not yet implemented for RAPT data
 
     char buffer[100];
 
@@ -469,7 +468,8 @@ class RaptData : public MeasurementBaseData {
     //          "%.2f,%.4f,%.4f,%.2f,%d,%d,%d",
     //          getTypeAsString(), getSourceAsString(), getCreatedAsString(),
     //          getId(), getName(), getToken(), getTempC(), getGravity(),
-    //          getAngle(), getBattery(), getTxPower(), getRssi(), getInterval());
+    //          getAngle(), getBattery(), getTxPower(), getRssi(),
+    //          getInterval());
     // file.println(buffer);
   }
 };

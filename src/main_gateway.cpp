@@ -78,7 +78,7 @@ MeasurementList myMeasurementList;  // Data recevied from http or bluetooth
 LoopTimer controllerTimer(5000);
 LoopTimer cycleTimer(4000);   // Cycle through the devices on the display
 LoopTimer displayTimer(100);  // Process text updates for displuy
-LoopTimer sdTimer(30000);   // Check if there is an SD card attached
+LoopTimer sdTimer(30000);     // Check if there is an SD card attached
 
 bool sleepModeAlwaysSkip =
     false;  // Needs to be defined but not used in gateway
@@ -134,12 +134,12 @@ void setup() {
 
 #if defined(ENABLE_SD)
   myDisplay.printLineCentered(3, "Mounting SD (SD) card");
-  #if defined(ENABLE_TFT)
+#if defined(ENABLE_TFT)
   mySdStorage.begin(SD_CS, myDisplay.getSPI());
-  #else
+#else
   mySdStorage.begin(SD_CS, SPI);
-  #endif // ENABLE_TFT
-#endif // ENABLE_SD
+#endif  // ENABLE_TFT
+#endif  // ENABLE_SD
 
   // No stored config, move to portal
   if (!myWifi.hasConfig()) {
@@ -254,17 +254,17 @@ void setup() {
 
   std::unique_ptr<MeasurementBaseData> tiltData1;
   tiltData1.reset(new TiltData(MeasurementSource::BleBeacon, TiltColor::Red,
-                                     14.2, 1.085, 10, -72, false));
+                               14.2, 1.085, 10, -72, false));
   myMeasurementList.updateData(tiltData1);
 
   std::unique_ptr<MeasurementBaseData> tiltData2;
   tiltData2.reset(new TiltData(MeasurementSource::BleBeacon, TiltColor::Blue,
-                                     14.2, 1.085, 10, -72, true));
+                               14.2, 1.085, 10, -72, true));
   myMeasurementList.updateData(tiltData2);
 
   std::unique_ptr<MeasurementBaseData> chamberData1;
-  chamberData1.reset(new ChamberData(MeasurementSource::BleBeacon, "FFF111",
-                                     14.2, 18.3, -72));
+  chamberData1.reset(
+      new ChamberData(MeasurementSource::BleBeacon, "FFF111", 14.2, 18.3, -72));
   myMeasurementList.updateData(chamberData1);
 
   myDisplay.updateHistory("Line 1", 0);
@@ -314,14 +314,13 @@ void loop() {
     if (!mySdStorage.hasCard()) {
       Log.notice(F("Loop: SD card not mounted, retry mounting." CR));
       mySdStorage.end();
-  #if defined(ENABLE_TFT)
+#if defined(ENABLE_TFT)
       mySdStorage.begin(SD_CS, myDisplay.getSPI());
-  #else
+#else
       mySdStorage.begin(SD_CS, SPI);
-  #endif // ENABLE_TFT
+#endif  // ENABLE_TFT
     }
-#endif // ENABLE_SD
-
+#endif  // ENABLE_SD
   }
 
   if (cycleTimer.hasExpired()) {
@@ -329,41 +328,51 @@ void loop() {
     displayMeasurementIndex++;
 
 #if defined(ENABLE_MMC) || defined(ENABLE_SD)
-    // --- Log file rotation: allow up to 4 log files (log.txt, log1.txt, log2.txt, log3.txt, log4.txt) ---
+    // --- Log file rotation: allow up to 4 log files (log.txt, log1.txt,
+    // log2.txt, log3.txt, log4.txt) ---
     const char* logBase = "/data";
     const char* logExt = ".csv";
     const size_t maxLogs = 4;
-    static size_t maxLogFileSize = 16768; // bytes, can be changed at runtime
+    static size_t maxLogFileSize = 16768;  // bytes, can be changed at runtime
     char logFileName[40];
-    snprintf(logFileName, sizeof(logFileName), "%s%s", logBase, logExt); // /data.csv
+    snprintf(logFileName, sizeof(logFileName), "%s%s", logBase,
+             logExt);  // /data.csv
     if (mySdStorage.hasCard()) {
       fs::File logFile = mySdStorage.open(logFileName, "r");
       if (logFile) {
         size_t logSize = logFile.size();
         logFile.close();
         if (logSize > maxLogFileSize) {
-          // Rotate: data3.csv->data4.csv, data2.csv->data3.csv, data1.csv->data2.csv, data.csv->data1.csv
+          // Rotate: data3.csv->data4.csv, data2.csv->data3.csv,
+          // data1.csv->data2.csv, data.csv->data1.csv
           for (int i = maxLogs - 1; i >= 1; --i) {
             char oldName[24], newName[24];
-            snprintf(oldName, sizeof(oldName), "%s%d%s", logBase, i, logExt); // /data1.csv, /data2.csv, ...
-            snprintf(newName, sizeof(newName), "%s%d%s", logBase, i + 1, logExt); // /data2.csv, /data3.csv, ...
+            snprintf(oldName, sizeof(oldName), "%s%d%s", logBase, i,
+                     logExt);  // /data1.csv, /data2.csv, ...
+            snprintf(newName, sizeof(newName), "%s%d%s", logBase, i + 1,
+                     logExt);  // /data2.csv, /data3.csv, ...
             if (mySdStorage.exists(oldName)) {
-              mySdStorage.remove(newName); // Remove if exists
+              mySdStorage.remove(newName);  // Remove if exists
               if (mySdStorage.rename(oldName, newName)) {
-                Log.notice(F("Loop: Log rotation: %s -> %s" CR), oldName, newName);
+                Log.notice(F("Loop: Log rotation: %s -> %s" CR), oldName,
+                           newName);
               } else {
-                Log.error(F("Loop: Log rotation failed: %s -> %s" CR), oldName, newName);
+                Log.error(F("Loop: Log rotation failed: %s -> %s" CR), oldName,
+                          newName);
               }
             }
           }
           // data.csv -> data1.csv
           char firstRotated[40];
-          snprintf(firstRotated, sizeof(firstRotated), "%s1%s", logBase, logExt);
-          mySdStorage.remove(firstRotated); // Remove if exists
+          snprintf(firstRotated, sizeof(firstRotated), "%s1%s", logBase,
+                   logExt);
+          mySdStorage.remove(firstRotated);  // Remove if exists
           if (mySdStorage.rename(logFileName, firstRotated)) {
-            Log.notice(F("Loop: Log rotation: %s -> %s" CR), logFileName, firstRotated);
+            Log.notice(F("Loop: Log rotation: %s -> %s" CR), logFileName,
+                       firstRotated);
           } else {
-            Log.error(F("Loop: Log rotation failed: %s -> %s" CR), logFileName, firstRotated);
+            Log.error(F("Loop: Log rotation failed: %s -> %s" CR), logFileName,
+                      firstRotated);
           }
         }
       }

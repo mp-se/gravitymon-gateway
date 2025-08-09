@@ -47,7 +47,7 @@ constexpr auto SERV2_UUID = "1801";
 constexpr auto CHAR_UUID = "2AC4";
 
 void BleDeviceCallbacks::onResult(
-  const NimBLEAdvertisedDevice *advertisedDevice) {
+    const NimBLEAdvertisedDevice *advertisedDevice) {
   // Log.notice(F("BLE : %s,%s %d" CR),
   //            advertisedDevice->getAddress().toString().c_str(),
   //            advertisedDevice->getName().c_str(),
@@ -125,13 +125,11 @@ void BleDeviceCallbacks::onResult(
         advertisedDevice->getManufacturerData()[1] == 0x41 &&
         advertisedDevice->getManufacturerData()[2] == 0x50 &&
         advertisedDevice->getManufacturerData()[3] == 0x54) {
-      Log.notice(
-          F("BLE : Advertised iBeacon RAPT v1/v2 device: %s" CR),
-          advertisedDevice->getAddress().toString().c_str());
+      Log.notice(F("BLE : Advertised iBeacon RAPT v1/v2 device: %s" CR),
+                 advertisedDevice->getAddress().toString().c_str());
 
-      bleScanner.proccesRaptBeacon(
-          advertisedDevice->getManufacturerData(),
-          advertisedDevice->getAddress());
+      bleScanner.proccesRaptBeacon(advertisedDevice->getManufacturerData(),
+                                   advertisedDevice->getAddress());
     }
   }
 
@@ -457,7 +455,7 @@ TiltColor BleScanner::uuidToTiltColor(std::string uuid) {
 }
 
 void BleScanner::proccesRaptBeacon(const std::string &advertStringHex,
-                                         NimBLEAddress address) {
+                                   NimBLEAddress address) {
   const char *payload = advertStringHex.c_str();
 
   float battery;
@@ -468,14 +466,17 @@ void BleScanner::proccesRaptBeacon(const std::string &advertStringHex,
   uint32_t chipId;
   // 01234567890123456 // Use the last part of the mac adress as chipId
   // 5d:d2:61:6a:01:ba
-  String chip = std::string(address.toString().substr(9, 2) + address.toString().substr(12, 2) + address.toString().substr(15, 2)).c_str();
+  String chip = std::string(address.toString().substr(9, 2) +
+                            address.toString().substr(12, 2) +
+                            address.toString().substr(15, 2))
+                    .c_str();
 
-  union { // For mapping the raw float to bytes
-      float f;
-      uint8_t b[4];
+  union {  // For mapping the raw float to bytes
+    float f;
+    uint8_t b[4];
   } floatUnion;
 
-  if(*(payload+4) == 0x01) {
+  if (*(payload + 4) == 0x01) {
     Log.info(F("BLE : Found rapt v1 beacon." CR));
 
     /*
@@ -492,7 +493,8 @@ void BleScanner::proccesRaptBeacon(const std::string &advertStringHex,
       } RAPTPillMetricsV1;
     */
 
-    temp = static_cast<float>((*(payload + 11) << 8) | *(payload + 12)) / 128 - 273.15;
+    temp = static_cast<float>((*(payload + 11) << 8) | *(payload + 12)) / 128 -
+           273.15;
 
     floatUnion.b[0] = *(payload + 16);
     floatUnion.b[1] = *(payload + 15);
@@ -504,15 +506,16 @@ void BleScanner::proccesRaptBeacon(const std::string &advertStringHex,
     angleY = static_cast<float>((*(payload + 19) << 8) | *(payload + 20)) / 16;
     angleZ = static_cast<float>((*(payload + 21) << 8) | *(payload + 22)) / 16;
 
-    battery = static_cast<float>((*(payload + 23) << 8) | *(payload + 24)) / 256;
+    battery =
+        static_cast<float>((*(payload + 23) << 8) | *(payload + 24)) / 256;
 
     std::unique_ptr<MeasurementBaseData> raptData;
-    raptData.reset(new RaptData(MeasurementSource::BleBeacon, chip, temp, gravity, 0, angleX, battery, 0, 0));
+    raptData.reset(new RaptData(MeasurementSource::BleBeacon, chip, temp,
+                                gravity, 0, angleX, battery, 0, 0));
 
-    Log.info(F("BLE : Update data for rapt %s." CR),
-             raptData->getId());
+    Log.info(F("BLE : Update data for rapt %s." CR), raptData->getId());
     myMeasurementList.updateData(raptData);
-  } else if(*(payload+4) == 0x02) {
+  } else if (*(payload + 4) == 0x02) {
     Log.info(F("BLE : Found rapt v2 beacon." CR));
 
     /*
@@ -530,7 +533,7 @@ void BleScanner::proccesRaptBeacon(const std::string &advertStringHex,
       } RAPTPillMetricsV2;
     */
 
-    if(*(payload+5) > 0) {
+    if (*(payload + 5) > 0) {
       floatUnion.b[0] = *(payload + 9);
       floatUnion.b[1] = *(payload + 8);
       floatUnion.b[2] = *(payload + 7);
@@ -538,25 +541,27 @@ void BleScanner::proccesRaptBeacon(const std::string &advertStringHex,
       velocity = floatUnion.f;
     }
 
-    temp = static_cast<float>((*(payload + 10) << 8) | *(payload + 11)) / 128 - 273.15;
+    temp = static_cast<float>((*(payload + 10) << 8) | *(payload + 11)) / 128 -
+           273.15;
 
     floatUnion.b[0] = *(payload + 15);
     floatUnion.b[1] = *(payload + 14);
     floatUnion.b[2] = *(payload + 13);
     floatUnion.b[3] = *(payload + 12);
-    gravity = floatUnion.f;
+    gravity = floatUnion.f / 1000;
 
     angleX = static_cast<float>((*(payload + 16) << 8) | *(payload + 17)) / 16;
     angleY = static_cast<float>((*(payload + 18) << 8) | *(payload + 19)) / 16;
     angleZ = static_cast<float>((*(payload + 20) << 8) | *(payload + 21)) / 16;
 
-    battery = static_cast<float>((*(payload + 22) << 8) | *(payload + 23)) / 256;
+    battery =
+        static_cast<float>((*(payload + 22) << 8) | *(payload + 23)) / 256;
 
     std::unique_ptr<MeasurementBaseData> raptData;
-    raptData.reset(new RaptData(MeasurementSource::BleBeacon, chip, temp, gravity, velocity, angleX, battery, 0, 0));
+    raptData.reset(new RaptData(MeasurementSource::BleBeacon, chip, temp,
+                                gravity, velocity, angleX, battery, 0, 0));
 
-    Log.info(F("BLE : Update data for rapt %s." CR),
-             raptData->getId());
+    Log.info(F("BLE : Update data for rapt %s." CR), raptData->getId());
     myMeasurementList.updateData(raptData);
   }
 }

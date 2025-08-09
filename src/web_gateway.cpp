@@ -27,6 +27,7 @@ SOFTWARE.
 
 #include <ble_gateway.hpp>
 #include <config_gateway.hpp>
+#include <main_gateway.hpp>
 #include <measurement.hpp>
 #include <memory>
 #include <push_gateway.hpp>
@@ -34,7 +35,6 @@ SOFTWARE.
 #include <sdcard_sd.hpp>
 #include <uptime.hpp>
 #include <web_gateway.hpp>
-#include <main_gateway.hpp>
 
 constexpr auto PARAM_GRAVITY_DEVICE = "gravity_device";
 constexpr auto PARAM_PRESSURE_DEVICE = "pressure_device";
@@ -516,26 +516,7 @@ void GatewayWebServer::webHandleSecureDigital(AsyncWebServerRequest *request,
       } else {
         request->send(400);
       }
-    } /* else if (obj[PARAM_COMMAND] == String("get")) {
-
-      // We use serve static from the SD card instead since this crashes the esp
-
-      if (!obj[PARAM_FILE].isNull()) {
-        String f = obj[PARAM_FILE];
-
-        Log.notice(F("WEB : File system get requested %s." CR), f.c_str());
-        if (mySdStorage.exists(obj[PARAM_FILE].as<String>())) {
-          AsyncWebServerResponse *response =
-              request->beginResponse(mySdStorage.getFS(), f, "");
-          request->send(response);
-        } else {
-          request->send(404);
-        }
-      } else {
-        request->send(400);
-      }
-    } */
-    else {
+    } else {
       Log.warning(F("WEB : Unknown file system command." CR));
       request->send(400);
     }

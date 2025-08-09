@@ -59,7 +59,7 @@ class BleScanner {
                                         const std::vector<uint8_t> &payload);
 
   void proccesRaptBeacon(const std::string &advertStringHex,
-                               NimBLEAddress address);
+                         NimBLEAddress address);
 
   void proccesPressuremonBeacon(const std::string &advertStringHex,
                                 NimBLEAddress address);

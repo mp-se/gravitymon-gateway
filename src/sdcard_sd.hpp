@@ -26,17 +26,19 @@ SOFTWARE.
 #define SRC_SDCARD_SD_HPP_
 
 /**
- * This implementation of SD card support does not work in combination 
- * with the TFT due to conflicts with the SPI bus and multithreading (especially lvgl library).
+ * This implementation of SD card support does not work in combination
+ * with the TFT due to conflicts with the SPI bus and multithreading (especially
+ * lvgl library).
  */
 
 #if defined(ENABLE_SD)
 
-#include <log.hpp>
 #include <SD.h>
 
+#include <log.hpp>
+
 class Storage {
-public:
+ public:
   uint64_t _cardSize = 0;
   bool _hasCard = false;
 
@@ -116,7 +118,7 @@ public:
     return SD.remove(path);
   }
 
-  bool rename(const String& from, const String& to) {
+  bool rename(const String &from, const String &to) {
     if (!_hasCard) {
       Log.error(F("SD  : Card not initialized." CR));
       return false;
