@@ -190,7 +190,7 @@ class TiltData : public MeasurementBaseData {
   TiltColor getTiltColor() const { return _tiltColor; }
 
   void writeToFile(File& file) const {
-    char buffer[100];
+    char buffer[300];
 
     // Data parameters
     // ----------------------------------------
@@ -259,7 +259,7 @@ class GravityData : public MeasurementBaseData {
   int getInterval() const { return _interval; }
 
   void writeToFile(File& file) const {
-    char buffer[100];
+    char buffer[300];
 
     // Data parameters
     // ----------------------------------------
@@ -328,7 +328,7 @@ class PressureData : public MeasurementBaseData {
   int getInterval() const { return _interval; }
 
   void writeToFile(File& file) const {
-    char buffer[100];
+    char buffer[300];
 
     // Data parameters
     // ----------------------------------------
@@ -379,7 +379,7 @@ class ChamberData : public MeasurementBaseData {
   int getRssi() const { return _rssi; }
 
   void writeToFile(File& file) const {
-    char buffer[100];
+    char buffer[300];
 
     // Data parameters
     // ----------------------------------------
@@ -442,9 +442,7 @@ class RaptData : public MeasurementBaseData {
   int getRssi() const { return _rssi; }
 
   void writeToFile(File& file) const {
-    // TODO: Not yet implemented for RAPT data
-
-    char buffer[100];
+    char buffer[300];
 
     // Data parameters
     // ----------------------------------------
@@ -453,24 +451,20 @@ class RaptData : public MeasurementBaseData {
     // 2, Source
     // 3, Created (timestamp)
     // 4, ID
-    // 5, Name
-    // 6, Token
-    // 7, Temperature (C)
-    // 8, Gravity (SG)
-    // 9, Angle
-    // 10, Battery
-    // 11, Tx Power
-    // 12, Rssi
-    // 13, Interval
+    // 5, Temperature (C)
+    // 6, Gravity (SG)
+    // 7, Angle
+    // 8, Battery
+    // 9, Tx Power
+    // 10, Rssi
 
-    // snprintf(buffer, sizeof(buffer),
-    //          "1,%s,%s,%s,%s,%s,%s,"
-    //          "%.2f,%.4f,%.4f,%.2f,%d,%d,%d",
-    //          getTypeAsString(), getSourceAsString(), getCreatedAsString(),
-    //          getId(), getName(), getToken(), getTempC(), getGravity(),
-    //          getAngle(), getBattery(), getTxPower(), getRssi(),
-    //          getInterval());
-    // file.println(buffer);
+    snprintf(buffer, sizeof(buffer),
+             "1,%s,%s,%s,%s,"
+             "%.2f,%.4f,%.4f,%.2f,%d,%d,,,",
+             getTypeAsString(), getSourceAsString(), getCreatedAsString(),
+             getId(), getTempC(), getGravity(),
+             getAngle(), getBattery(), getTxPower(), getRssi());
+    file.println(buffer);
   }
 };
 
