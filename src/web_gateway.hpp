@@ -38,6 +38,8 @@ class GatewayWebServer : public BrewingWebServer {
  public:
   explicit GatewayWebServer(GravmonGatewayConfig *config);
   void webHandleRemotePost(AsyncWebServerRequest *request, JsonVariant &json);
+  void webHandleSecureDigital(AsyncWebServerRequest *request,
+                              JsonVariant &json);
 
   void doWebStatus(JsonObject &obj);
   bool setupWebServer(const char *serviceName);
@@ -47,7 +49,7 @@ class GatewayWebServer : public BrewingWebServer {
   void doTaskSensorCalibration() {}
   void doTaskPushTestSetup(TemplatingEngine &engine, BrewingPush &push);
   void doTaskHardwareScanning(JsonObject &obj) {}
-  void doWebFeature(JsonObject &obj) {}
+  void doWebFeature(JsonObject &obj);
 
   void loop();
 };

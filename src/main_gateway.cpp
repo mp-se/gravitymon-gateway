@@ -23,30 +23,31 @@ SOFTWARE.
  */
 #if defined(GATEWAY)
 
+// #define CREATE_TESTDATA
+
+#include <battery.hpp>
 #include <ble_gateway.hpp>
 #include <config_gateway.hpp>
+#include <cstdio>
+#include <deque>
 #include <display.hpp>
 #include <helper.hpp>
 #include <led.hpp>
 #include <log.hpp>
+#include <looptimer.hpp>
 #include <main.hpp>
 #include <main_gateway.hpp>
+#include <measurement.hpp>
+#include <memory>
 #include <push_gateway.hpp>
 #include <pushtarget.hpp>
+#include <sdcard_mmc.hpp>
+#include <sdcard_sd.hpp>
 #include <serialws.hpp>
+#include <uptime.hpp>
 #include <utils.hpp>
 #include <web_gateway.hpp>
 #include <wificonnection.hpp>
-#if defined(ENABLE_SD)
-#include <sd.h>
-#endif
-#include <battery.hpp>
-#include <cstdio>
-#include <deque>
-#include <looptimer.hpp>
-#include <measurement.hpp>
-#include <memory>
-#include <uptime.hpp>
 
 constexpr auto CFG_FILENAME = "/gravitymon-gw.json";
 constexpr auto CFG_AP_SSID = "Gateway";
@@ -77,6 +78,7 @@ MeasurementList myMeasurementList;  // Data recevied from http or bluetooth
 LoopTimer controllerTimer(5000);
 LoopTimer cycleTimer(4000);   // Cycle through the devices on the display
 LoopTimer displayTimer(100);  // Process text updates for displuy
+LoopTimer sdTimer(30000);     // Check if there is an SD card attached
 
 bool sleepModeAlwaysSkip =
     false;  // Needs to be defined but not used in gateway
@@ -88,14 +90,17 @@ std::deque<String> logEntryList;  // Last number of events
 bool logUpdated = true;           // If the history log should be updated
 int displayMeasurementIndex =
     0;  // What entry is shown on the top of the display
+#if defined(ENABLE_MMC) || defined(ENABLE_SD)
+Storage mySdStorage;
+#endif
 
 void setup() {
   // Main startup
+  delay(2000);
+
   Log.notice(F("Main: Started setup for %s." CR), myConfig.getID());
   printBuildOptions();
   detectChipRevision();
-
-  delay(2000);
 
 #if defined(ENABLE_TFT)
   Log.notice(F("Main: TOUCH_CS %d." CR), TOUCH_CS);
@@ -118,6 +123,23 @@ void setup() {
   myWifi.init();  // double reset check
   checkResetReason();
   myConfig.loadFile();
+
+#if defined(ENABLE_MMC)
+  myDisplay.printLineCentered(3, "Mounting SD (SD_MMC) card");
+  Log.notice(F("Main: MMC_CLK %d." CR), MMC_CLK);
+  Log.notice(F("Main: MMC_CMD %d." CR), MMC_CMD);
+  Log.notice(F("Main: MMC_D0 %d." CR), MMC_D0);
+  mySdStorage.begin(MMC_CLK, MMC_CMD, MMC_D0);
+#endif
+
+#if defined(ENABLE_SD)
+  myDisplay.printLineCentered(3, "Mounting SD (SD) card");
+#if defined(ENABLE_TFT)
+  mySdStorage.begin(SD_CS, myDisplay.getSPI());
+#else
+  mySdStorage.begin(SD_CS, SPI);
+#endif  // ENABLE_TFT
+#endif  // ENABLE_SD
 
   // No stored config, move to portal
   if (!myWifi.hasConfig()) {
@@ -189,37 +211,8 @@ void setup() {
       break;
   }
 
-#if defined(ENABLE_SD)
-  if (!SD.begin(5)) {
-    Log.error(F("Main: Failed to mount SD card." CR));
-  } else {
-    uint8_t cardType = SD.cardType();
-    String type("Unknown");
-
-    switch (cardType) {
-      case CARD_NONE:
-        type = "No memory";
-        break;
-
-      case CARD_MMC:
-        type = "MMC";
-        break;
-
-      case CARD_SD:
-        type = "SD";
-        break;
-
-      case CARD_SDHC:
-        type = "SDCH";
-        break;
-    }
-
-    uint64_t cardSize = SD.cardSize() / (1024 * 1024);
-    Log.info(F("Main: %s with %d MB attached." CR), type.c_str(), cardSize);
-  }
-#endif
-
   if (runMode == RunMode::measurementMode && myConfig.isBleEnable()) {
+    myDisplay.printLineCentered(3, "Setting up BLE scanner");
     Log.notice(F("Main: Initialize ble scanner." CR));
     bleScanner.setScanTime(myConfig.getBleScanTime());
     bleScanner.setAllowActiveScan(myConfig.getBleActiveScan());
@@ -233,8 +226,6 @@ void setup() {
   delay(1000);
   myDisplay.createUI();
 #endif
-
-  // #define CREATE_TESTDATA 1
 
 #if defined(CREATE_TESTDATA)
   std::unique_ptr<MeasurementBaseData> gravityData1;
@@ -260,6 +251,26 @@ void setup() {
                                      "grav-3", "token3", 14.2, 1.085, 67.2,
                                      4.08, 0, -74, 600));
   myMeasurementList.updateData(gravityData3);
+
+  std::unique_ptr<MeasurementBaseData> tiltData1;
+  tiltData1.reset(new TiltData(MeasurementSource::BleBeacon, TiltColor::Red,
+                               14.2, 1.085, 10, -72, false));
+  myMeasurementList.updateData(tiltData1);
+
+  std::unique_ptr<MeasurementBaseData> tiltData2;
+  tiltData2.reset(new TiltData(MeasurementSource::BleBeacon, TiltColor::Blue,
+                               14.2, 1.085, 10, -72, true));
+  myMeasurementList.updateData(tiltData2);
+
+  std::unique_ptr<MeasurementBaseData> chamberData1;
+  chamberData1.reset(
+      new ChamberData(MeasurementSource::BleBeacon, "FFF111", 14.2, 18.3, -72));
+  myMeasurementList.updateData(chamberData1);
+
+  std::unique_ptr<MeasurementBaseData> raptData1;
+  raptData1.reset(
+      new RaptData(MeasurementSource::BleBeacon, "EEE222", 15.2, 1.030, 1.2, 35.33, 3.84, 10, -72));
+  myMeasurementList.updateData(raptData1);
 
   myDisplay.updateHistory("Line 1", 0);
   myDisplay.updateHistory("Line 2", 1);
@@ -294,9 +305,84 @@ void loop() {
     logUpdated = false;
   }
 
+  if (sdTimer.hasExpired()) {
+    sdTimer.reset();
+#if defined(ENABLE_MMC)
+    if (!mySdStorage.hasCard()) {
+      Log.notice(F("Loop: SD card not mounted, retry mounting." CR));
+      mySdStorage.end();
+      mySdStorage.begin(MMC_CLK, MMC_CMD, MMC_D0);
+    }
+#endif
+
+#if defined(ENABLE_SD)
+    if (!mySdStorage.hasCard()) {
+      Log.notice(F("Loop: SD card not mounted, retry mounting." CR));
+      mySdStorage.end();
+#if defined(ENABLE_TFT)
+      mySdStorage.begin(SD_CS, myDisplay.getSPI());
+#else
+      mySdStorage.begin(SD_CS, SPI);
+#endif  // ENABLE_TFT
+    }
+#endif  // ENABLE_SD
+  }
+
   if (cycleTimer.hasExpired()) {
     cycleTimer.reset();
     displayMeasurementIndex++;
+
+#if defined(ENABLE_MMC) || defined(ENABLE_SD)
+    // --- Log file rotation: allow up to 4 log files (log.txt, log1.txt,
+    // log2.txt, log3.txt, log4.txt) ---
+    const char* logBase = "/data";
+    const char* logExt = ".csv";
+    const size_t maxLogs = 4;
+    static size_t maxLogFileSize = 16768;  // bytes, can be changed at runtime
+    char logFileName[40];
+    snprintf(logFileName, sizeof(logFileName), "%s%s", logBase,
+             logExt);  // /data.csv
+    if (mySdStorage.hasCard()) {
+      fs::File logFile = mySdStorage.open(logFileName, "r");
+      if (logFile) {
+        size_t logSize = logFile.size();
+        logFile.close();
+        if (logSize > maxLogFileSize) {
+          // Rotate: data3.csv->data4.csv, data2.csv->data3.csv,
+          // data1.csv->data2.csv, data.csv->data1.csv
+          for (int i = maxLogs - 1; i >= 1; --i) {
+            char oldName[24], newName[24];
+            snprintf(oldName, sizeof(oldName), "%s%d%s", logBase, i,
+                     logExt);  // /data1.csv, /data2.csv, ...
+            snprintf(newName, sizeof(newName), "%s%d%s", logBase, i + 1,
+                     logExt);  // /data2.csv, /data3.csv, ...
+            if (mySdStorage.exists(oldName)) {
+              mySdStorage.remove(newName);  // Remove if exists
+              if (mySdStorage.rename(oldName, newName)) {
+                Log.notice(F("Loop: Log rotation: %s -> %s" CR), oldName,
+                           newName);
+              } else {
+                Log.error(F("Loop: Log rotation failed: %s -> %s" CR), oldName,
+                          newName);
+              }
+            }
+          }
+          // data.csv -> data1.csv
+          char firstRotated[40];
+          snprintf(firstRotated, sizeof(firstRotated), "%s1%s", logBase,
+                   logExt);
+          mySdStorage.remove(firstRotated);  // Remove if exists
+          if (mySdStorage.rename(logFileName, firstRotated)) {
+            Log.notice(F("Loop: Log rotation: %s -> %s" CR), logFileName,
+                       firstRotated);
+          } else {
+            Log.error(F("Loop: Log rotation failed: %s -> %s" CR), logFileName,
+                      firstRotated);
+          }
+        }
+      }
+    }
+#endif
   }
 
   if (displayTimer.hasExpired()) {
@@ -583,6 +669,33 @@ void controller() {
         case MeasurementType::Chamber: {
           Log.notice("Loop: Processing Chamber data %d." CR, i);
         } break;
+
+        case MeasurementType::Rapt: {
+          Log.notice("Loop: Processing Rapt data %d." CR, i);
+
+          if (entry->isUpdated() &&
+              (entry->getPushAge() > myConfig.getPushResendTime())) {
+            const RaptData* rd = entry->getRaptData();
+
+            addGravityLogEntry(rd->getId(), entry->getTimeinfoUpdated(),
+                               rd->getGravity(), rd->getTempC());
+
+            // TemplatingEngine engine;
+
+            // setupTemplateEngineGravityGateway(
+            //     &myConfig, engine, gd->getAngle(), gd->getGravity(),
+            //     gd->getTempC(), gd->getBattery(), gd->getInterval(),
+            //     gd->getId(), gd->getToken(), gd->getName());
+            // push.sendAll(engine, BrewingPush::MeasurementType::GRAVITY,
+            //              myConfig.isHttpPostGravityEnable(),
+            //              myConfig.isHttpPost2GravityEnable(),
+            //              myConfig.isHttpGetGravityEnable(),
+            //              myConfig.isInfluxdb2GravityEnable(),
+            //              myConfig.isMqttGravityEnable());
+
+            entry->setPushed();
+          }
+        } break;
       }
     }
   }
@@ -598,8 +711,7 @@ void updateDisplayStatus() {
                  WiFi.localIP().toString().c_str(),
                  myConfig.getWifiDirectSSID());
       } else {
-        snprintf(info, sizeof(info), "%s",
-                 WiFi.localIP().toString().c_str());
+        snprintf(info, sizeof(info), "%s", WiFi.localIP().toString().c_str());
       }
       break;
 
