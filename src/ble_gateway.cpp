@@ -533,29 +533,29 @@ void BleScanner::proccesRaptBeacon(const std::string &advertStringHex,
       } RAPTPillMetricsV2;
     */
 
-    if (*(payload + 5) > 0) {
-      floatUnion.b[0] = *(payload + 9);
-      floatUnion.b[1] = *(payload + 8);
-      floatUnion.b[2] = *(payload + 7);
-      floatUnion.b[3] = *(payload + 6);
+    if (*(payload + 6) > 0) {
+      floatUnion.b[0] = *(payload + 10);
+      floatUnion.b[1] = *(payload + 9);
+      floatUnion.b[2] = *(payload + 8);
+      floatUnion.b[3] = *(payload + 7);
       velocity = floatUnion.f;
     }
 
-    temp = static_cast<float>((*(payload + 10) << 8) | *(payload + 11)) / 128 -
+    temp = static_cast<float>((*(payload + 11) << 8) | *(payload + 12)) / 128 -
            273.15;
 
-    floatUnion.b[0] = *(payload + 15);
-    floatUnion.b[1] = *(payload + 14);
-    floatUnion.b[2] = *(payload + 13);
-    floatUnion.b[3] = *(payload + 12);
+    floatUnion.b[0] = *(payload + 16);
+    floatUnion.b[1] = *(payload + 15);
+    floatUnion.b[2] = *(payload + 14);
+    floatUnion.b[3] = *(payload + 13);
     gravity = floatUnion.f / 1000;
 
-    angleX = static_cast<float>((*(payload + 16) << 8) | *(payload + 17)) / 16;
-    angleY = static_cast<float>((*(payload + 18) << 8) | *(payload + 19)) / 16;
-    angleZ = static_cast<float>((*(payload + 20) << 8) | *(payload + 21)) / 16;
+    angleX = static_cast<float>((*(payload + 17) << 8) | *(payload + 18)) / 16;
+    angleY = static_cast<float>((*(payload + 19) << 8) | *(payload + 20)) / 16;
+    angleZ = static_cast<float>((*(payload + 21) << 8) | *(payload + 22)) / 16;
 
     battery =
-        static_cast<float>((*(payload + 22) << 8) | *(payload + 23)) / 256;
+        static_cast<float>((*(payload + 23) << 8) | *(payload + 24)) / 256;
 
     std::unique_ptr<MeasurementBaseData> raptData;
     raptData.reset(new RaptData(MeasurementSource::BleBeacon, chip, temp,

@@ -462,8 +462,8 @@ class RaptData : public MeasurementBaseData {
              "1,%s,%s,%s,%s,"
              "%.2f,%.4f,%.4f,%.2f,%d,%d,,,",
              getTypeAsString(), getSourceAsString(), getCreatedAsString(),
-             getId(), getTempC(), getGravity(),
-             getAngle(), getBattery(), getTxPower(), getRssi());
+             getId(), getTempC(), getGravity(), getAngle(), getBattery(),
+             getTxPower(), getRssi());
     file.println(buffer);
   }
 };

@@ -268,8 +268,8 @@ void setup() {
   myMeasurementList.updateData(chamberData1);
 
   std::unique_ptr<MeasurementBaseData> raptData1;
-  raptData1.reset(
-      new RaptData(MeasurementSource::BleBeacon, "EEE222", 15.2, 1.030, 1.2, 35.33, 3.84, 10, -72));
+  raptData1.reset(new RaptData(MeasurementSource::BleBeacon, "EEE222", 15.2,
+                               1.030, 1.2, 35.33, 3.84, 10, -72));
   myMeasurementList.updateData(raptData1);
 
   myDisplay.updateHistory("Line 1", 0);
