@@ -25,6 +25,8 @@ SOFTWARE.
 
 #include <measurement.hpp>
 
+MeasurementList myMeasurementList;
+
 test(measure_list) {
   MeasurementList list;
 
