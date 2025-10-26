@@ -25,11 +25,14 @@ SOFTWARE.
 #include <main.hpp>
 #include <helper.hpp>
 #include <AUnit.h>
+#include <battery.hpp>
+#include <config_gateway.hpp>
 
 using aunit::Printer;
 using aunit::TestRunner;
 using aunit::Verbosity;
 
+extern GravmonGatewayConfig myConfig;
 
 void setup() {
   Serial.begin(115200);
