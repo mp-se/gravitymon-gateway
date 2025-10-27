@@ -31,11 +31,13 @@ SOFTWARE.
 
 #include <cstdio>
 #include <deque>
+#include <map>
 #include <memory>
 #include <sdcard_mmc.hpp>
 #include <sdcard_sd.hpp>
 #include <utility>
 #include <utils.hpp>
+#include <log.hpp>
 
 #if defined(ENABLE_MMC) || defined(ENABLE_SD)
 extern Storage mySdStorage;
@@ -533,6 +535,7 @@ class MeasurementList {
  private:
   std::deque<std::unique_ptr<MeasurementEntry>> _list;
   const int MAX_ENTRIES = 20;
+  std::map<String, uint32_t> _lastLogTimes;
 
  public:
   MeasurementList() {}
@@ -543,20 +546,34 @@ class MeasurementList {
       return;
     }
 
+    String id = data->getId();
+
     if (size() > MAX_ENTRIES)  // If list if full, remove the oldest entry
       _list.pop_front();
 
-    int i = findMeasurementById(data->getId());
+    int i = findMeasurementById(id);
 
 #if defined(ENABLE_MMC) || defined(ENABLE_SD)
-    if (mySdStorage.hasCard()) {
-      File file = mySdStorage.open("/data.csv", FILE_APPEND, true);
-      if (file) {
-        data->writeToFile(file);
-        file.close();
-      } else {
-        Log.error(F("SD  : Failed to open data.csv for writing." CR));
+    constexpr int32_t MIN_WAIT_TIME = 300000; // Dont do logging more than every 5 minutes
+    uint32_t now = millis();
+    bool shouldWrite = (_lastLogTimes.find(id) == _lastLogTimes.end()) || (now - _lastLogTimes[id]) >= MIN_WAIT_TIME;
+
+    if (shouldWrite) {
+      _lastLogTimes[id] = now;
+
+      Log.notice(F("Meas: Logging data from %s to SD." CR), id.c_str());
+
+      if (mySdStorage.hasCard()) {
+        File file = mySdStorage.open("/data.csv", FILE_APPEND, true);
+        if (file) {
+          data->writeToFile(file);
+          file.close();
+        } else {
+          Log.error(F("SD  : Failed to open data.csv for writing." CR));
+        }
       }
+    } else {
+      Log.notice(F("Meas: Skip logging of %s to SD, less than 5 min since last logging." CR), id.c_str());
     }
 #endif
 
