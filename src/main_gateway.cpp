@@ -797,7 +797,7 @@ void checkCrashReason() {
       char backtrace_str[300] = "";
       size_t offset = 0;
       for (int i = 0; i < summary.exc_bt_info.depth && i < 10 && offset < sizeof(backtrace_str); i++) {
-        offset += snprintf(backtrace_str + offset, sizeof(backtrace_str) - offset, " 0x%08X", summary.exc_bt_info.pc[i]);
+        offset += snprintf(backtrace_str + offset, sizeof(backtrace_str) - offset, " 0x%08X", summary.exc_bt_info.bt[i]);
       }
       writeErrorLog2("Exception task: %s, PC: 0x%08X, Backtrace:%s, %s,%s", summary.exc_task,
                     summary.exc_pc, backtrace_str, CFG_APPVER, CFG_GITREV);
