@@ -418,11 +418,16 @@ void loop() {
                                 ? convertToPlato(gd->getGravity())
                                 : gd->getGravity();
 
-            snprintf(v1, sizeof(v1), "%.1F%s", temp,
+            if (isnan(temp) || isinf(temp)) temp = 0;
+            if (isnan(gravity) || isinf(gravity)) gravity = 0;
+            float battery = gd->getBattery();
+            if (isnan(battery) || isinf(battery)) battery = 0;
+
+            snprintf(v1, sizeof(v1), "%.1f%s", temp,
                      myConfig.isTempUnitC() ? "°C" : "°F");
-            snprintf(v2, sizeof(v2), "%.3F%s", gravity,
+            snprintf(v2, sizeof(v2), "%.3f%s", gravity,
                      myConfig.isGravitySG() ? "SG" : "P");
-            snprintf(v3, sizeof(v3), "%.2FV", gd->getBattery());
+            snprintf(v3, sizeof(v3), "%.2fV", battery);
             snprintf(s, sizeof(s), "Gravmon (%s)", gd->getId());
 
             myDisplay.updateDevice(strlen(gd->getName()) ? gd->getName() : s,
@@ -446,11 +451,17 @@ void loop() {
                                   ? convertPsiPressureToKPa(pd->getPressure1())
                                   : pd->getPressure1();
 
-            snprintf(v1, sizeof(v1), "%.1F%s", temp,
+            if (isnan(temp) || isinf(temp)) temp = 0;
+            if (isnan(pressure) || isinf(pressure)) pressure = 0;
+            if (isnan(pressure1) || isinf(pressure1)) pressure1 = 0;
+            float battery = pd->getBattery();
+            if (isnan(battery) || isinf(battery)) battery = 0;
+
+          snprintf(v1, sizeof(v1), "%.1f%s", temp,
                      myConfig.isTempUnitC() ? "°C" : "°F");
-            snprintf(v2, sizeof(v2), "%.2F%s", pressure,
+            snprintf(v2, sizeof(v2), "%.2f%s", pressure,
                      myConfig.getPressureUnit());
-            snprintf(v3, sizeof(v3), "%.2FV", pd->getBattery());
+            snprintf(v3, sizeof(v3), "%.2fV", battery);
             snprintf(s, sizeof(s), "Pressmon (%s)", pd->getId());
 
             myDisplay.updateDevice(strlen(pd->getName()) ? pd->getName() : s,
@@ -468,9 +479,12 @@ void loop() {
                                  ? convertCtoF(cd->getBeerTempC())
                                  : cd->getBeerTempC();
 
-            snprintf(v1, sizeof(v1), "C: %.1F%s", chamberTemp,
+            if (isnan(chamberTemp) || isinf(chamberTemp)) chamberTemp = 0;
+            if (isnan(beerTemp) || isinf(beerTemp)) beerTemp = 0;
+
+            snprintf(v1, sizeof(v1), "C: %.1f%s", chamberTemp,
                      myConfig.isTempUnitC() ? "°C" : "°F");
-            snprintf(v2, sizeof(v2), "B: %.1F%s", beerTemp,
+            snprintf(v2, sizeof(v2), "B: %.1f%s", beerTemp,
                      myConfig.isTempUnitC() ? "°C" : "°F");
             snprintf(v3, sizeof(v3), "");
             snprintf(s, sizeof(s), "Chamber (%s)", cd->getId());
@@ -489,9 +503,12 @@ void loop() {
                                 ? convertToPlato(td->getGravity())
                                 : td->getGravity();
 
-            snprintf(v1, sizeof(v1), "%.1F%s", temp,
+            if (isnan(temp) || isinf(temp)) temp = 0;
+            if (isnan(gravity) || isinf(gravity)) gravity = 0;
+
+            snprintf(v1, sizeof(v1), "%.1f%s", temp,
                      myConfig.isTempUnitC() ? "°C" : "°F");
-            snprintf(v2, sizeof(v2), "%.3F%s", gravity,
+            snprintf(v2, sizeof(v2), "%.3f%s", gravity,
                      myConfig.isGravitySG() ? "SG" : "P");
             snprintf(v3, sizeof(v3), "");
             snprintf(s, sizeof(s), "Tilt: %s", td->getId());
@@ -748,6 +765,28 @@ void updateDisplayLogs() {
   }
 }
 
+void writeErrorLog2(const char *format, ...) {
+  File f = LittleFS.open(ERR_FILENAME, "a");
+
+  if (f && f.size() > ERR_FILEMAXSIZE) {
+    f.close();
+    LittleFS.remove(ERR_FILENAME2);
+    LittleFS.rename(ERR_FILENAME, ERR_FILENAME2);
+    f = LittleFS.open(ERR_FILENAME, "a");
+  }
+
+  if (f) {
+    va_list arg;
+    va_start(arg, format);
+    char buf[400];
+    vsnprintf(&buf[0], sizeof(buf), format, arg);
+    f.write(reinterpret_cast<unsigned char *>(&buf[0]), strlen(&buf[0]));
+    va_end(arg);
+    f.println();
+    f.close();
+  }
+}
+
 void checkCrashReason() {
   esp_err_t err = esp_core_dump_image_check();
   if (err == ESP_OK) {
@@ -755,8 +794,13 @@ void checkCrashReason() {
     esp_core_dump_summary_t summary;
     err = esp_core_dump_get_summary(&summary);
     if (err == ESP_OK) {
-      writeErrorLog("Exception task: %s, PC: 0x%08X, %s,%s", summary.exc_task,
-                    summary.exc_pc, CFG_APPVER, CFG_GITREV);
+      char backtrace_str[300] = "";
+      size_t offset = 0;
+      for (int i = 0; i < summary.exc_bt_info.depth && i < 10 && offset < sizeof(backtrace_str); i++) {
+        offset += snprintf(backtrace_str + offset, sizeof(backtrace_str) - offset, " 0x%08X", summary.exc_bt_info.pc[i]);
+      }
+      writeErrorLog2("Exception task: %s, PC: 0x%08X, Backtrace:%s, %s,%s", summary.exc_task,
+                    summary.exc_pc, backtrace_str, CFG_APPVER, CFG_GITREV);
       Log.notice(F("Main: Exception task: %s, PC: 0x%08X" CR), summary.exc_task,
                  summary.exc_pc);
     } else {
