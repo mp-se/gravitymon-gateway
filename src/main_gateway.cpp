@@ -547,7 +547,7 @@ void addGravityLogEntry(const char* id, const tm* timeinfo, float gravitySG,
       myConfig.isGravityPlato() ? convertToPlato(gravitySG) : gravitySG;
 
   char s[60];
-  snprintf(s, sizeof(s), "%02d:%02d ID:%s Gravity:%.3F%s Temp: %.1F%s",
+  snprintf(s, sizeof(s), "%02d:%02d ID:%s Gravity:%.3f%s Temp: %.1f%s",
            timeinfo->tm_hour, timeinfo->tm_min, id, gravity,
            myConfig.isGravitySG() ? "SG" : "P", temp,
            myConfig.isTempFormatC() ? "C" : "F");
@@ -569,7 +569,7 @@ void addPressureLogEntry(const char* id, const tm* timeinfo, float pressurePSI,
                                  : pressure1PSI;
 
   char s[60];
-  snprintf(s, sizeof(s), "%02d:%02d ID:%s Pressure:%.3F%s Temp:%.1F%s",
+  snprintf(s, sizeof(s), "%02d:%02d ID:%s Pressure:%.3f%s Temp:%.1f%s",
            timeinfo->tm_hour, timeinfo->tm_min, id, pressure,
            myConfig.getPressureUnit(), temp,
            myConfig.isTempFormatC() ? "C" : "F");
@@ -586,7 +586,7 @@ void addChamberLogEntry(const char* id, const tm* timeinfo, float chamberTempC,
       myConfig.isTempFormatF() ? convertCtoF(beerTempC) : beerTempC;
 
   char s[60];
-  snprintf(s, sizeof(s), "%02d:%02d ID:%s Chamber:%.1F%s Beer:%.1F%s",
+  snprintf(s, sizeof(s), "%02d:%02d ID:%s Chamber:%.1f%s Beer:%.1f%s",
            timeinfo->tm_hour, timeinfo->tm_min, id, chamberTemp,
            myConfig.isTempFormatC() ? "C" : "F", beerTemp,
            myConfig.isTempFormatC() ? "C" : "F");
