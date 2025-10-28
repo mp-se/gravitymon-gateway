@@ -48,6 +48,7 @@ SOFTWARE.
 #include <utils.hpp>
 #include <web_gateway.hpp>
 #include <wificonnection.hpp>
+#include <esp_core_dump.h>
 
 constexpr auto CFG_FILENAME = "/gravitymon-gw.json";
 constexpr auto CFG_AP_SSID = "Gateway";
@@ -64,6 +65,8 @@ void updateDisplayLogs();
 void checkSleepMode(float angle, float volt);
 void gestureLeft();
 void gestureRight();
+
+void checkCrashReason();
 
 SerialDebug mySerial;
 GravmonGatewayConfig myConfig(CFG_APPNAME, CFG_FILENAME);
@@ -122,6 +125,7 @@ void setup() {
   myConfig.checkFileSystem();
   myWifi.init();  // double reset check
   checkResetReason();
+  checkCrashReason();
   myConfig.loadFile();
 
 #if defined(ENABLE_MMC)
@@ -732,6 +736,23 @@ void updateDisplayLogs() {
     if (idx >= MAX_LOG_ENTRIES) break;
     Log.notice("Loop: Updating log entry %s (%d)." CR, entry.c_str(), idx);
     myDisplay.updateHistory(entry.c_str(), idx++);
+  }
+}
+
+void checkCrashReason() {
+  esp_err_t err = esp_core_dump_image_check();
+  if (err == ESP_OK) {
+    Log.notice(F("Main: Crash dump found." CR));
+    esp_core_dump_summary_t summary;
+    err = esp_core_dump_get_summary(&summary);
+    if (err == ESP_OK) {
+      writeErrorLog("Exception task: %s, PC: 0x%08X, %s,%s", summary.exc_task, summary.exc_pc, CFG_APPVER, CFG_GITREV);
+      Log.notice(F("Main: Exception task: %s, PC: 0x%08X" CR), summary.exc_task, summary.exc_pc);
+    } else {
+      Log.notice(F("Main: Failed to get crash summary." CR));
+    }
+  } else {
+    Log.notice(F("Main: No crash dump found." CR));
   }
 }
 
