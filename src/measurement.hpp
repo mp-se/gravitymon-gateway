@@ -31,13 +31,13 @@ SOFTWARE.
 
 #include <cstdio>
 #include <deque>
+#include <log.hpp>
 #include <map>
 #include <memory>
 #include <sdcard_mmc.hpp>
 #include <sdcard_sd.hpp>
 #include <utility>
 #include <utils.hpp>
-#include <log.hpp>
 
 #if defined(ENABLE_MMC) || defined(ENABLE_SD)
 extern Storage mySdStorage;
@@ -554,9 +554,11 @@ class MeasurementList {
     int i = findMeasurementById(id);
 
 #if defined(ENABLE_MMC) || defined(ENABLE_SD)
-    constexpr int32_t MIN_WAIT_TIME = 300000; // Dont do logging more than every 5 minutes
+    constexpr int32_t MIN_WAIT_TIME =
+        300000;  // Dont do logging more than every 5 minutes
     uint32_t now = millis();
-    bool shouldWrite = (_lastLogTimes.find(id) == _lastLogTimes.end()) || (now - _lastLogTimes[id]) >= MIN_WAIT_TIME;
+    bool shouldWrite = (_lastLogTimes.find(id) == _lastLogTimes.end()) ||
+                       (now - _lastLogTimes[id]) >= MIN_WAIT_TIME;
 
     if (shouldWrite) {
       _lastLogTimes[id] = now;
@@ -573,7 +575,9 @@ class MeasurementList {
         }
       }
     } else {
-      Log.notice(F("Meas: Skip logging of %s to SD, less than 5 min since last logging." CR), id.c_str());
+      Log.notice(F("Meas: Skip logging of %s to SD, less than 5 min since last "
+                   "logging." CR),
+                 id.c_str());
     }
 #endif
 
