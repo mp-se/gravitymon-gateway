@@ -578,6 +578,7 @@ void controller() {
     bleScanner.setScanTime(myConfig.getBleScanTime());
     bleScanner.setAllowActiveScan(myConfig.getBleActiveScan());
     bleScanner.scan();
+    yield();  // Reset watchdog after BLE scan
   }
 
   if (controllerTimer.hasExpired()) {
@@ -701,6 +702,7 @@ void controller() {
           }
         } break;
       }
+      yield();  // Reset watchdog after processing each measurement
     }
   }
 }
@@ -736,6 +738,7 @@ void updateDisplayLogs() {
     if (idx >= MAX_LOG_ENTRIES) break;
     Log.notice("Loop: Updating log entry %s (%d)." CR, entry.c_str(), idx);
     myDisplay.updateHistory(entry.c_str(), idx++);
+    yield();  // Reset watchdog after updating each log entry
   }
 }
 
