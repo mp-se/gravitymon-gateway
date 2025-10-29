@@ -546,6 +546,9 @@ void addGravityLogEntry(const char* id, const tm* timeinfo, float gravitySG,
   float gravity =
       myConfig.isGravityPlato() ? convertToPlato(gravitySG) : gravitySG;
 
+  if (isnan(temp) || isinf(temp)) temp = 0;
+  if (isnan(gravity) || isinf(gravity)) gravity = 0;
+
   char s[60];
   snprintf(s, sizeof(s), "%02d:%02d ID:%s Gravity:%.3f%s Temp: %.1f%s",
            timeinfo->tm_hour, timeinfo->tm_min, id, gravity,
@@ -568,6 +571,10 @@ void addPressureLogEntry(const char* id, const tm* timeinfo, float pressurePSI,
       : myConfig.isPressureKpa() ? convertPsiPressureToKPa(pressure1PSI)
                                  : pressure1PSI;
 
+  if (isnan(temp) || isinf(temp)) temp = 0;
+  if (isnan(pressure) || isinf(pressure)) pressure = 0;
+  if (isnan(pressure1) || isinf(pressure1)) pressure1 = 0;
+
   char s[60];
   snprintf(s, sizeof(s), "%02d:%02d ID:%s Pressure:%.3f%s Temp:%.1f%s",
            timeinfo->tm_hour, timeinfo->tm_min, id, pressure,
@@ -584,6 +591,9 @@ void addChamberLogEntry(const char* id, const tm* timeinfo, float chamberTempC,
       myConfig.isTempFormatF() ? convertCtoF(chamberTempC) : chamberTempC;
   float beerTemp =
       myConfig.isTempFormatF() ? convertCtoF(beerTempC) : beerTempC;
+
+  if (isnan(chamberTemp) || isinf(chamberTemp)) chamberTemp = 0;
+  if (isnan(beerTemp) || isinf(beerTemp)) beerTemp = 0;
 
   char s[60];
   snprintf(s, sizeof(s), "%02d:%02d ID:%s Chamber:%.1f%s Beer:%.1f%s",
@@ -762,52 +772,6 @@ void updateDisplayLogs() {
     Log.notice("Loop: Updating log entry %s (%d)." CR, entry.c_str(), idx);
     myDisplay.updateHistory(entry.c_str(), idx++);
     yield();  // Reset watchdog after updating each log entry
-  }
-}
-
-void writeErrorLog2(const char *format, ...) {
-  File f = LittleFS.open(ERR_FILENAME, "a");
-
-  if (f && f.size() > ERR_FILEMAXSIZE) {
-    f.close();
-    LittleFS.remove(ERR_FILENAME2);
-    LittleFS.rename(ERR_FILENAME, ERR_FILENAME2);
-    f = LittleFS.open(ERR_FILENAME, "a");
-  }
-
-  if (f) {
-    va_list arg;
-    va_start(arg, format);
-    char buf[400];
-    vsnprintf(&buf[0], sizeof(buf), format, arg);
-    f.write(reinterpret_cast<unsigned char *>(&buf[0]), strlen(&buf[0]));
-    va_end(arg);
-    f.println();
-    f.close();
-  }
-}
-
-void checkCrashReason() {
-  esp_err_t err = esp_core_dump_image_check();
-  if (err == ESP_OK) {
-    Log.notice(F("Main: Crash dump found." CR));
-    esp_core_dump_summary_t summary;
-    err = esp_core_dump_get_summary(&summary);
-    if (err == ESP_OK) {
-      char backtrace_str[300] = "";
-      size_t offset = 0;
-      for (int i = 0; i < summary.exc_bt_info.depth && i < 10 && offset < sizeof(backtrace_str); i++) {
-        offset += snprintf(backtrace_str + offset, sizeof(backtrace_str) - offset, " 0x%08X", summary.exc_bt_info.bt[i]);
-      }
-      writeErrorLog2("Exception task: %s, PC: 0x%08X, Backtrace:%s, %s,%s", summary.exc_task,
-                    summary.exc_pc, backtrace_str, CFG_APPVER, CFG_GITREV);
-      Log.notice(F("Main: Exception task: %s, PC: 0x%08X" CR), summary.exc_task,
-                 summary.exc_pc);
-    } else {
-      Log.notice(F("Main: Failed to get crash summary." CR));
-    }
-  } else {
-    Log.notice(F("Main: No crash dump found." CR));
   }
 }
 
