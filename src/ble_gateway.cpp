@@ -68,7 +68,7 @@ void BleDeviceCallbacks::onResult(
     }
 
     if (eddyStone) {
-      Log.notice(F("BLE : Processing gravitymon eddy stone device" CR));
+      // Log.notice(F("BLE : Processing gravitymon eddy stone device" CR));
       bleScanner.processGravitymonEddystoneBeacon(
           advertisedDevice->getAddress(), advertisedDevice->getPayload());
     }
@@ -88,7 +88,7 @@ void BleDeviceCallbacks::onResult(
       }
 
     if (eddyStone) {
-      Log.notice(F("BLE : Processing pressuremon eddy stone device" CR));
+      // Log.notice(F("BLE : Processing pressuremon eddy stone device" CR));
       bleScanner.processPressuremonEddystoneBeacon(
           advertisedDevice->getAddress(), advertisedDevice->getPayload());
     }
@@ -103,9 +103,9 @@ void BleDeviceCallbacks::onResult(
         advertisedDevice->getManufacturerData()[1] == 0x00 &&
         advertisedDevice->getManufacturerData()[2] == 0x03 &&
         advertisedDevice->getManufacturerData()[3] == 0x15) {
-      Log.notice(
-          F("BLE : Advertised iBeacon GRAVMON/PRESMON/CHAMBER device: %s" CR),
-          advertisedDevice->getAddress().toString().c_str());
+      // Log.notice(
+      //     F("BLE : Advertised iBeacon GRAVMON/PRESMON/CHAMBER device: %s" CR),
+      //     advertisedDevice->getAddress().toString().c_str());
 
       bleScanner.proccesGravitymonBeacon(
           advertisedDevice->getManufacturerData(),
@@ -125,8 +125,8 @@ void BleDeviceCallbacks::onResult(
         advertisedDevice->getManufacturerData()[1] == 0x41 &&
         advertisedDevice->getManufacturerData()[2] == 0x50 &&
         advertisedDevice->getManufacturerData()[3] == 0x54) {
-      Log.notice(F("BLE : Advertised iBeacon RAPT v1/v2 device: %s" CR),
-                 advertisedDevice->getAddress().toString().c_str());
+      // Log.notice(F("BLE : Advertised iBeacon RAPT v1/v2 device: %s" CR),
+      //            advertisedDevice->getAddress().toString().c_str());
 
       bleScanner.proccesRaptBeacon(advertisedDevice->getManufacturerData(),
                                    advertisedDevice->getAddress());
@@ -140,8 +140,8 @@ void BleDeviceCallbacks::onResult(
         advertisedDevice->getManufacturerData()[1] == 0x00 &&
         advertisedDevice->getManufacturerData()[2] == 0x02 &&
         advertisedDevice->getManufacturerData()[3] == 0x15) {
-      Log.notice(F("BLE : Advertised iBeacon TILT device: %s" CR),
-                 advertisedDevice->getAddress().toString().c_str());
+      // Log.notice(F("BLE : Advertised iBeacon TILT device: %s" CR),
+      //            advertisedDevice->getAddress().toString().c_str());
 
       bleScanner.proccesTiltBeacon(advertisedDevice->getManufacturerData(),
                                    advertisedDevice->getRSSI());
@@ -161,7 +161,7 @@ void BleScanner::proccesGravitymonBeacon(const std::string &advertStringHex,
 
   if (*(payload + 4) == 'G' && *(payload + 5) == 'R' && *(payload + 6) == 'A' &&
       *(payload + 7) == 'V') {
-    Log.info(F("BLE : Found gravitymon beacon." CR));
+    // Log.info(F("BLE : Found gravitymon beacon." CR));
 
     chipId = (*(payload + 12) << 24) | (*(payload + 13) << 16) |
              (*(payload + 14) << 8) | *(payload + 15);
@@ -226,7 +226,7 @@ void BleScanner::proccesPressuremonBeacon(const std::string &advertStringHex,
 
   if (*(payload + 4) == 'P' && *(payload + 5) == 'R' && *(payload + 6) == 'E' &&
       *(payload + 7) == 'S') {
-    Log.info(F("BLE : Found pressuremon beacon." CR));
+    // Log.info(F("BLE : Found pressuremon beacon." CR));
 
     float battery;
     float temp;
@@ -299,7 +299,7 @@ void BleScanner::proccesChamberBeacon(const std::string &advertStringHex,
 
   if (*(payload + 4) == 'C' && *(payload + 5) == 'H' && *(payload + 6) == 'A' &&
       *(payload + 7) == 'M') {
-    Log.info(F("BLE : Found chamber beacon." CR));
+    // Log.info(F("BLE : Found chamber beacon." CR));
 
     float chamberTempC;
     float beerTempC;
@@ -477,7 +477,7 @@ void BleScanner::proccesRaptBeacon(const std::string &advertStringHex,
   } floatUnion;
 
   if (*(payload + 4) == 0x01) {
-    Log.info(F("BLE : Found rapt v1 beacon." CR));
+    // Log.info(F("BLE : Found rapt v1 beacon." CR));
 
     /*
       typedef struct __attribute__((packed)) {
@@ -513,10 +513,10 @@ void BleScanner::proccesRaptBeacon(const std::string &advertStringHex,
     raptData.reset(new RaptData(MeasurementSource::BleBeacon, chip, temp,
                                 gravity, 0, angleX, battery, 0, 0));
 
-    Log.info(F("BLE : Update data for rapt %s." CR), raptData->getId());
+    Log.info(F("BLE : Update data for rapt v1 %s." CR), raptData->getId());
     myMeasurementList.updateData(raptData);
   } else if (*(payload + 4) == 0x02) {
-    Log.info(F("BLE : Found rapt v2 beacon." CR));
+    // Log.info(F("BLE : Found rapt v2 beacon." CR));
 
     /*
       typedef struct __attribute__((packed)) {
@@ -561,7 +561,7 @@ void BleScanner::proccesRaptBeacon(const std::string &advertStringHex,
     raptData.reset(new RaptData(MeasurementSource::BleBeacon, chip, temp,
                                 gravity, velocity, angleX, battery, 0, 0));
 
-    Log.info(F("BLE : Update data for rapt %s." CR), raptData->getId());
+    Log.info(F("BLE : Update data for rapt v2 %s." CR), raptData->getId());
     myMeasurementList.updateData(raptData);
   }
 }
