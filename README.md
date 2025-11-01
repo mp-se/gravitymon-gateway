@@ -28,6 +28,7 @@ Note! The build for ESP32pro will crash itermitent with BLE enabled this is due 
 * Renamed firmware files to easier find the right one, and the current name is now shown in the firmware upload view.
 * Optimized UI for size and updated library dependecies
 * Updated to Arduino 3.x for stable ble scanning
+* Added option to backup & restore of configuration
 
 ### v0.7.1
 
