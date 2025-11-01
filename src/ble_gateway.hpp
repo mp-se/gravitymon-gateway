@@ -50,6 +50,8 @@ class BleScanner {
   void setScanTime(int scanTime) { _scanTime = scanTime; }
   void setAllowActiveScan(bool activeScan) { _activeScan = activeScan; }
 
+  void loop();
+
   void proccesTiltBeacon(const std::string &advertStringHex,
                          const int8_t &currentRSSI);
 
@@ -72,10 +74,10 @@ class BleScanner {
  private:
   int _scanTime = 5;
   bool _activeScan = false;
-
   BLEScan *_bleScan = nullptr;
-
   BleDeviceCallbacks *_deviceCallbacks = nullptr;
+  std::queue<std::unique_ptr<MeasurementBaseData>> _bleData;
+
   TiltColor uuidToTiltColor(std::string uuid);
 };
 

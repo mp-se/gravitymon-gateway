@@ -14,3 +14,52 @@ For documentation see www.gravitymon.com.
 # About GravityMon & GravityMon Gateway
 
 Visit the gravitymon homepage here for more information about the project: https://www.gravitymon.com
+
+# Releases
+
+### v0.8.0
+
+* Added support for external SD cards where all received data is stored
+* New measurement view in the UI to display data on the SD card and also graphs
+* Added support for receiving RAPT data (will only be displayed and not forwarded)
+* Added feature api to easier adapt ui for the included build features
+* Renamed firmware files to easier find the right one, and the current name is now shown in the firmware upload view.
+* Optimized UI for size and updated library dependecies
+* Updated to Arduino 3.x for stable ble scanning
+
+### v0.7.1
+
+* Fixed crash when using large format templates (stack overflow)
+
+### v0.7.0
+
+Note! I have enabled the touch controller so on lolin TFT the touch screen will need to be calibrated once.,
+
+* Enabling dark mode on TFT display
+* Enable touch controller on TFT displays and options o switch between detected devices. Swipe left/right also works on Waveshare but on lolin devices the touch controller is to unresponsive.
+* Added device name to web based UI
+* Added push test option to UI so that format templates can be tested
+* Created board definition for Waveshare
+* Fixed printout of device id’s with leading zero
+* Added defined pressure templates for one and two sensors.
+* Fixed bug that blocked upload of firmware files over 1.8Mb
+* Major update to also handle the new pressuremon device.
+* Fixed wifi scanning that was broken in previous beta
+* Sharing most of the codebase with gravitymon to simplify maintenance
+* Now using new partition schema (32Mb) so full flashing is needed.
+* Refactored push logic
+* Refactored http post logic to do processing in background (speed up receive)
+* Added support for chamber controller bluetooth
+* Added Johannesburg timezone
+
+### v0.6.0
+
+* Updated all dependent libraries to latest versions Json 7, AsyncWebServer, BLE 2.x, Arduino 2.x.
+
+### v0.5.0
+
+* Support Gravitymon 2.0
+
+### v0.4.0 and earlier
+
+* Test versions

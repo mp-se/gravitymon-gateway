@@ -94,7 +94,7 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
 
     switch (entry->getType()) {
       case MeasurementType::Gravitymon: {
-        Log.notice("Loop: Processing Gravitymon data %d." CR, i);
+        Log.notice("WEB: Processing Gravitymon data %d." CR, i);
         const GravityData *gd = entry->getGravityData();
 
         gravityDevices[gravIdx][PARAM_NAME] = gd->getName();
@@ -109,7 +109,7 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
       } break;
 
       case MeasurementType::Pressuremon: {
-        Log.notice("Loop: Processing Pressuremon data %d." CR, i);
+        Log.notice("WEB: Processing Pressuremon data %d." CR, i);
         const PressureData *pd = entry->getPressureData();
 
         pressureDevices[pressIdx][PARAM_NAME] = pd->getName();
@@ -126,7 +126,7 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
 
       case MeasurementType::Tilt:
       case MeasurementType::TiltPro: {
-        Log.notice("Loop: Processing Tilt data %d." CR, i);
+        Log.notice("WEB: Processing Tilt data %d." CR, i);
         const TiltData *td = entry->getTiltData();
 
         gravityDevices[gravIdx][PARAM_NAME] = td->getTiltColor();
@@ -141,7 +141,7 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
       } break;
 
       case MeasurementType::Chamber: {
-        Log.notice("Loop: Processing Tilt data %d." CR, i);
+        Log.notice("WEB: Processing Chamber data %d." CR, i);
         const ChamberData *cd = entry->getChamberData();
 
         temperatureDevices[tempIdx][PARAM_NAME] = "";
@@ -156,7 +156,7 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
       } break;
 
       case MeasurementType::Rapt: {
-        Log.notice("Loop: Processing Rapt data %d." CR, i);
+        Log.notice("WEB: Processing Rapt data %d." CR, i);
         const RaptData *rd = entry->getRaptData();
 
         gravityDevices[gravIdx][PARAM_NAME] = rd->getId();

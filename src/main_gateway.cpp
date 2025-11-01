@@ -291,6 +291,7 @@ void loop() {
   myUptime.calculate();
   myWebServer.loop();
   myWifi.loop();
+  bleScanner.loop();
 
   switch (runMode) {
     case RunMode::measurementMode:
@@ -418,10 +419,7 @@ void loop() {
                                 ? convertToPlato(gd->getGravity())
                                 : gd->getGravity();
 
-            if (isnan(temp) || isinf(temp)) temp = 0;
-            if (isnan(gravity) || isinf(gravity)) gravity = 0;
             float battery = gd->getBattery();
-            if (isnan(battery) || isinf(battery)) battery = 0;
 
             snprintf(v1, sizeof(v1), "%.1f%s", temp,
                      myConfig.isTempUnitC() ? "°C" : "°F");
@@ -451,13 +449,9 @@ void loop() {
                                   ? convertPsiPressureToKPa(pd->getPressure1())
                                   : pd->getPressure1();
 
-            if (isnan(temp) || isinf(temp)) temp = 0;
-            if (isnan(pressure) || isinf(pressure)) pressure = 0;
-            if (isnan(pressure1) || isinf(pressure1)) pressure1 = 0;
             float battery = pd->getBattery();
-            if (isnan(battery) || isinf(battery)) battery = 0;
 
-          snprintf(v1, sizeof(v1), "%.1f%s", temp,
+            snprintf(v1, sizeof(v1), "%.1f%s", temp,
                      myConfig.isTempUnitC() ? "°C" : "°F");
             snprintf(v2, sizeof(v2), "%.2f%s", pressure,
                      myConfig.getPressureUnit());
@@ -479,9 +473,6 @@ void loop() {
                                  ? convertCtoF(cd->getBeerTempC())
                                  : cd->getBeerTempC();
 
-            if (isnan(chamberTemp) || isinf(chamberTemp)) chamberTemp = 0;
-            if (isnan(beerTemp) || isinf(beerTemp)) beerTemp = 0;
-
             snprintf(v1, sizeof(v1), "C: %.1f%s", chamberTemp,
                      myConfig.isTempUnitC() ? "°C" : "°F");
             snprintf(v2, sizeof(v2), "B: %.1f%s", beerTemp,
@@ -502,9 +493,6 @@ void loop() {
             float gravity = myConfig.isGravityPlato()
                                 ? convertToPlato(td->getGravity())
                                 : td->getGravity();
-
-            if (isnan(temp) || isinf(temp)) temp = 0;
-            if (isnan(gravity) || isinf(gravity)) gravity = 0;
 
             snprintf(v1, sizeof(v1), "%.1f%s", temp,
                      myConfig.isTempUnitC() ? "°C" : "°F");
@@ -546,9 +534,6 @@ void addGravityLogEntry(const char* id, const tm* timeinfo, float gravitySG,
   float gravity =
       myConfig.isGravityPlato() ? convertToPlato(gravitySG) : gravitySG;
 
-  if (isnan(temp) || isinf(temp)) temp = 0;
-  if (isnan(gravity) || isinf(gravity)) gravity = 0;
-
   char s[60];
   snprintf(s, sizeof(s), "%02d:%02d ID:%s Gravity:%.3f%s Temp: %.1f%s",
            timeinfo->tm_hour, timeinfo->tm_min, id, gravity,
@@ -571,10 +556,6 @@ void addPressureLogEntry(const char* id, const tm* timeinfo, float pressurePSI,
       : myConfig.isPressureKpa() ? convertPsiPressureToKPa(pressure1PSI)
                                  : pressure1PSI;
 
-  if (isnan(temp) || isinf(temp)) temp = 0;
-  if (isnan(pressure) || isinf(pressure)) pressure = 0;
-  if (isnan(pressure1) || isinf(pressure1)) pressure1 = 0;
-
   char s[60];
   snprintf(s, sizeof(s), "%02d:%02d ID:%s Pressure:%.3f%s Temp:%.1f%s",
            timeinfo->tm_hour, timeinfo->tm_min, id, pressure,
@@ -591,9 +572,6 @@ void addChamberLogEntry(const char* id, const tm* timeinfo, float chamberTempC,
       myConfig.isTempFormatF() ? convertCtoF(chamberTempC) : chamberTempC;
   float beerTemp =
       myConfig.isTempFormatF() ? convertCtoF(beerTempC) : beerTempC;
-
-  if (isnan(chamberTemp) || isinf(chamberTemp)) chamberTemp = 0;
-  if (isnan(beerTemp) || isinf(beerTemp)) beerTemp = 0;
 
   char s[60];
   snprintf(s, sizeof(s), "%02d:%02d ID:%s Chamber:%.1f%s Beer:%.1f%s",
@@ -647,6 +625,7 @@ void controller() {
                          myConfig.isMqttGravityEnable());
 
             entry->setPushed();
+            yield();
           }
         } break;
 
@@ -675,6 +654,7 @@ void controller() {
                          myConfig.isMqttPressureEnable());
 
             entry->setPushed();
+            yield();
           }
         } break;
 
@@ -718,24 +698,12 @@ void controller() {
             addGravityLogEntry(rd->getId(), entry->getTimeinfoUpdated(),
                                rd->getGravity(), rd->getTempC());
 
-            // TemplatingEngine engine;
-
-            // setupTemplateEngineGravityGateway(
-            //     &myConfig, engine, gd->getAngle(), gd->getGravity(),
-            //     gd->getTempC(), gd->getBattery(), gd->getInterval(),
-            //     gd->getId(), gd->getToken(), gd->getName());
-            // push.sendAll(engine, BrewingPush::MeasurementType::GRAVITY,
-            //              myConfig.isHttpPostGravityEnable(),
-            //              myConfig.isHttpPost2GravityEnable(),
-            //              myConfig.isHttpGetGravityEnable(),
-            //              myConfig.isInfluxdb2GravityEnable(),
-            //              myConfig.isMqttGravityEnable());
+            // NOTE: Push support not posible
 
             entry->setPushed();
           }
         } break;
       }
-      yield();  // Reset watchdog after processing each measurement
     }
   }
 }
