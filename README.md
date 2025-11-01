@@ -19,6 +19,8 @@ Visit the gravitymon homepage here for more information about the project: https
 
 ### v0.8.0
 
+Note! The build for ESP32pro will crash itermitent with BLE enabled this is due to a bug in Arduino 2 and this board cant support Arduino 3.
+
 * Added support for external SD cards where all received data is stored
 * New measurement view in the UI to display data on the SD card and also graphs
 * Added support for receiving RAPT data (will only be displayed and not forwarded)
