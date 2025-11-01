@@ -24,6 +24,7 @@ SOFTWARE.
 #if defined(GATEWAY)
 
 #include <ble_gateway.hpp>
+#include <cmath>
 #include <cstdio>
 #include <log.hpp>
 #include <memory>
@@ -45,6 +46,8 @@ constexpr auto TILT_COLOR_PINK_UUID = "a495bb80c5b14b44b5121370f02d74de";
 constexpr auto SERV_UUID = "180A";
 constexpr auto SERV2_UUID = "1801";
 constexpr auto CHAR_UUID = "2AC4";
+
+extern MeasurementList myMeasurementList;
 
 void BleDeviceCallbacks::onResult(
     const NimBLEAdvertisedDevice *advertisedDevice) {
@@ -68,7 +71,7 @@ void BleDeviceCallbacks::onResult(
     }
 
     if (eddyStone) {
-      Log.notice(F("BLE : Processing gravitymon eddy stone device" CR));
+      // Log.notice(F("BLE : Processing gravitymon eddy stone device" CR));
       bleScanner.processGravitymonEddystoneBeacon(
           advertisedDevice->getAddress(), advertisedDevice->getPayload());
     }
@@ -88,7 +91,7 @@ void BleDeviceCallbacks::onResult(
       }
 
     if (eddyStone) {
-      Log.notice(F("BLE : Processing pressuremon eddy stone device" CR));
+      // Log.notice(F("BLE : Processing pressuremon eddy stone device" CR));
       bleScanner.processPressuremonEddystoneBeacon(
           advertisedDevice->getAddress(), advertisedDevice->getPayload());
     }
@@ -103,9 +106,9 @@ void BleDeviceCallbacks::onResult(
         advertisedDevice->getManufacturerData()[1] == 0x00 &&
         advertisedDevice->getManufacturerData()[2] == 0x03 &&
         advertisedDevice->getManufacturerData()[3] == 0x15) {
-      Log.notice(
-          F("BLE : Advertised iBeacon GRAVMON/PRESMON/CHAMBER device: %s" CR),
-          advertisedDevice->getAddress().toString().c_str());
+      // Log.notice(
+      //     F("BLE : Advertised iBeacon GRAVMON/PRESMON/CHAMBER device: %s"
+      //     CR), advertisedDevice->getAddress().toString().c_str());
 
       bleScanner.proccesGravitymonBeacon(
           advertisedDevice->getManufacturerData(),
@@ -125,8 +128,8 @@ void BleDeviceCallbacks::onResult(
         advertisedDevice->getManufacturerData()[1] == 0x41 &&
         advertisedDevice->getManufacturerData()[2] == 0x50 &&
         advertisedDevice->getManufacturerData()[3] == 0x54) {
-      Log.notice(F("BLE : Advertised iBeacon RAPT v1/v2 device: %s" CR),
-                 advertisedDevice->getAddress().toString().c_str());
+      // Log.notice(F("BLE : Advertised iBeacon RAPT v1/v2 device: %s" CR),
+      //            advertisedDevice->getAddress().toString().c_str());
 
       bleScanner.proccesRaptBeacon(advertisedDevice->getManufacturerData(),
                                    advertisedDevice->getAddress());
@@ -140,8 +143,8 @@ void BleDeviceCallbacks::onResult(
         advertisedDevice->getManufacturerData()[1] == 0x00 &&
         advertisedDevice->getManufacturerData()[2] == 0x02 &&
         advertisedDevice->getManufacturerData()[3] == 0x15) {
-      Log.notice(F("BLE : Advertised iBeacon TILT device: %s" CR),
-                 advertisedDevice->getAddress().toString().c_str());
+      // Log.notice(F("BLE : Advertised iBeacon TILT device: %s" CR),
+      //            advertisedDevice->getAddress().toString().c_str());
 
       bleScanner.proccesTiltBeacon(advertisedDevice->getManufacturerData(),
                                    advertisedDevice->getRSSI());
@@ -161,7 +164,7 @@ void BleScanner::proccesGravitymonBeacon(const std::string &advertStringHex,
 
   if (*(payload + 4) == 'G' && *(payload + 5) == 'R' && *(payload + 6) == 'A' &&
       *(payload + 7) == 'V') {
-    Log.info(F("BLE : Found gravitymon beacon." CR));
+    // Log.info(F("BLE : Found gravitymon beacon." CR));
 
     chipId = (*(payload + 12) << 24) | (*(payload + 13) << 16) |
              (*(payload + 14) << 8) | *(payload + 15);
@@ -171,6 +174,11 @@ void BleScanner::proccesGravitymonBeacon(const std::string &advertStringHex,
     gravity =
         static_cast<float>((*(payload + 20) << 8) | *(payload + 21)) / 10000;
     temp = static_cast<float>((*(payload + 22) << 8) | *(payload + 23)) / 1000;
+
+    if (isnan(angle) || isinf(angle)) angle = 0.0f;
+    if (isnan(battery) || isinf(battery)) battery = 0.0f;
+    if (isnan(gravity) || isinf(gravity)) gravity = 0.0f;
+    if (isnan(temp) || isinf(temp)) temp = 0.0f;
 
     char chip[20];
     snprintf(chip, sizeof(chip), "%06x", chipId);
@@ -183,6 +191,7 @@ void BleScanner::proccesGravitymonBeacon(const std::string &advertStringHex,
     Log.info(F("BLE : Update data for gravitymon %s." CR),
              gravityData->getId());
     myMeasurementList.updateData(gravityData);
+    _bleData.push(std::move(gravityData));
   }
 }
 
@@ -208,6 +217,11 @@ void BleScanner::processGravitymonEddystoneBeacon(
   chipId = (payload[33] << 24) | (payload[34] << 16) | (payload[35] << 8) |
            (payload[36]);
 
+  if (isnan(battery) || isinf(battery)) battery = 0.0f;
+  if (isnan(temp) || isinf(temp)) temp = 0.0f;
+  if (isnan(gravity) || isinf(gravity)) gravity = 0.0f;
+  if (isnan(angle) || isinf(angle)) angle = 0.0f;
+
   char chip[20];
   snprintf(chip, sizeof(chip), "%06x", chipId);
 
@@ -217,7 +231,7 @@ void BleScanner::processGravitymonEddystoneBeacon(
                                     0));
 
   Log.info(F("BLE : Update data for gravitymon %s." CR), gravityData->getId());
-  myMeasurementList.updateData(gravityData);
+  _bleData.push(std::move(gravityData));
 }
 
 void BleScanner::proccesPressuremonBeacon(const std::string &advertStringHex,
@@ -226,7 +240,7 @@ void BleScanner::proccesPressuremonBeacon(const std::string &advertStringHex,
 
   if (*(payload + 4) == 'P' && *(payload + 5) == 'R' && *(payload + 6) == 'E' &&
       *(payload + 7) == 'S') {
-    Log.info(F("BLE : Found pressuremon beacon." CR));
+    // Log.info(F("BLE : Found pressuremon beacon." CR));
 
     float battery;
     float temp;
@@ -244,6 +258,11 @@ void BleScanner::proccesPressuremonBeacon(const std::string &advertStringHex,
         static_cast<float>((*(payload + 20) << 8) | *(payload + 21)) / 1000;
     temp = static_cast<float>((*(payload + 22) << 8) | *(payload + 23)) / 1000;
 
+    if (isnan(battery) || isinf(battery)) battery = 0.0f;
+    if (isnan(temp) || isinf(temp)) temp = 0.0f;
+    if (isnan(pressure) || isinf(pressure)) pressure = 0.0f;
+    if (isnan(pressure1) || isinf(pressure1)) pressure1 = 0.0f;
+
     char chip[20];
     snprintf(chip, sizeof(chip), "%06x", chipId);
 
@@ -254,7 +273,7 @@ void BleScanner::proccesPressuremonBeacon(const std::string &advertStringHex,
 
     Log.info(F("BLE : Update data for pressuremon %s." CR),
              pressureData->getId());
-    myMeasurementList.updateData(pressureData);
+    _bleData.push(std::move(pressureData));
   }
 }
 
@@ -280,6 +299,11 @@ void BleScanner::processPressuremonEddystoneBeacon(
   chipId = (payload[33] << 24) | (payload[34] << 16) | (payload[35] << 8) |
            (payload[36]);
 
+  if (isnan(battery) || isinf(battery)) battery = 0.0f;
+  if (isnan(temp) || isinf(temp)) temp = 0.0f;
+  if (isnan(pressure) || isinf(pressure)) pressure = 0.0f;
+  if (isnan(pressure1) || isinf(pressure1)) pressure1 = 0.0f;
+
   char chip[20];
   snprintf(chip, sizeof(chip), "%06x", chipId);
 
@@ -290,7 +314,7 @@ void BleScanner::processPressuremonEddystoneBeacon(
 
   Log.info(F("BLE : Update data for pressuremon %s." CR),
            pressureData->getId());
-  myMeasurementList.updateData(pressureData);
+  _bleData.push(std::move(pressureData));
 }
 
 void BleScanner::proccesChamberBeacon(const std::string &advertStringHex,
@@ -299,7 +323,7 @@ void BleScanner::proccesChamberBeacon(const std::string &advertStringHex,
 
   if (*(payload + 4) == 'C' && *(payload + 5) == 'H' && *(payload + 6) == 'A' &&
       *(payload + 7) == 'M') {
-    Log.info(F("BLE : Found chamber beacon." CR));
+    // Log.info(F("BLE : Found chamber beacon." CR));
 
     float chamberTempC;
     float beerTempC;
@@ -312,6 +336,9 @@ void BleScanner::proccesChamberBeacon(const std::string &advertStringHex,
     beerTempC =
         static_cast<float>((*(payload + 18) << 8) | *(payload + 19)) / 1000;
 
+    if (isnan(chamberTempC) || isinf(chamberTempC)) chamberTempC = 0.0f;
+    if (isnan(beerTempC) || isinf(beerTempC)) beerTempC = 0.0f;
+
     char chip[20];
     snprintf(chip, sizeof(chip), "%06x", chipId);
 
@@ -320,7 +347,7 @@ void BleScanner::proccesChamberBeacon(const std::string &advertStringHex,
                                       chamberTempC, beerTempC, 0));
 
     Log.info(F("BLE : Update data for chamber %s." CR), chamberData->getId());
-    myMeasurementList.updateData(chamberData);
+    _bleData.push(std::move(chamberData));
   }
 }
 
@@ -425,12 +452,17 @@ void BleScanner::proccesTiltBeacon(const std::string &advertStringHex,
   }
 
   std::unique_ptr<MeasurementBaseData> tiltData;
-  tiltData.reset(new TiltData(MeasurementSource::BleBeacon, color,
-                              temp / tempFactor, gravity / gravityFactor,
-                              txPower, 0, pro));
+  float finalTemp = temp / tempFactor;
+  float finalGravity = gravity / gravityFactor;
+
+  if (isnan(finalTemp) || isinf(finalTemp)) finalTemp = 0.0f;
+  if (isnan(finalGravity) || isinf(finalGravity)) finalGravity = 0.0f;
+
+  tiltData.reset(new TiltData(MeasurementSource::BleBeacon, color, finalTemp,
+                              finalGravity, txPower, 0, pro));
 
   Log.info(F("BLE : Update data for tilt %s." CR), tiltData->getId());
-  myMeasurementList.updateData(tiltData);
+  _bleData.push(std::move(tiltData));
 }
 
 TiltColor BleScanner::uuidToTiltColor(std::string uuid) {
@@ -477,7 +509,7 @@ void BleScanner::proccesRaptBeacon(const std::string &advertStringHex,
   } floatUnion;
 
   if (*(payload + 4) == 0x01) {
-    Log.info(F("BLE : Found rapt v1 beacon." CR));
+    // Log.info(F("BLE : Found rapt v1 beacon." CR));
 
     /*
       typedef struct __attribute__((packed)) {
@@ -509,14 +541,21 @@ void BleScanner::proccesRaptBeacon(const std::string &advertStringHex,
     battery =
         static_cast<float>((*(payload + 23) << 8) | *(payload + 24)) / 256;
 
+    if (isnan(temp) || isinf(temp)) temp = 0.0f;
+    if (isnan(gravity) || isinf(gravity)) gravity = 0.0f;
+    if (isnan(angleX) || isinf(angleX)) angleX = 0.0f;
+    if (isnan(angleY) || isinf(angleY)) angleY = 0.0f;
+    if (isnan(angleZ) || isinf(angleZ)) angleZ = 0.0f;
+    if (isnan(battery) || isinf(battery)) battery = 0.0f;
+
     std::unique_ptr<MeasurementBaseData> raptData;
     raptData.reset(new RaptData(MeasurementSource::BleBeacon, chip, temp,
                                 gravity, 0, angleX, battery, 0, 0));
 
-    Log.info(F("BLE : Update data for rapt %s." CR), raptData->getId());
-    myMeasurementList.updateData(raptData);
+    Log.info(F("BLE : Update data for rapt v1 %s." CR), raptData->getId());
+    _bleData.push(std::move(raptData));
   } else if (*(payload + 4) == 0x02) {
-    Log.info(F("BLE : Found rapt v2 beacon." CR));
+    // Log.info(F("BLE : Found rapt v2 beacon." CR));
 
     /*
       typedef struct __attribute__((packed)) {
@@ -557,12 +596,28 @@ void BleScanner::proccesRaptBeacon(const std::string &advertStringHex,
     battery =
         static_cast<float>((*(payload + 23) << 8) | *(payload + 24)) / 256;
 
+    if (isnan(velocity) || isinf(velocity)) velocity = 0.0f;
+    if (isnan(temp) || isinf(temp)) temp = 0.0f;
+    if (isnan(gravity) || isinf(gravity)) gravity = 0.0f;
+    if (isnan(angleX) || isinf(angleX)) angleX = 0.0f;
+    if (isnan(angleY) || isinf(angleY)) angleY = 0.0f;
+    if (isnan(angleZ) || isinf(angleZ)) angleZ = 0.0f;
+    if (isnan(battery) || isinf(battery)) battery = 0.0f;
+
     std::unique_ptr<MeasurementBaseData> raptData;
     raptData.reset(new RaptData(MeasurementSource::BleBeacon, chip, temp,
                                 gravity, velocity, angleX, battery, 0, 0));
 
-    Log.info(F("BLE : Update data for rapt %s." CR), raptData->getId());
-    myMeasurementList.updateData(raptData);
+    Log.info(F("BLE : Update data for rapt v2 %s." CR), raptData->getId());
+    _bleData.push(std::move(raptData));
+  }
+}
+
+void BleScanner::loop() {
+  while (!_bleData.empty()) {
+    auto data = std::move(_bleData.front());
+    _bleData.pop();
+    myMeasurementList.updateData(data);
   }
 }
 
