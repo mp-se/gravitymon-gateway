@@ -343,7 +343,6 @@ void loop() {
     // log2.txt, log3.txt, log4.txt) ---
     const char* logBase = "/data";
     const char* logExt = ".csv";
-    const size_t maxLogs = 4;
     constexpr size_t maxLogFileSize =
         16 * 1024;  // bytes, can be changed at runtime
     char logFileName[40];
@@ -357,7 +356,7 @@ void loop() {
         if (logSize > maxLogFileSize) {
           // Rotate: data3.csv->data4.csv, data2.csv->data3.csv,
           // data1.csv->data2.csv, data.csv->data1.csv
-          for (int i = maxLogs - 1; i >= 1; --i) {
+          for (int i = myConfig.getNoSdLogFiles() - 1; i >= 1; --i) {
             char oldName[24], newName[24];
             snprintf(oldName, sizeof(oldName), "%s%d%s", logBase, i,
                      logExt);  // /data1.csv, /data2.csv, ...

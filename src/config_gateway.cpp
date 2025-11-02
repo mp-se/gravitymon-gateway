@@ -44,6 +44,7 @@ void GravmonGatewayConfig::createJson(JsonObject& doc) const {
   doc[CONFIG_BLE_SCAN_TIME] = getBleScanTime();
   doc[CONFIG_PUSH_RESEND_TIME] = getPushResendTime();
   doc[CONFIG_PRESSURE_UNIT] = getPressureUnit();
+  doc[CONFIG_NO_SD_LOG_FILES] = getNoSdLogFiles();
 
   doc[CONFIG_HTTP_POST_GRAVITY_ENABLE] = isHttpPostGravityEnable();
   doc[CONFIG_HTTP_POST_PRESSURE_ENABLE] = isHttpPostPressureEnable();
@@ -85,6 +86,8 @@ void GravmonGatewayConfig::parseJson(JsonObject& doc) {
     setPushResendTime(doc[CONFIG_PUSH_RESEND_TIME].as<int>());
   if (!doc[CONFIG_PRESSURE_UNIT].isNull())
     setPressureUnit(doc[CONFIG_PRESSURE_UNIT].as<String>());
+  if (!doc[CONFIG_NO_SD_LOG_FILES].isNull())
+    setNoSdLogFiles(doc[CONFIG_NO_SD_LOG_FILES].as<int>());
 
   if (!doc[CONFIG_HTTP_POST_GRAVITY_ENABLE].isNull())
     setHttpPostGravityEnable(doc[CONFIG_HTTP_POST_GRAVITY_ENABLE].as<bool>());

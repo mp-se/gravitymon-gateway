@@ -36,6 +36,8 @@ constexpr auto CONFIG_PUSH_RESEND_TIME = "push_resend_time";
 constexpr auto CONFIG_TIMEZONE = "timezone";
 constexpr auto CONFIG_PRESSURE_UNIT = "pressure_unit";
 
+constexpr auto CONFIG_NO_SD_LOG_FILES = "sd_log_files";
+
 constexpr auto CONFIG_HTTP_POST_GRAVITY_ENABLE = "http_post_gravity";
 constexpr auto CONFIG_HTTP_POST_PRESSURE_ENABLE = "http_post_pressure";
 constexpr auto CONFIG_HTTP_POST2_GRAVITY_ENABLE = "http_post2_gravity";
@@ -60,6 +62,8 @@ class GravmonGatewayConfig : public BrewingConfig {
 
   int _bleScanTime = 5;
   int _pushResendTime = 300;
+
+  int _noSdLogFiles = 4;
 
   bool _bleEnable = true;
   bool _bleActiveScan = false;
@@ -92,6 +96,12 @@ class GravmonGatewayConfig : public BrewingConfig {
   bool isBleEnable() const { return _bleEnable; }
   void setBleEnable(bool f) {
     _bleEnable = f;
+    _saveNeeded = true;
+  }
+
+  int getNoSdLogFiles() const { return _noSdLogFiles; }
+  void setNoSdLogFiles(int i) {
+    _noSdLogFiles = i;
     _saveNeeded = true;
   }
 
