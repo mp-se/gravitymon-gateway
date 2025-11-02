@@ -17,18 +17,24 @@ Visit the gravitymon homepage here for more information about the project: https
 
 # Releases
 
+### v0.8.1
+
+* Now display file size in file system viewer
+* Added option to configure the number of log files on SD card, default is 4 (4x16kb) but max limit is now 100 files, loading that many would be really slow.
+
 ### v0.8.0
 
-Note! The build for ESP32pro will crash itermitent with BLE enabled this is due to a bug in Arduino 2 and this board cant support Arduino 3.
+Note! The build for ESP32pro will crash itermitent with BLE enabled this is due to a bug in Arduino 2 and this board can't support Arduino 3.
 
-* Added support for external SD cards where all received data is stored
-* New measurement view in the UI to display data on the SD card and also graphs
+* Added support for external SD cards where all received data is stored 4 x 16 kb can be logged
+* New measurement view in the UI to display data on the SD card and also graphs if a single device is selected
 * Added support for receiving RAPT data (will only be displayed and not forwarded)
 * Added feature api to easier adapt ui for the included build features
 * Renamed firmware files to easier find the right one, and the current name is now shown in the firmware upload view.
 * Optimized UI for size and updated library dependecies
 * Updated to Arduino 3.x for stable ble scanning
 * Added option to backup & restore of configuration
+* BLE logging is restricted to once every 5 minutes or the logs will be filled up.
 
 ### v0.7.1
 
