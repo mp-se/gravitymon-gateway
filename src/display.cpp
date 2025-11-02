@@ -340,7 +340,7 @@ void touchScreenHandler(lv_indev_t *indev, lv_indev_data_t *data) {
     data->point.x = x;
     data->point.y = y;
 
-    Log.notice(F("LVGL : %d:%d." CR), x, y);
+    Log.verbose(F("LVGL: %d:%d." CR), x, y);
   } else {
     data->state = LV_INDEV_STATE_RELEASED;
   }
