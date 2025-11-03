@@ -541,7 +541,7 @@ class MeasurementList {
   MeasurementList() {}
   ~MeasurementList() { clear(); }
 
-  void updateData(std::unique_ptr<MeasurementBaseData>& data) {
+  void updateData(std::unique_ptr<MeasurementBaseData>& data, int minWaitTimeMinutes = 0) {
     if (data.get() == nullptr) {
       return;
     }
@@ -554,8 +554,7 @@ class MeasurementList {
     int i = findMeasurementById(id);
 
 #if defined(ENABLE_MMC) || defined(ENABLE_SD)
-    constexpr int32_t MIN_WAIT_TIME =
-        300000;  // Dont do logging more than every 5 minutes
+    int32_t MIN_WAIT_TIME = minWaitTimeMinutes * 60 * 1000;  // Convert minutes to milliseconds
     uint32_t now = millis();
     bool shouldWrite = (_lastLogTimes.find(id) == _lastLogTimes.end()) ||
                        (now - _lastLogTimes[id]) >= MIN_WAIT_TIME;

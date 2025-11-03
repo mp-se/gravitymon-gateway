@@ -356,7 +356,7 @@ void loop() {
         if (logSize > maxLogFileSize) {
           // Rotate: data3.csv->data4.csv, data2.csv->data3.csv,
           // data1.csv->data2.csv, data.csv->data1.csv
-          for (int i = myConfig.getNoSdLogFiles() - 1; i >= 1; --i) {
+          for (int i = myConfig.getSdLogFiles() - 1; i >= 1; --i) {
             char oldName[24], newName[24];
             snprintf(oldName, sizeof(oldName), "%s%d%s", logBase, i,
                      logExt);  // /data1.csv, /data2.csv, ...

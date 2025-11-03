@@ -24,6 +24,7 @@ SOFTWARE.
 #if defined(GATEWAY)
 
 #include <ble_gateway.hpp>
+#include <config_gateway.hpp>
 #include <cmath>
 #include <cstdio>
 #include <log.hpp>
@@ -617,7 +618,7 @@ void BleScanner::loop() {
   while (!_bleData.empty()) {
     auto data = std::move(_bleData.front());
     _bleData.pop();
-    myMeasurementList.updateData(data);
+    myMeasurementList.updateData(data, myConfig.getSdLogMinTime());
   }
 }
 

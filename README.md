@@ -21,6 +21,7 @@ Visit the gravitymon homepage here for more information about the project: https
 
 * Now display file size in file system viewer
 * Added option to configure the number of log files on SD card, default is 4 (4x16kb) but max limit is now 100 files, loading that many would be really slow.
+* Added option to define how often to log BLE data to SD card in order to avoid filling the logs, default is 5 minutes. 
 
 ### v0.8.0
 
