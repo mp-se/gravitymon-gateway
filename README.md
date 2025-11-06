@@ -23,6 +23,7 @@ Visit the gravitymon homepage here for more information about the project: https
 * Added option to configure the number of log files on SD card, default is 4 (4x16kb) but max limit is now 100 files, loading that many would be really slow.
 * Added option to define how often to log BLE data to SD card in order to avoid filling the logs, default is 5 minutes. 
 * Added throtteling of 30s on ble processing to avoid crashing
+* Fixed unit conversion on main page (gravity + temperature)
 
 ### v0.8.0
 
