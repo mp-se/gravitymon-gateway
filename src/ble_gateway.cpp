@@ -33,7 +33,7 @@ SOFTWARE.
 #include <utils.hpp>
 #include <vector>
 
-constexpr auto BLE_THROTTLING_DELAY_MS = 30 * 1000;  // 30 seconds
+constexpr auto BLE_THROTTLING_DELAY_MS = 60 * 1000;  // 60 seconds
 
 BleScanner bleScanner;
 
