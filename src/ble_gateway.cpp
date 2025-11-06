@@ -25,12 +25,15 @@ SOFTWARE.
 
 #include <ble_gateway.hpp>
 #include <cmath>
+#include <config_gateway.hpp>
 #include <cstdio>
 #include <log.hpp>
 #include <memory>
 #include <string>
 #include <utils.hpp>
 #include <vector>
+
+constexpr auto BLE_THROTTLING_DELAY_MS = 60 * 1000;  // 60 seconds
 
 BleScanner bleScanner;
 
@@ -190,8 +193,7 @@ void BleScanner::proccesGravitymonBeacon(const std::string &advertStringHex,
 
     Log.info(F("BLE : Update data for gravitymon %s." CR),
              gravityData->getId());
-    myMeasurementList.updateData(gravityData);
-    _bleData.push(std::move(gravityData));
+    addData(std::move(gravityData));
   }
 }
 
@@ -231,7 +233,7 @@ void BleScanner::processGravitymonEddystoneBeacon(
                                     0));
 
   Log.info(F("BLE : Update data for gravitymon %s." CR), gravityData->getId());
-  _bleData.push(std::move(gravityData));
+  addData(std::move(gravityData));
 }
 
 void BleScanner::proccesPressuremonBeacon(const std::string &advertStringHex,
@@ -273,7 +275,7 @@ void BleScanner::proccesPressuremonBeacon(const std::string &advertStringHex,
 
     Log.info(F("BLE : Update data for pressuremon %s." CR),
              pressureData->getId());
-    _bleData.push(std::move(pressureData));
+    addData(std::move(pressureData));
   }
 }
 
@@ -314,7 +316,7 @@ void BleScanner::processPressuremonEddystoneBeacon(
 
   Log.info(F("BLE : Update data for pressuremon %s." CR),
            pressureData->getId());
-  _bleData.push(std::move(pressureData));
+  addData(std::move(pressureData));
 }
 
 void BleScanner::proccesChamberBeacon(const std::string &advertStringHex,
@@ -347,7 +349,7 @@ void BleScanner::proccesChamberBeacon(const std::string &advertStringHex,
                                       chamberTempC, beerTempC, 0));
 
     Log.info(F("BLE : Update data for chamber %s." CR), chamberData->getId());
-    _bleData.push(std::move(chamberData));
+    addData(std::move(chamberData));
   }
 }
 
@@ -462,7 +464,7 @@ void BleScanner::proccesTiltBeacon(const std::string &advertStringHex,
                               finalGravity, txPower, 0, pro));
 
   Log.info(F("BLE : Update data for tilt %s." CR), tiltData->getId());
-  _bleData.push(std::move(tiltData));
+  addData(std::move(tiltData));
 }
 
 TiltColor BleScanner::uuidToTiltColor(std::string uuid) {
@@ -553,7 +555,7 @@ void BleScanner::proccesRaptBeacon(const std::string &advertStringHex,
                                 gravity, 0, angleX, battery, 0, 0));
 
     Log.info(F("BLE : Update data for rapt v1 %s." CR), raptData->getId());
-    _bleData.push(std::move(raptData));
+    addData(std::move(raptData));
   } else if (*(payload + 4) == 0x02) {
     // Log.info(F("BLE : Found rapt v2 beacon." CR));
 
@@ -609,7 +611,7 @@ void BleScanner::proccesRaptBeacon(const std::string &advertStringHex,
                                 gravity, velocity, angleX, battery, 0, 0));
 
     Log.info(F("BLE : Update data for rapt v2 %s." CR), raptData->getId());
-    _bleData.push(std::move(raptData));
+    addData(std::move(raptData));
   }
 }
 
@@ -617,8 +619,23 @@ void BleScanner::loop() {
   while (!_bleData.empty()) {
     auto data = std::move(_bleData.front());
     _bleData.pop();
-    myMeasurementList.updateData(data);
+    myMeasurementList.updateData(data, myConfig.getSdLogMinTime());
   }
+}
+
+void BleScanner::addData(std::unique_ptr<MeasurementBaseData> data) {
+  String id = data->getId();
+  uint32_t currentTime = millis();
+
+  if (_lastAddTimes.find(id) != _lastAddTimes.end() &&
+      currentTime - _lastAddTimes[id] < BLE_THROTTLING_DELAY_MS) {
+    Log.notice(F("BLE: Skip adding data for %s, too soon since last add" CR),
+               id.c_str());
+    return;  // Skip adding to queue
+  }
+
+  _lastAddTimes[id] = currentTime;
+  _bleData.push(std::move(data));
 }
 
 #endif  // GATEWAY

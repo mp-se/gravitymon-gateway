@@ -50,6 +50,7 @@ SOFTWARE.
 #include <utils.hpp>
 #include <web_gateway.hpp>
 #include <wificonnection.hpp>
+#include <WiFi.h>
 
 constexpr auto CFG_FILENAME = "/gravitymon-gw.json";
 constexpr auto CFG_AP_SSID = "Gateway";
@@ -79,10 +80,10 @@ Display myDisplay;
 BatteryVoltage myBatteryVoltage(
     &myConfig);  // Needs to be defined but not used in gateway
 MeasurementList myMeasurementList;  // Data recevied from http or bluetooth
-LoopTimer controllerTimer(5000);
-LoopTimer cycleTimer(4000);   // Cycle through the devices on the display
-LoopTimer displayTimer(100);  // Process text updates for displuy
-LoopTimer sdTimer(30000);     // Check if there is an SD card attached
+LoopTimer controllerTimer(20 * 1000); // For handling push and other periodic tasks
+LoopTimer cycleTimer(4 * 1000);   // Cycle through the devices on the display
+LoopTimer displayTimer(100);  // Process text updates for display
+LoopTimer sdTimer(30 * 1000);     // Check if there is an SD card attached
 
 bool sleepModeAlwaysSkip =
     false;  // Needs to be defined but not used in gateway
@@ -343,7 +344,6 @@ void loop() {
     // log2.txt, log3.txt, log4.txt) ---
     const char* logBase = "/data";
     const char* logExt = ".csv";
-    const size_t maxLogs = 4;
     constexpr size_t maxLogFileSize =
         16 * 1024;  // bytes, can be changed at runtime
     char logFileName[40];
@@ -357,7 +357,7 @@ void loop() {
         if (logSize > maxLogFileSize) {
           // Rotate: data3.csv->data4.csv, data2.csv->data3.csv,
           // data1.csv->data2.csv, data.csv->data1.csv
-          for (int i = maxLogs - 1; i >= 1; --i) {
+          for (int i = myConfig.getSdLogFiles() - 1; i >= 1; --i) {
             char oldName[24], newName[24];
             snprintf(oldName, sizeof(oldName), "%s%d%s", logBase, i,
                      logExt);  // /data1.csv, /data2.csv, ...
@@ -593,118 +593,129 @@ void controller() {
   }
 
   if (controllerTimer.hasExpired()) {
-    controllerTimer.reset();
+    if (WiFi.status() == WL_CONNECTED && ESP.getFreeHeap() > 50000) {
+      BrewingPush push(&myConfig);
 
-    BrewingPush push(&myConfig);
+      for (int i = 0; i < myMeasurementList.size(); i++) {
+        MeasurementEntry* entry = myMeasurementList.getMeasurementEntry(i);
 
-    for (int i = 0; i < myMeasurementList.size(); i++) {
-      MeasurementEntry* entry = myMeasurementList.getMeasurementEntry(i);
+        switch (entry->getType()) {
+          case MeasurementType::Gravitymon: {
+            Log.notice("Loop: Processing Gravitymon data %d." CR, i);
 
-      switch (entry->getType()) {
-        case MeasurementType::Gravitymon: {
-          Log.notice("Loop: Processing Gravitymon data %d." CR, i);
+            if (entry->isUpdated() &&
+                (entry->getPushAge() > myConfig.getPushResendTime())) {
+              const GravityData* gd = entry->getGravityData();
 
-          if (entry->isUpdated() &&
-              (entry->getPushAge() > myConfig.getPushResendTime())) {
-            const GravityData* gd = entry->getGravityData();
+              addGravityLogEntry(gd->getId(), entry->getTimeinfoUpdated(),
+                                 gd->getGravity(), gd->getTempC());
 
-            addGravityLogEntry(gd->getId(), entry->getTimeinfoUpdated(),
-                               gd->getGravity(), gd->getTempC());
+              TemplatingEngine engine;
 
-            TemplatingEngine engine;
+              setupTemplateEngineGravityGateway(
+                  &myConfig, engine, gd->getAngle(), gd->getGravity(),
+                  gd->getTempC(), gd->getBattery(), gd->getInterval(),
+                  gd->getId(), gd->getToken(), gd->getName());
 
-            setupTemplateEngineGravityGateway(
-                &myConfig, engine, gd->getAngle(), gd->getGravity(),
-                gd->getTempC(), gd->getBattery(), gd->getInterval(),
-                gd->getId(), gd->getToken(), gd->getName());
-            push.sendAll(engine, BrewingPush::MeasurementType::GRAVITY,
-                         myConfig.isHttpPostGravityEnable(),
-                         myConfig.isHttpPost2GravityEnable(),
-                         myConfig.isHttpGetGravityEnable(),
-                         myConfig.isInfluxdb2GravityEnable(),
-                         myConfig.isMqttGravityEnable());
+              if (WiFi.status() == WL_CONNECTED && ESP.getFreeHeap() > 50000) {
+                push.sendAll(engine, BrewingPush::MeasurementType::GRAVITY,
+                             myConfig.isHttpPostGravityEnable(),
+                             myConfig.isHttpPost2GravityEnable(),
+                             myConfig.isHttpGetGravityEnable(),
+                             myConfig.isInfluxdb2GravityEnable(),
+                             myConfig.isMqttGravityEnable());
+              } else {
+                Log.warning(F("PUSH: Skipped due to WiFi not connected or low "
+                              "heap (%d)" CR),
+                            ESP.getFreeHeap());
+              }
 
-            entry->setPushed();
-            yield();
-          }
-        } break;
+              entry->setPushed();
+              yield();
+            }
+          } break;
 
-        case MeasurementType::Pressuremon: {
-          Log.notice("Loop: Processing Pressuremon data %d." CR, i);
+          case MeasurementType::Pressuremon: {
+            Log.notice("Loop: Processing Pressuremon data %d." CR, i);
 
-          if (entry->isUpdated() &&
-              (entry->getPushAge() > myConfig.getPushResendTime())) {
-            const PressureData* pd = entry->getPressureData();
+            if (entry->isUpdated() &&
+                (entry->getPushAge() > myConfig.getPushResendTime())) {
+              const PressureData* pd = entry->getPressureData();
 
-            addPressureLogEntry(pd->getId(), entry->getTimeinfoUpdated(),
-                                pd->getPressure(), pd->getPressure1(),
-                                pd->getTempC());
+              addPressureLogEntry(pd->getId(), entry->getTimeinfoUpdated(),
+                                  pd->getPressure(), pd->getPressure1(),
+                                  pd->getTempC());
 
-            TemplatingEngine engine;
+              TemplatingEngine engine;
 
-            setupTemplateEnginePressureGateway(
-                &myConfig, engine, pd->getPressure(), pd->getPressure1(),
-                pd->getTempC(), pd->getBattery(), pd->getInterval(),
-                pd->getId(), pd->getToken(), pd->getName());
-            push.sendAll(engine, BrewingPush::MeasurementType::PRESSURE,
-                         myConfig.isHttpPostPressureEnable(),
-                         myConfig.isHttpPost2PressureEnable(),
-                         myConfig.isHttpGetPressureEnable(),
-                         myConfig.isInfluxdb2PressureEnable(),
-                         myConfig.isMqttPressureEnable());
+              setupTemplateEnginePressureGateway(
+                  &myConfig, engine, pd->getPressure(), pd->getPressure1(),
+                  pd->getTempC(), pd->getBattery(), pd->getInterval(),
+                  pd->getId(), pd->getToken(), pd->getName());
+              push.sendAll(engine, BrewingPush::MeasurementType::PRESSURE,
+                           myConfig.isHttpPostPressureEnable(),
+                           myConfig.isHttpPost2PressureEnable(),
+                           myConfig.isHttpGetPressureEnable(),
+                           myConfig.isInfluxdb2PressureEnable(),
+                           myConfig.isMqttPressureEnable());
 
-            entry->setPushed();
-            yield();
-          }
-        } break;
+              entry->setPushed();
+              yield();
+            }
+          } break;
 
-        case MeasurementType::Tilt:
-        case MeasurementType::TiltPro: {
-          Log.notice("Loop: Processing Tilt data %d." CR, i);
+          case MeasurementType::Tilt:
+          case MeasurementType::TiltPro: {
+            Log.notice("Loop: Processing Tilt data %d." CR, i);
 
-// #define ENABLE_TILT_SCANNING
+            // #define ENABLE_TILT_SCANNING
 
 #if defined(ENABLE_TILT_SCANNING)
-          //  This part is for testing / debugging only, use Tiltbridge if you
-          //  use Tilt
-          //  as BLE transmission, will show detected tilt devices but dont
-          //  send data.
+            //  This part is for testing / debugging only, use Tiltbridge if you
+            //  use Tilt
+            //  as BLE transmission, will show detected tilt devices but dont
+            //  send data.
 
-          if (entry->isUpdated() &&
-              (entry->getPushAge() > myConfig.getPushResendTime())) {
-            const TiltData* pd = entry->getTiltData();
+            if (entry->isUpdated() &&
+                (entry->getPushAge() > myConfig.getPushResendTime())) {
+              const TiltData* pd = entry->getTiltData();
 
-            addGravityLogEntry(pd->getId(), entry->getTimeinfoUpdated(),
-                               pd->getGravity(), pd->getTempC());
+              addGravityLogEntry(pd->getId(), entry->getTimeinfoUpdated(),
+                                 pd->getGravity(), pd->getTempC());
 
-            // TODO: Add push support
+              // TODO: Add push support
 
-            entry->setPushed();
-          }
+              entry->setPushed();
+            }
 #endif
-        } break;
+          } break;
 
-        case MeasurementType::Chamber: {
-          Log.notice("Loop: Processing Chamber data %d." CR, i);
-        } break;
+          case MeasurementType::Chamber: {
+            Log.notice("Loop: Processing Chamber data %d." CR, i);
+          } break;
 
-        case MeasurementType::Rapt: {
-          Log.notice("Loop: Processing Rapt data %d." CR, i);
+          case MeasurementType::Rapt: {
+            Log.notice("Loop: Processing Rapt data %d." CR, i);
 
-          if (entry->isUpdated() &&
-              (entry->getPushAge() > myConfig.getPushResendTime())) {
-            const RaptData* rd = entry->getRaptData();
+            if (entry->isUpdated() &&
+                (entry->getPushAge() > myConfig.getPushResendTime())) {
+              const RaptData* rd = entry->getRaptData();
 
-            addGravityLogEntry(rd->getId(), entry->getTimeinfoUpdated(),
-                               rd->getGravity(), rd->getTempC());
+              addGravityLogEntry(rd->getId(), entry->getTimeinfoUpdated(),
+                                 rd->getGravity(), rd->getTempC());
 
-            // NOTE: Push support not posible
+              // NOTE: Push support not posible
 
-            entry->setPushed();
-          }
-        } break;
+              entry->setPushed();
+            }
+          } break;
+        }
       }
+    } else {
+      Log.warning(F("Loop: Push skipped due WiFi %s not, heap %d" CR), WiFi.status() == WL_CONNECTED ? "connected" : "disconnected", ESP.getFreeHeap());
     }
+
+    controllerTimer.reset();
   }
 }
 
