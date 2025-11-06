@@ -65,7 +65,7 @@ class GravmonGatewayConfig : public BrewingConfig {
   int _pushResendTime = 300;
 
   int _sdLogFiles = 4;
-  int _sdLogMinTime = 5; // Minutes
+  int _sdLogMinTime = 5;  // Minutes
 
   bool _bleEnable = true;
   bool _bleActiveScan = false;

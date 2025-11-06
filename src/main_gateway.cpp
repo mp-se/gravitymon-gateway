@@ -661,7 +661,7 @@ void controller() {
         case MeasurementType::TiltPro: {
           Log.notice("Loop: Processing Tilt data %d." CR, i);
 
-// #define ENABLE_TILT_SCANNING
+          // #define ENABLE_TILT_SCANNING
 
 #if defined(ENABLE_TILT_SCANNING)
           //  This part is for testing / debugging only, use Tiltbridge if you
