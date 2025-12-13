@@ -30,6 +30,7 @@ SOFTWARE.
 #include <fonts.hpp>
 #include <log.hpp>
 #include <looptimer.hpp>
+#include <ui_helpers.hpp>
 
 #if defined(ENABLE_TFT)
 TaskHandle_t lvglTaskHandler;
@@ -122,11 +123,7 @@ void Display::createUI() {
   lvglData._display =
       lv_tft_espi_create(TFT_WIDTH, TFT_HEIGHT, draw_buf, DRAW_BUF_SIZE);
 
-  // if (_rotation == Rotation::ROTATION_90) {
   lv_display_set_rotation(lvglData._display, LV_DISPLAY_ROTATION_90);
-  // } else {  // Rotation::ROTATION_270
-  //   lv_display_set_rotation(lvglData._display, LV_DISPLAY_ROTATION_270);
-  // }
 
   // Initialize an LVGL input device object (Touchscreen)
   lv_indev_t *indev = lv_indev_create();
@@ -137,55 +134,68 @@ void Display::createUI() {
   lv_obj_t *scr = lv_scr_act();
   lv_obj_add_event_cb(scr, gestureScreenHandler, LV_EVENT_GESTURE, NULL);
 
-  // Create components
-  lv_style_init(&lvglData._font12);
-  lv_style_init(&lvglData._font12c);
-  lv_style_init(&lvglData._font16c);
-  lv_style_init(&lvglData._font20c);
-  lv_style_set_text_font(&lvglData._font12, &lv_font_montserrat_12);
-  lv_style_set_text_font(&lvglData._font12c, &lv_font_montserrat_12);
-  lv_style_set_text_font(&lvglData._font16c, &lv_font_montserrat_16);
-  lv_style_set_text_font(&lvglData._font20c, &lv_font_montserrat_20);
-  lv_style_set_text_align(&lvglData._font12, LV_TEXT_ALIGN_LEFT);
-  lv_style_set_text_align(&lvglData._font12c, LV_TEXT_ALIGN_CENTER);
-  lv_style_set_text_align(&lvglData._font16c, LV_TEXT_ALIGN_CENTER);
-  lv_style_set_text_align(&lvglData._font20c, LV_TEXT_ALIGN_CENTER);
-
-  // For showing the layout
-  // lv_style_set_outline_width(&lvglData._font12, 1);
-  // lv_style_set_outline_color(&lvglData._font12,
-  // lv_palette_main(LV_PALETTE_BLUE));
-  // lv_style_set_outline_width(&lvglData._font12c, 1);
-  // lv_style_set_outline_color(&lvglData._font12c,
-  // lv_palette_main(LV_PALETTE_BLUE));
-  // lv_style_set_outline_width(&lvglData._font16c, 1);
-  // lv_style_set_outline_color(&lvglData._font16c,
-  // lv_palette_main(LV_PALETTE_BLUE));
-  // lv_style_set_outline_width(&lvglData._font20c, 1);
-  // lv_style_set_outline_color(&lvglData._font20c,
-  // lv_palette_main(LV_PALETTE_BLUE));
+  // Initialize theme system
+  lvglData._theme = UI_THEME_LIGHT;
+  lvglData._colors = ui_get_theme_colors(lvglData._theme);
 
   Log.notice(F("DISP: Creating UI components." CR));
 
-  lvglData._txtDeviceName = createLabel("", 5, 5, 250, 36, &lvglData._font20c);
-  lvglData._txtDeviceIndex =
-      createLabel("", 260, 5, 54, 36, &lvglData._font16c);
-  lvglData._txtDeviceValue1 =
-      createLabel("", 30, 45, 75, 36, &lvglData._font16c);
-  lvglData._txtDeviceValue2 =
-      createLabel("", 110, 45, 100, 36, &lvglData._font16c);
-  lvglData._txtDeviceValue3 =
-      createLabel("", 215, 45, 75, 36, &lvglData._font16c);
-  lvglData._txtDeviceTimeStamp =
-      createLabel("", 30, 85, 260, 26, &lvglData._font16c);
-  lvglData._txtStatusbar = createLabel("", 5, 219, 310, 18, &lvglData._font12c);
+  // Create device name (large, centered)
+  lvglData._txtDeviceName = ui_create_label(
+      scr, "", 5, 5, 250, 36, LV_TEXT_ALIGN_CENTER, lvglData._colors.text);
+  lv_obj_set_style_text_font(lvglData._txtDeviceName, &lv_font_montserrat_20,
+                             LV_PART_MAIN);
 
-  for (int i = 0; i < 5; i++)
+  // Create device index (smaller, centered)
+  lvglData._txtDeviceIndex = ui_create_label(
+      scr, "", 260, 5, 54, 36, LV_TEXT_ALIGN_CENTER, lvglData._colors.text);
+  lv_obj_set_style_text_font(lvglData._txtDeviceIndex, &lv_font_montserrat_16,
+                             LV_PART_MAIN);
+
+  // Create value displays (centered)
+  lvglData._txtDeviceValue1 = ui_create_label(
+      scr, "", 30, 45, 75, 36, LV_TEXT_ALIGN_CENTER, lvglData._colors.text);
+  lv_obj_set_style_text_font(lvglData._txtDeviceValue1, &lv_font_montserrat_16,
+                             LV_PART_MAIN);
+
+  lvglData._txtDeviceValue2 = ui_create_label(
+      scr, "", 110, 45, 100, 36, LV_TEXT_ALIGN_CENTER, lvglData._colors.text);
+  lv_obj_set_style_text_font(lvglData._txtDeviceValue2, &lv_font_montserrat_16,
+                             LV_PART_MAIN);
+
+  lvglData._txtDeviceValue3 = ui_create_label(
+      scr, "", 215, 45, 75, 36, LV_TEXT_ALIGN_CENTER, lvglData._colors.text);
+  lv_obj_set_style_text_font(lvglData._txtDeviceValue3, &lv_font_montserrat_16,
+                             LV_PART_MAIN);
+
+  // Create timestamp (centered)
+  lvglData._txtDeviceTimeStamp = ui_create_label(
+      scr, "", 30, 85, 260, 26, LV_TEXT_ALIGN_CENTER, lvglData._colors.text);
+  lv_obj_set_style_text_font(lvglData._txtDeviceTimeStamp,
+                             &lv_font_montserrat_16, LV_PART_MAIN);
+
+  // Create history items (left-aligned)
+  for (int i = 0; i < 5; i++) {
     lvglData._txtHistory[i] =
-        createLabel("", 5, 114 + (i * 21), 310, 18, &lvglData._font12);
+        ui_create_label(scr, "", 5, 114 + (i * 21), 310, 18, LV_TEXT_ALIGN_LEFT,
+                        lvglData._colors.text);
+    lv_obj_set_style_text_font(lvglData._txtHistory[i], &lv_font_montserrat_12,
+                               LV_PART_MAIN);
+  }
 
-  lvglData._btnLeft = createButton("<", 5, 45, 25, 66, btnLeftEventHandler);
-  lvglData._btnRight = createButton(">", 290, 45, 26, 66, btnRightEventHandler);
+  // Create status bar (centered)
+  lvglData._txtStatusbar = ui_create_label(
+      scr, "", 5, 219, 310, 18, LV_TEXT_ALIGN_CENTER, lvglData._colors.text);
+  lv_obj_set_style_text_font(lvglData._txtStatusbar, &lv_font_montserrat_12,
+                             LV_PART_MAIN);
+
+  // Create navigation buttons
+  lvglData._btnLeft =
+      ui_create_button(scr, "<", 5, 45, 25, 66, btnLeftEventHandler,
+                       lvglData._colors.button_bg, lvglData._colors.text);
+  lvglData._btnRight =
+      ui_create_button(scr, ">", 290, 45, 26, 66, btnRightEventHandler,
+                       lvglData._colors.button_bg, lvglData._colors.text);
 
   xTaskCreatePinnedToCore(lvgl_loop_handler,  // Function to implement the task
                           "LVGL_Handler",     // Name of the task
@@ -219,6 +229,8 @@ void Display::updateHistory(const char *history, int idx) {
 void Display::updateStatus(const char *status, bool darkmode) {
   lvglData._dataStatusbar = status;
   lvglData._darkmode = darkmode;
+  lvglData._theme = darkmode ? UI_THEME_DARK : UI_THEME_LIGHT;
+  lvglData._colors = ui_get_theme_colors(lvglData._theme);
 }
 
 void Display::calibrateTouch() {
@@ -388,29 +400,6 @@ void log_print(lv_log_level_t level, const char *buf) {
   Log.notice(F("LVGL: %s." CR), buf);
 }
 
-lv_obj_t *createButton(const char *label, int32_t x, int32_t y, int32_t w,
-                       int32_t h, lv_event_cb_t handler) {
-  lv_obj_t *btn;
-  btn = lv_button_create(lv_screen_active());
-  lv_obj_set_size(btn, w, h);
-  lv_obj_set_pos(btn, x, y);
-  lv_obj_add_event_cb(btn, handler, LV_EVENT_ALL, NULL);
-  lv_obj_t *lbl = lv_label_create(btn);
-  lv_label_set_text(lbl, label);
-  lv_obj_center(lbl);
-  return btn;
-}
-
-lv_obj_t *createLabel(const char *label, int32_t x, int32_t y, int32_t w,
-                      int32_t h, lv_style_t *style) {
-  lv_obj_t *lbl = lv_label_create(lv_screen_active());
-  lv_label_set_text(lbl, label);
-  lv_obj_set_size(lbl, w, h);
-  lv_obj_set_pos(lbl, x, y);
-  lv_obj_add_style(lbl, style, 0);
-  return lbl;
-}
-
 void updateLabel(lv_obj_t *obj, const char *label) {
   lv_label_set_text(obj, label);
 }
@@ -423,29 +412,44 @@ void lvgl_loop_handler(void *parameter) {
       taskLoop.reset();
 
       lv_obj_t *scr = lv_scr_act();
-      lv_color_t color;
 
-      if (lvglData._darkmode) {
-        lv_obj_set_style_bg_color(scr, lv_color_hex(0x1F1F1F), LV_PART_MAIN);
-        lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, LV_PART_MAIN);
-        color = lv_color_white();
-      } else {
-        lv_obj_set_style_bg_color(scr, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
-        lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, LV_PART_MAIN);
-        color = lv_color_black();
+      // Update theme based on darkmode setting
+      lvglData._theme = lvglData._darkmode ? UI_THEME_DARK : UI_THEME_LIGHT;
+      lvglData._colors = ui_get_theme_colors(lvglData._theme);
+
+      // Apply theme to screen
+      lv_obj_set_style_bg_color(scr, lvglData._colors.bg, LV_PART_MAIN);
+      lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, LV_PART_MAIN);
+      lv_obj_set_style_text_color(scr, lvglData._colors.text, 0);
+
+      // Update text colors for all labels
+      lv_obj_set_style_text_color(lvglData._txtDeviceName,
+                                  lvglData._colors.text, 0);
+      lv_obj_set_style_text_color(lvglData._txtDeviceIndex,
+                                  lvglData._colors.text, 0);
+      lv_obj_set_style_text_color(lvglData._txtDeviceValue1,
+                                  lvglData._colors.text, 0);
+      lv_obj_set_style_text_color(lvglData._txtDeviceValue2,
+                                  lvglData._colors.text, 0);
+      lv_obj_set_style_text_color(lvglData._txtDeviceValue3,
+                                  lvglData._colors.text, 0);
+      lv_obj_set_style_text_color(lvglData._txtDeviceTimeStamp,
+                                  lvglData._colors.text, 0);
+      lv_obj_set_style_text_color(lvglData._txtStatusbar, lvglData._colors.text,
+                                  0);
+
+      for (int i = 0; i < 5; i++) {
+        lv_obj_set_style_text_color(lvglData._txtHistory[i],
+                                    lvglData._colors.text, 0);
       }
 
-      lv_obj_set_style_text_color(lvglData._txtDeviceName, color, 0);
-      lv_obj_set_style_text_color(lvglData._txtDeviceIndex, color, 0);
-      lv_obj_set_style_text_color(lvglData._txtDeviceValue1, color, 0);
-      lv_obj_set_style_text_color(lvglData._txtDeviceValue2, color, 0);
-      lv_obj_set_style_text_color(lvglData._txtDeviceValue3, color, 0);
-      lv_obj_set_style_text_color(lvglData._txtDeviceTimeStamp, color, 0);
-      lv_obj_set_style_text_color(lvglData._txtStatusbar, color, 0);
+      // Update button colors
+      lv_obj_set_style_bg_color(lvglData._btnLeft, lvglData._colors.button_bg,
+                                LV_PART_MAIN);
+      lv_obj_set_style_bg_color(lvglData._btnRight, lvglData._colors.button_bg,
+                                LV_PART_MAIN);
 
-      for (int i = 0; i < 5; i++)
-        lv_obj_set_style_text_color(lvglData._txtHistory[i], color, 0);
-
+      // Update label content
       updateLabel(lvglData._txtDeviceName, lvglData._dataDeviceName.c_str());
       updateLabel(lvglData._txtDeviceIndex, lvglData._dataDeviceIndex.c_str());
       updateLabel(lvglData._txtDeviceValue1,
@@ -458,8 +462,9 @@ void lvgl_loop_handler(void *parameter) {
                   lvglData._dataDeviceTimeStamp.c_str());
       updateLabel(lvglData._txtStatusbar, lvglData._dataStatusbar.c_str());
 
-      for (int i = 0; i < 5; i++)
+      for (int i = 0; i < 5; i++) {
         updateLabel(lvglData._txtHistory[i], lvglData._dataHistory[i].c_str());
+      }
     }
 
     lv_task_handler();

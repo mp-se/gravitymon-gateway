@@ -35,8 +35,9 @@ SOFTWARE.
 #include <lvgl.h>
 
 #include "TFT_eSPI.h"
+#include "ui_helpers.hpp"
 
-// Methods for locking SPI bus in multitasking environment
+// LVGL data structure for device display
 struct LVGL_Data {
   lv_obj_t* _txtDeviceName;
   lv_obj_t* _txtDeviceIndex;
@@ -50,11 +51,6 @@ struct LVGL_Data {
   lv_obj_t* _btnLeft;
   lv_obj_t* _btnRight;
 
-  lv_style_t _font12;
-  lv_style_t _font12c;
-  lv_style_t _font16c;
-  lv_style_t _font20c;
-
   lv_display_t* _display;
 
   String _dataDeviceName;
@@ -66,7 +62,9 @@ struct LVGL_Data {
   String _dataStatusbar;
   String _dataHistory[5];
 
-  bool _darkmode;
+  ui_theme_t _theme;
+  ui_theme_colors_t _colors;
+  bool _darkmode;  // Track darkmode for theme updates
 };
 #endif
 
@@ -123,14 +121,9 @@ class Display {
   void handleGestureEventEvent(char gesture);
 };
 
-// Wrappers to simplify interaction with LVGL
+// LVGL handlers and utilities
 #if defined(ENABLE_TFT)
-lv_obj_t* createLabel(const char* label, int32_t x, int32_t y, int32_t w,
-                      int32_t h, lv_style_t* style);
-lv_obj_t* createButton(const char* label, int32_t x, int32_t y, int32_t w,
-                       int32_t h, lv_event_cb_t handler);
 void updateLabel(lv_obj_t* obj, const char* label);
-void setStyle(lv_obj_t* obj, lv_style_t* style);
 void touchScreenHandler(lv_indev_t* indev, lv_indev_data_t* data);
 void gestureScreenHandler(lv_event_t* e);
 void log_print(lv_log_level_t level, const char* buf);

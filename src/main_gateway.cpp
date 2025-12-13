@@ -25,6 +25,7 @@ SOFTWARE.
 
 // #define CREATE_TESTDATA
 
+#include <WiFi.h>
 #include <esp_core_dump.h>
 
 #include <battery.hpp>
@@ -50,7 +51,6 @@ SOFTWARE.
 #include <utils.hpp>
 #include <web_gateway.hpp>
 #include <wificonnection.hpp>
-#include <WiFi.h>
 
 constexpr auto CFG_FILENAME = "/gravitymon-gw.json";
 constexpr auto CFG_AP_SSID = "Gateway";
@@ -80,9 +80,10 @@ Display myDisplay;
 BatteryVoltage myBatteryVoltage(
     &myConfig);  // Needs to be defined but not used in gateway
 MeasurementList myMeasurementList;  // Data recevied from http or bluetooth
-LoopTimer controllerTimer(20 * 1000); // For handling push and other periodic tasks
+LoopTimer controllerTimer(20 *
+                          1000);  // For handling push and other periodic tasks
 LoopTimer cycleTimer(4 * 1000);   // Cycle through the devices on the display
-LoopTimer displayTimer(100);  // Process text updates for display
+LoopTimer displayTimer(100);      // Process text updates for display
 LoopTimer sdTimer(30 * 1000);     // Check if there is an SD card attached
 
 bool sleepModeAlwaysSkip =
@@ -712,7 +713,9 @@ void controller() {
         }
       }
     } else {
-      Log.warning(F("Loop: Push skipped due WiFi %s not, heap %d" CR), WiFi.status() == WL_CONNECTED ? "connected" : "disconnected", ESP.getFreeHeap());
+      Log.warning(F("Loop: Push skipped due WiFi %s not, heap %d" CR),
+                  WiFi.status() == WL_CONNECTED ? "connected" : "disconnected",
+                  ESP.getFreeHeap());
     }
 
     controllerTimer.reset();
