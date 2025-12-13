@@ -21,7 +21,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
  */
-#include "ui_helpers.hpp"
+#if defined(ENABLE_LVGL)
+
+#include <ui_helpers.hpp>
 
 /**
  * Create a label with specific position, size, alignment, and color
@@ -192,3 +194,6 @@ void ui_apply_theme_to_screen(lv_obj_t* screen, const ui_theme_colors_t* colors)
         }
     }
 }
+#endif  // ENABLE_LVGL
+
+// EOF

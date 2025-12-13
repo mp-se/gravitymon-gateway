@@ -24,28 +24,25 @@ SOFTWARE.
 #ifndef SRC_UI_HELPERS_HPP_
 #define SRC_UI_HELPERS_HPP_
 
+#if defined(ENABLE_LVGL)
 #include "lvgl.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /**
  * Theme mode enumeration
  */
 typedef enum {
-  UI_THEME_LIGHT,
-  UI_THEME_DARK,
+    UI_THEME_LIGHT,
+    UI_THEME_DARK,
 } ui_theme_t;
 
 /**
  * Color theme definition
  */
 typedef struct {
-  lv_color_t bg;         // Background color
-  lv_color_t text;       // Text color
-  lv_color_t border;     // Border/accent color
-  lv_color_t button_bg;  // Button background color
+    lv_color_t bg;          // Background color
+    lv_color_t text;        // Text color
+    lv_color_t border;      // Border/accent color
+    lv_color_t button_bg;   // Button background color
 } ui_theme_colors_t;
 
 /**
@@ -75,9 +72,11 @@ void ui_apply_theme_to_screen(lv_obj_t* scr, const ui_theme_colors_t* colors);
  * @param color Text color
  * @return Created label object
  */
-lv_obj_t* ui_create_label(lv_obj_t* parent, const char* text, lv_coord_t x,
-                          lv_coord_t y, lv_coord_t w, lv_coord_t h,
-                          lv_text_align_t align, lv_color_t color);
+lv_obj_t* ui_create_label(lv_obj_t* parent, const char* text,
+                          lv_coord_t x, lv_coord_t y,
+                          lv_coord_t w, lv_coord_t h,
+                          lv_text_align_t align,
+                          lv_color_t color);
 
 /**
  * Create a styled label with predefined style
@@ -91,8 +90,9 @@ lv_obj_t* ui_create_label(lv_obj_t* parent, const char* text, lv_coord_t x,
  * @return Created label object
  */
 lv_obj_t* ui_create_styled_label(lv_obj_t* parent, const char* text,
-                                 lv_coord_t x, lv_coord_t y, lv_coord_t w,
-                                 lv_coord_t h, lv_style_t* style);
+                                 lv_coord_t x, lv_coord_t y,
+                                 lv_coord_t w, lv_coord_t h,
+                                 lv_style_t* style);
 
 /**
  * Create a status bar label (smaller font, 12px)
@@ -107,8 +107,9 @@ lv_obj_t* ui_create_styled_label(lv_obj_t* parent, const char* text,
  * @return Created label object
  */
 lv_obj_t* ui_create_status_label(lv_obj_t* parent, const char* text,
-                                 lv_coord_t x, lv_coord_t y, lv_coord_t w,
-                                 lv_coord_t h, lv_text_align_t align,
+                                 lv_coord_t x, lv_coord_t y,
+                                 lv_coord_t w, lv_coord_t h,
+                                 lv_text_align_t align,
                                  lv_color_t color);
 
 /**
@@ -125,8 +126,9 @@ lv_obj_t* ui_create_status_label(lv_obj_t* parent, const char* text,
  * @return Created button object
  */
 lv_obj_t* ui_create_button(lv_obj_t* parent, const char* label_text,
-                           lv_coord_t x, lv_coord_t y, lv_coord_t w,
-                           lv_coord_t h, lv_event_cb_t callback,
+                           lv_coord_t x, lv_coord_t y,
+                           lv_coord_t w, lv_coord_t h,
+                           lv_event_cb_t callback,
                            lv_color_t bg_color, lv_color_t text_color);
 
 /**
@@ -143,12 +145,13 @@ lv_obj_t* ui_create_button(lv_obj_t* parent, const char* label_text,
  * @return Created button object
  */
 lv_obj_t* ui_create_styled_button(lv_obj_t* parent, const char* label_text,
-                                  lv_coord_t x, lv_coord_t y, lv_coord_t w,
-                                  lv_coord_t h, lv_event_cb_t callback,
+                                  lv_coord_t x, lv_coord_t y,
+                                  lv_coord_t w, lv_coord_t h,
+                                  lv_event_cb_t callback,
                                   lv_color_t bg_color, lv_style_t* style);
 
-#ifdef __cplusplus
-}
-#endif
+#endif  // ENABLE_LVGL
 
 #endif  // SRC_UI_HELPERS_HPP_
+
+// EOF

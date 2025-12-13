@@ -24,9 +24,10 @@ SOFTWARE.
 #ifndef SRC_UI_GRAVITYMON_GATEWAY_HPP_
 #define SRC_UI_GRAVITYMON_GATEWAY_HPP_
 
-#include <stdbool.h>
+#if defined(ENABLE_LVGL)
 
-#include "lvgl.h"
+#include <stdbool.h>
+#include <ui_helpers.hpp>
 
 /**
  * Initialize gravitymon gateway UI
@@ -85,4 +86,8 @@ void gravitymon_gateway_set_theme(bool darkmode);
  */
 void gravitymon_gateway_cleanup(void);
 
+#endif  // ENABLE_LVGL
+
 #endif  // SRC_UI_GRAVITYMON_GATEWAY_HPP_
+
+// EOF
