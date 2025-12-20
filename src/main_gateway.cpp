@@ -23,7 +23,7 @@ SOFTWARE.
  */
 #if defined(GATEWAY)
 
-#define CREATE_TESTDATA
+// #define CREATE_TESTDATA
 
 #include <WiFi.h>
 #include <esp_core_dump.h>

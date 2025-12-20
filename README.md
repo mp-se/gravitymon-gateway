@@ -21,6 +21,7 @@ Visit the gravitymon homepage here for more information about the project: https
 
 * Added additional TFT layouts and option to choose in settings.
 * Fixed parsing of RAPT data to percentage instead of voltage.
+* Updated dependecies
 
 ### v0.8.1
 
