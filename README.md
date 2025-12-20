@@ -17,6 +17,11 @@ Visit the gravitymon homepage here for more information about the project: https
 
 # Releases
 
+### v0.9.0
+
+* Added additional TFT layouts and option to choose in settings.
+* Fixed parsing of RAPT data to percentage instead of voltage.
+
 ### v0.8.1
 
 * Now display file size in file system viewer

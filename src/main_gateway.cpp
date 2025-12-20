@@ -23,7 +23,7 @@ SOFTWARE.
  */
 #if defined(GATEWAY)
 
-// #define CREATE_TESTDATA
+#define CREATE_TESTDATA
 
 #include <WiFi.h>
 #include <esp_core_dump.h>
@@ -231,30 +231,29 @@ void setup() {
   myDisplay.printLineCentered(3, "Startup completed");
   myDisplay.setFont(FontSize::FONT_9);
   delay(1000);
-  myDisplay.createUI();
+  myDisplay.createUI(myConfig.getDisplayLayoutId());
 #endif
 
 #if defined(CREATE_TESTDATA)
   std::unique_ptr<MeasurementBaseData> gravityData1;
-  gravityData1.reset(new GravityData(MeasurementSource::HttpPost, "123456",
+  gravityData1.reset(new GravityData(MeasurementSource::HttpPost, "GRAV001",
                                      "grav-1", "token1", 22.1, 1.045, 45.2,
                                      3.78, 0, -67, 900));
   myMeasurementList.updateData(gravityData1);
 
   std::unique_ptr<MeasurementBaseData> pressureData1;
-  pressureData1.reset(new PressureData(MeasurementSource::HttpPost, "321654",
-                                       "press-1", "token", 10.2, 105, 106, 3.58,
-                                       0, -78, 900));
+  pressureData1.reset(new PressureData(MeasurementSource::HttpPost, "PRESS01",
+                                       "press-1", "token", 10.2, 15.13, 16.12,
+                                       3.58, 0, -78, 900));
   myMeasurementList.updateData(pressureData1);
 
   std::unique_ptr<MeasurementBaseData> gravityData2;
-  gravityData2.reset(new GravityData(MeasurementSource::HttpPost, "789ABC",
-                                     "grav-2", "token2", 10.2, 1.025, 35.2,
-                                     3.58, 0, -78, 900));
+  gravityData2.reset(new RaptData(MeasurementSource::BleBeacon, "RAPT01", 10.2,
+                                  1.025, 3.2, 40, 30.1, 50, -78));
   myMeasurementList.updateData(gravityData2);
 
   std::unique_ptr<MeasurementBaseData> gravityData3;
-  gravityData3.reset(new GravityData(MeasurementSource::HttpPost, "DEF123",
+  gravityData3.reset(new GravityData(MeasurementSource::HttpPost, "GRAV002",
                                      "grav-3", "token3", 14.2, 1.085, 67.2,
                                      4.08, 0, -74, 600));
   myMeasurementList.updateData(gravityData3);
@@ -271,12 +270,12 @@ void setup() {
 
   std::unique_ptr<MeasurementBaseData> chamberData1;
   chamberData1.reset(
-      new ChamberData(MeasurementSource::BleBeacon, "FFF111", 14.2, 18.3, -72));
+      new ChamberData(MeasurementSource::BleBeacon, "CHAM01", 14.2, 18.3, -72));
   myMeasurementList.updateData(chamberData1);
 
   std::unique_ptr<MeasurementBaseData> raptData1;
-  raptData1.reset(new RaptData(MeasurementSource::BleBeacon, "EEE222", 15.2,
-                               1.030, 1.2, 35.33, 3.84, 10, -72));
+  raptData1.reset(new RaptData(MeasurementSource::BleBeacon, "RAPT02", 15.2,
+                               1.030, 1.2, 35.33, 40, 10, -72));
   myMeasurementList.updateData(raptData1);
 
   myDisplay.updateHistory("Line 1", 0);
@@ -399,7 +398,8 @@ void loop() {
     updateDisplayStatus();
 
     if (myMeasurementList.size() == 0) {  // No data to display
-      myDisplay.updateDevice("No data received", "", "", "", "", 0, 0);
+      myDisplay.updateEmpty();
+
     } else {
       if (displayMeasurementIndex >= myMeasurementList.size())
         displayMeasurementIndex = 0;
@@ -420,18 +420,14 @@ void loop() {
                                 ? convertToPlato(gd->getGravity())
                                 : gd->getGravity();
 
-            float battery = gd->getBattery();
-
-            snprintf(v1, sizeof(v1), "%.1f%s", temp,
-                     myConfig.isTempUnitC() ? "°C" : "°F");
-            snprintf(v2, sizeof(v2), "%.3f%s", gravity,
-                     myConfig.isGravitySG() ? "SG" : "P");
-            snprintf(v3, sizeof(v3), "%.2fV", battery);
-            snprintf(s, sizeof(s), "Gravmon (%s)", gd->getId());
-
-            myDisplay.updateDevice(strlen(gd->getName()) ? gd->getName() : s,
-                                   v1, v2, v3, t, displayMeasurementIndex,
-                                   myMeasurementList.size());
+            myDisplay.updateGravity(
+                gd->getName(), displayMeasurementIndex + 1,
+                myMeasurementList.size(), gd->getTypeAsString(),
+                gd->getSourceAsString(), gd->getCreatedAsString(), gravity,
+                myConfig.getGravityUnit(), temp, myConfig.getTempUnit(),
+                gd->getBattery(),
+                getBatteryPercentage(gd->getBattery(), BatteryType::LithiumIon),
+                gd->getRssi());
           }
         } break;
         case MeasurementType::Pressuremon: {
@@ -450,18 +446,14 @@ void loop() {
                                   ? convertPsiPressureToKPa(pd->getPressure1())
                                   : pd->getPressure1();
 
-            float battery = pd->getBattery();
-
-            snprintf(v1, sizeof(v1), "%.1f%s", temp,
-                     myConfig.isTempUnitC() ? "°C" : "°F");
-            snprintf(v2, sizeof(v2), "%.2f%s", pressure,
-                     myConfig.getPressureUnit());
-            snprintf(v3, sizeof(v3), "%.2fV", battery);
-            snprintf(s, sizeof(s), "Pressmon (%s)", pd->getId());
-
-            myDisplay.updateDevice(strlen(pd->getName()) ? pd->getName() : s,
-                                   v1, v2, v3, t, displayMeasurementIndex,
-                                   myMeasurementList.size());
+            myDisplay.updatePressure(
+                pd->getName(), displayMeasurementIndex + 1,
+                myMeasurementList.size(), pd->getTypeAsString(),
+                pd->getSourceAsString(), pd->getCreatedAsString(), pressure,
+                pressure1, myConfig.getPressureUnit(), temp,
+                myConfig.getTempUnit(), pd->getBattery(),
+                getBatteryPercentage(pd->getBattery(), BatteryType::LiPo),
+                pd->getRssi());
           }
         } break;
         case MeasurementType::Chamber: {
@@ -474,15 +466,11 @@ void loop() {
                                  ? convertCtoF(cd->getBeerTempC())
                                  : cd->getBeerTempC();
 
-            snprintf(v1, sizeof(v1), "C: %.1f%s", chamberTemp,
-                     myConfig.isTempUnitC() ? "°C" : "°F");
-            snprintf(v2, sizeof(v2), "B: %.1f%s", beerTemp,
-                     myConfig.isTempUnitC() ? "°C" : "°F");
-            snprintf(v3, sizeof(v3), "");
-            snprintf(s, sizeof(s), "Chamber (%s)", cd->getId());
-
-            myDisplay.updateDevice(s, v1, v2, v3, t, displayMeasurementIndex,
-                                   myMeasurementList.size());
+            myDisplay.updateTemperature(
+                cd->getId(), displayMeasurementIndex + 1,
+                myMeasurementList.size(), cd->getTypeAsString(),
+                cd->getSourceAsString(), cd->getCreatedAsString(), chamberTemp,
+                beerTemp, myConfig.getTempUnit(), cd->getRssi());
           }
         } break;
         case MeasurementType::TiltPro:
@@ -495,15 +483,29 @@ void loop() {
                                 ? convertToPlato(td->getGravity())
                                 : td->getGravity();
 
-            snprintf(v1, sizeof(v1), "%.1f%s", temp,
-                     myConfig.isTempUnitC() ? "°C" : "°F");
-            snprintf(v2, sizeof(v2), "%.3f%s", gravity,
-                     myConfig.isGravitySG() ? "SG" : "P");
-            snprintf(v3, sizeof(v3), "");
-            snprintf(s, sizeof(s), "Tilt: %s", td->getId());
+            myDisplay.updateGravity(
+                td->getId(), displayMeasurementIndex + 1,
+                myMeasurementList.size(), td->getTypeAsString(),
+                td->getSourceAsString(), td->getCreatedAsString(), gravity,
+                myConfig.getGravityUnit(), temp, myConfig.getTempUnit(), NAN,
+                NAN, td->getRssi());
+          }
+        } break;
+        case MeasurementType::Rapt: {
+          const RaptData* rd = entry->getRaptData();
+          if (rd) {
+            float temp = myConfig.isTempFormatF() ? convertCtoF(rd->getTempC())
+                                                  : rd->getTempC();
+            float gravity = myConfig.isGravityPlato()
+                                ? convertToPlato(rd->getGravity())
+                                : rd->getGravity();
 
-            myDisplay.updateDevice(s, v1, v2, v3, t, displayMeasurementIndex,
-                                   myMeasurementList.size());
+            myDisplay.updateGravity(
+                rd->getId(), displayMeasurementIndex + 1,
+                myMeasurementList.size(), rd->getTypeAsString(),
+                rd->getSourceAsString(), rd->getCreatedAsString(), gravity,
+                myConfig.getGravityUnit(), temp, myConfig.getTempUnit(), NAN,
+                rd->getBatteryPercent(), rd->getRssi());
           }
         } break;
       }
@@ -725,14 +727,26 @@ void controller() {
 void updateDisplayStatus() {
   char info[80];
 
+  /*
+      if (!myWifi.isConnected()) {
+        snprintf(statusBar, sizeof(statusBar), "Not connected");
+      } else {
+        snprintf(statusBar, sizeof(statusBar), "ssid: %s ip: %s, rssi: %d",
+                 WiFi.SSID().c_str(), WiFi.localIP().toString().c_str(),
+                 WiFi.RSSI());
+      }
+  */
+
   switch (runMode) {
     case RunMode::measurementMode:
       if (strlen(myConfig.getWifiDirectSSID())) {
-        snprintf(info, sizeof(info), "%s - %s",
+        snprintf(info, sizeof(info), "ip: %s direct: %s rssi: %d",
                  WiFi.localIP().toString().c_str(),
-                 myConfig.getWifiDirectSSID());
+                 myConfig.getWifiDirectSSID(), WiFi.RSSI());
       } else {
-        snprintf(info, sizeof(info), "%s", WiFi.localIP().toString().c_str());
+        snprintf(info, sizeof(info), "ssid: %s ip: %s rssi: %d",
+                 WiFi.SSID().c_str(), WiFi.localIP().toString().c_str(),
+                 WiFi.RSSI());
       }
       break;
 
@@ -741,7 +755,9 @@ void updateDisplayStatus() {
       break;
   }
 
-  myDisplay.updateStatus(info, myConfig.getDarkMode());
+  myDisplay.updateStatus(info);
+  myDisplay.updateDarkmode(myConfig.getDarkMode());
+  myDisplay.setLayout(myConfig.getDisplayLayoutId());
 }
 
 void updateDisplayLogs() {

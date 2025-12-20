@@ -413,7 +413,7 @@ class RaptData : public MeasurementBaseData {
   float _gravity = 0;
   float _angle = 0;
   float _velocity = 0;
-  float _battery = 0;
+  float _batteryPercent = 0;
   int _rssi = 0;
   int _txPower = 0;
 
@@ -421,13 +421,14 @@ class RaptData : public MeasurementBaseData {
   // Note! For RAPT the last part of the MAC adress is used as ID since the
   // payload does not contain that.
   RaptData(MeasurementSource source, String id, float tempC, float gravity,
-           float velocity, float angle, float battery, int txPower, int rssi)
+           float velocity, float angle, float batteryPercent, int txPower,
+           int rssi)
       : MeasurementBaseData(id, MeasurementType::Rapt, source) {
     _tempC = tempC;
     _velocity = velocity;
     _gravity = gravity;
     _angle = angle;
-    _battery = battery;
+    _batteryPercent = batteryPercent;
     _txPower = txPower;
     _rssi = rssi;
   }
@@ -437,7 +438,7 @@ class RaptData : public MeasurementBaseData {
   float getGravity() const { return _gravity; }
   float getVelocity() const { return _velocity; }
   float getAngle() const { return _angle; }
-  float getBattery() const { return _battery; }
+  float getBatteryPercent() const { return _batteryPercent; }
   int getTxPower() const { return _txPower; }
   int getRssi() const { return _rssi; }
 
@@ -454,7 +455,7 @@ class RaptData : public MeasurementBaseData {
     // 5, Temperature (C)
     // 6, Gravity (SG)
     // 7, Angle
-    // 8, Battery
+    // 8, BatteryPercent
     // 9, Tx Power
     // 10, Rssi
 
@@ -462,7 +463,7 @@ class RaptData : public MeasurementBaseData {
              "1,%s,%s,%s,%s,"
              "%.2f,%.4f,%.4f,%.2f,%d,%d,,,",
              getTypeAsString(), getSourceAsString(), getCreatedAsString(),
-             getId(), getTempC(), getGravity(), getAngle(), getBattery(),
+             getId(), getTempC(), getGravity(), getAngle(), getBatteryPercent(),
              getTxPower(), getRssi());
     file.println(buffer);
   }

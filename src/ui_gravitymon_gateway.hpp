@@ -27,64 +27,33 @@ SOFTWARE.
 #if defined(ENABLE_LVGL)
 
 #include <stdbool.h>
+
 #include <ui_helpers.hpp>
 
-/**
- * Initialize gravitymon gateway UI
- * @param disp LVGL display object
- * @param darkmode true for dark theme, false for light
- */
-void gravitymon_gateway_init(lv_disp_t* disp, bool darkmode);
-
-/**
- * Set device name display
- */
-void gravitymon_gateway_set_device_name(const char* name);
-
-/**
- * Set device index (current device number / total)
- */
-void gravitymon_gateway_set_device_index(uint8_t current, uint8_t total);
-
-/**
- * Set gravity reading
- */
-void gravitymon_gateway_set_gravity(float gravity);
-
-/**
- * Set temperature reading
- */
-void gravitymon_gateway_set_temperature(float temp);
-
-/**
- * Set battery percentage
- */
-void gravitymon_gateway_set_battery(float percent);
-
-/**
- * Set device timestamp (last update)
- */
-void gravitymon_gateway_set_timestamp(const char* timestamp);
-
-/**
- * Set history value at index (0-4 for 5 previous readings)
- */
-void gravitymon_gateway_set_history(uint8_t index, float value);
-
-/**
- * Set status bar message
- */
-void gravitymon_gateway_set_status(const char* status);
-
-/**
- * Toggle dark/light theme
- */
-void gravitymon_gateway_set_theme(bool darkmode);
-
-/**
- * Cleanup and release UI resources
- */
+void gravitymon_gateway_init(lv_disp_t* disp, bool darkmode, uint8_t layout_id);
+void gravitymon_gateway_loop(void);
 void gravitymon_gateway_cleanup(void);
+
+void gravitymon_gateway_set_name(const char* name);
+void gravitymon_gateway_set_index(uint8_t current, uint8_t total);
+void gravitymon_gateway_set_gravity_range(float min, float max, char unit);
+void gravitymon_gateway_set_gravity(float gravity, char unit);
+void gravitymon_gateway_set_pressure(float pressure, float pressure2,
+                                     const char* unit);
+void gravitymon_gateway_set_pressure_range(float min, float max,
+                                           const char* unit);
+void gravitymon_gateway_set_temp(float temp, float temp2, char unit);
+void gravitymon_gateway_set_battery_percentage(float percent);
+void gravitymon_gateway_set_battery_voltage(float voltage);
+void gravitymon_gateway_set_time(const char* time_str);
+void gravitymon_gateway_set_history(uint8_t index, const char* value);
+void gravitymon_gateway_set_status(const char* status);
+void gravitymon_gateway_set_theme(bool darkmode);
+void gravitymon_gateway_set_rssi(int8_t rssi_dbm);
+void gravitymon_gateway_set_type(const char* type);
+void gravitymon_gateway_set_source(const char* source);
+void gravitymon_gateway_set_layout(uint8_t layout_id);
+uint8_t gravitymon_gateway_get_layout();
 
 #endif  // ENABLE_LVGL
 

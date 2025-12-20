@@ -32,58 +32,23 @@ SOFTWARE.
 #include <main.hpp>
 
 #if defined(ENABLE_TFT)
+#include <freertos/semphr.h>
 #include <lvgl.h>
 
 #include "TFT_eSPI.h"
 #include "ui_helpers.hpp"
-
-// LVGL data structure for device display
-struct LVGL_Data {
-  lv_obj_t* _txtDeviceName;
-  lv_obj_t* _txtDeviceIndex;
-  lv_obj_t* _txtDeviceValue1;
-  lv_obj_t* _txtDeviceValue2;
-  lv_obj_t* _txtDeviceValue3;
-  lv_obj_t* _txtDeviceTimeStamp;
-  lv_obj_t* _txtHistory[5];
-  lv_obj_t* _txtStatusbar;
-
-  lv_obj_t* _btnLeft;
-  lv_obj_t* _btnRight;
-
-  lv_display_t* _display;
-
-  String _dataDeviceName;
-  String _dataDeviceIndex;
-  String _dataDeviceValue1;
-  String _dataDeviceValue2;
-  String _dataDeviceValue3;
-  String _dataDeviceTimeStamp;
-  String _dataStatusbar;
-  String _dataHistory[5];
-
-  ui_theme_t _theme;
-  ui_theme_colors_t _colors;
-  bool _darkmode;  // Track darkmode for theme updates
-};
 #endif
 
 enum FontSize { FONT_9 = 9, FONT_12 = 12, FONT_18 = 18, FONT_24 = 24 };
 
 class Display {
- public:
-  // enum Rotation {
-  // ROTATION_0 = 0, // Not supported
-  // ROTATION_90 = 1,
-  // ROTATION_180 = 2,  // Not supported
-  // ROTATION_270 = 3
-  // };
-
  private:
 #if defined(ENABLE_TFT)
   TFT_eSPI* _tft = nullptr;
+  lv_display_t* _display = nullptr;
   uint32_t _backgroundColor = TFT_BLACK;
   uint16_t _touchCalibrationlData[5] = {0, 0, 0, 0, 0};
+  SemaphoreHandle_t _uiSemaphore = nullptr;
 #endif
   FontSize _fontSize = FontSize::FONT_9;
   // Rotation _rotation = ROTATION_90;
@@ -109,16 +74,33 @@ class Display {
   // Rotation getRotation() { return _rotation; }
   // void setRotation(Rotation rotation);
 
-  void updateDevice(const char* name, const char* value1, const char* value2,
-                    const char* value3, const char* timestamp, int index,
-                    int maxIndex);
+  void createUI(uint8_t layoutId = 0);
+
+  // Composite setters for device data
+  void updateEmpty();
+  void updateGravity(const char* name, uint8_t index, uint8_t maxIndex,
+                     const char* type, const char* source,
+                     const char* timestamp, float gravity, char gravityUnit,
+                     float temp, char tempUnit, float batteryVoltage,
+                     float batteryPercentage, int rssi);
+  void updatePressure(const char* name, uint8_t index, uint8_t maxIndex,
+                      const char* type, const char* source,
+                      const char* timestamp, float pressure, float pressure2,
+                      const char* pressureUnit, float temp, char tempUnit,
+                      float batteryVoltage, float batteryPercentage, int rssi);
+  void updateTemperature(const char* name, uint8_t index, uint8_t maxIndex,
+                         const char* timestamp, const char* type,
+                         const char* source, float temp, float temp2,
+                         char tempUnit, int rssi);
   void updateHistory(const char* history, int idx);
-  void updateStatus(const char* status, bool darkmode);
+  void updateStatus(const char* status);
+  void updateDarkmode(bool darkmode);
+  void setLayout(uint8_t layoutId);
 
   // LVGL methods
   bool getTouch(uint16_t* x, uint16_t* y);  // Check for touch callback
-  // void handleButtonEvent(char btn);
   void handleGestureEventEvent(char gesture);
+  SemaphoreHandle_t getUISemaphore() { return _uiSemaphore; }
 };
 
 // LVGL handlers and utilities
@@ -132,8 +114,6 @@ void btnLeftEventHandler(lv_event_t* e);
 void btnRightEventHandler(lv_event_t* e);
 void gestureLeft();
 void gestureRight();
-
-extern struct LVGL_Data lvglData;
 #endif
 extern Display myDisplay;
 

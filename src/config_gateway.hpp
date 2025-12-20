@@ -39,6 +39,8 @@ constexpr auto CONFIG_PRESSURE_UNIT = "pressure_unit";
 constexpr auto CONFIG_SD_LOG_FILES = "sd_log_files";
 constexpr auto CONFIG_SD_LOG_MIN_TIME = "sd_log_min_time";
 
+constexpr auto CONFIG_DISPLAY_LAYOUT_ID = "display_layout_id";
+
 constexpr auto CONFIG_HTTP_POST_GRAVITY_ENABLE = "http_post_gravity";
 constexpr auto CONFIG_HTTP_POST_PRESSURE_ENABLE = "http_post_pressure";
 constexpr auto CONFIG_HTTP_POST2_GRAVITY_ENABLE = "http_post2_gravity";
@@ -66,6 +68,8 @@ class GravmonGatewayConfig : public BrewingConfig {
 
   int _sdLogFiles = 4;
   int _sdLogMinTime = 5;  // Minutes
+
+  int _displayLayoutId = 0;
 
   bool _bleEnable = true;
   bool _bleActiveScan = false;
@@ -110,6 +114,12 @@ class GravmonGatewayConfig : public BrewingConfig {
   int getSdLogMinTime() const { return _sdLogMinTime; }
   void setSdLogMinTime(int i) {
     _sdLogMinTime = i;
+    _saveNeeded = true;
+  }
+
+  int getDisplayLayoutId() const { return _displayLayoutId; }
+  void setDisplayLayoutId(int i) {
+    _displayLayoutId = i;
     _saveNeeded = true;
   }
 
