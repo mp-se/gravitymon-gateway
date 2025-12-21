@@ -35,6 +35,7 @@ SOFTWARE.
 #include <sdcard_sd.hpp>
 #include <uptime.hpp>
 #include <web_gateway.hpp>
+#include <mdns_discovery.hpp>
 
 constexpr auto PARAM_GRAVITY_DEVICE = "gravity_device";
 constexpr auto PARAM_PRESSURE_DEVICE = "pressure_device";
@@ -64,6 +65,8 @@ constexpr auto PARAM_TFT = "tft";
 #if defined(ENABLE_MMC) || defined(ENABLE_SD)
 extern Storage mySdStorage;
 #endif
+
+extern MdnsScanner myMdnsScanner;
 
 GatewayWebServer::GatewayWebServer(GravmonGatewayConfig *config)
     : BrewingWebServer(config), _gatewayConfig(config) {}
@@ -199,6 +202,8 @@ bool GatewayWebServer::setupWebServer(const char *serviceName) {
       "/api/sd", std::bind(&GatewayWebServer::webHandleSecureDigital, this,
                            std::placeholders::_1, std::placeholders::_2));
   _server->addHandler(handler);
+  _server->on("/api/mdns", (WebRequestMethodComposite)HTTP_GET,
+              [this](AsyncWebServerRequest *request) { webHandleMdns(request); });
 #if defined(ENABLE_MMC) || defined(ENABLE_SD)
   _server->serveStatic("/sd", mySdStorage.getFS(), "/");
 #endif
@@ -526,6 +531,22 @@ void GatewayWebServer::webHandleSecureDigital(AsyncWebServerRequest *request,
   }
 #endif
 }
+
+void GatewayWebServer::webHandleMdns(AsyncWebServerRequest *request) {
+  if (!isAuthenticated(request)) {
+    return;
+  }
+
+  Log.notice(F("WEB : webServer callback for /api/hardware." CR));
+  AsyncJsonResponse *response = new AsyncJsonResponse(false);
+  JsonObject obj = response->getRoot().as<JsonObject>();
+  myMdnsScanner.populateJson(obj);
+  response->setLength();
+  request->send(response);
+}
+
+// void GatewayWebServer::doTaskHardwareScanning(JsonObject &obj) {
+// }
 
 #endif  // GATEWAY
 

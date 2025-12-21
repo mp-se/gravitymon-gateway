@@ -40,6 +40,7 @@ SOFTWARE.
 #include <looptimer.hpp>
 #include <main.hpp>
 #include <main_gateway.hpp>
+#include <mdns_discovery.hpp>
 #include <measurement.hpp>
 #include <memory>
 #include <push_gateway.hpp>
@@ -79,6 +80,7 @@ SerialWebSocket mySerialWebSocket;
 Display myDisplay;
 BatteryVoltage myBatteryVoltage(
     &myConfig);  // Needs to be defined but not used in gateway
+MdnsScanner myMdnsScanner(60000); // Scan every 60 seconds
 MeasurementList myMeasurementList;  // Data recevied from http or bluetooth
 LoopTimer controllerTimer(20 *
                           1000);  // For handling push and other periodic tasks
@@ -226,6 +228,8 @@ void setup() {
     bleScanner.init();
   }
 
+  myMdnsScanner.setup();
+
   Log.notice(F("Main: Startup completed." CR));
 #if defined(ENABLE_TFT)
   myDisplay.printLineCentered(3, "Startup completed");
@@ -291,8 +295,10 @@ void setup() {
 void loop() {
   myUptime.calculate();
   myWebServer.loop();
+  mySerialWebSocket.loop();
   myWifi.loop();
   bleScanner.loop();
+  myMdnsScanner.loop();
 
   switch (runMode) {
     case RunMode::measurementMode:
@@ -420,8 +426,10 @@ void loop() {
                                 ? convertToPlato(gd->getGravity())
                                 : gd->getGravity();
 
+            String name = strlen(gd->getName()) ? gd->getName() : myMdnsScanner.findDeviceByTxt("id", gd->getId());
+
             myDisplay.updateGravity(
-                gd->getName(), displayMeasurementIndex + 1,
+                name.c_str(), displayMeasurementIndex + 1,
                 myMeasurementList.size(), gd->getTypeAsString(),
                 gd->getSourceAsString(), gd->getCreatedAsString(), gravity,
                 myConfig.getGravityUnit(), temp, myConfig.getTempUnit(),
@@ -446,8 +454,10 @@ void loop() {
                                   ? convertPsiPressureToKPa(pd->getPressure1())
                                   : pd->getPressure1();
 
+            String name = strlen(pd->getName()) ? pd->getName() : myMdnsScanner.findDeviceByTxt("id", pd->getId());
+
             myDisplay.updatePressure(
-                pd->getName(), displayMeasurementIndex + 1,
+                name.c_str(), displayMeasurementIndex + 1,
                 myMeasurementList.size(), pd->getTypeAsString(),
                 pd->getSourceAsString(), pd->getCreatedAsString(), pressure,
                 pressure1, myConfig.getPressureUnit(), temp,
@@ -466,8 +476,10 @@ void loop() {
                                  ? convertCtoF(cd->getBeerTempC())
                                  : cd->getBeerTempC();
 
+            String name = myMdnsScanner.findDeviceByTxt("id", cd->getId());
+
             myDisplay.updateTemperature(
-                cd->getId(), displayMeasurementIndex + 1,
+                name.c_str(), displayMeasurementIndex + 1,
                 myMeasurementList.size(), cd->getTypeAsString(),
                 cd->getSourceAsString(), cd->getCreatedAsString(), chamberTemp,
                 beerTemp, myConfig.getTempUnit(), cd->getRssi());
@@ -500,8 +512,10 @@ void loop() {
                                 ? convertToPlato(rd->getGravity())
                                 : rd->getGravity();
 
+            String name = myMdnsScanner.findDeviceByTxt("id", rd->getId());
+
             myDisplay.updateGravity(
-                rd->getId(), displayMeasurementIndex + 1,
+                name.c_str(), displayMeasurementIndex + 1,
                 myMeasurementList.size(), rd->getTypeAsString(),
                 rd->getSourceAsString(), rd->getCreatedAsString(), gravity,
                 myConfig.getGravityUnit(), temp, myConfig.getTempUnit(), NAN,
