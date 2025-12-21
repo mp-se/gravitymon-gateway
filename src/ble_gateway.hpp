@@ -31,6 +31,7 @@ SOFTWARE.
 #include <NimBLEScan.h>
 #include <NimBLEUtils.h>
 
+#include <map>
 #include <measurement.hpp>
 #include <queue>
 #include <string>
