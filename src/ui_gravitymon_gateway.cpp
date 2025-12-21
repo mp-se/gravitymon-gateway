@@ -172,7 +172,6 @@ static lv_obj_t* create_button(lv_obj_t* parent, const char* label_text,
 static lv_obj_t* create_battery_indicator(lv_obj_t* parent, int32_t x,
                                           int32_t y, uint8_t percentage) {
   if (percentage >= 200) {
-    Log.error(F("UI: Invalid battery value %d" CR), percentage);
     return NULL;  // Invalid battery level, do not draw anything
   }
 
@@ -307,7 +306,7 @@ static void gravitymon_gateway_init_common(lv_disp_t* disp, bool darkmode) {
   // Get active screen
   lv_obj_t* scr = lv_scr_act();
   if (!scr) {
-    Log.error(F("UI: No active screen" CR));
+    Log.error(F("UI  : No active screen" CR));
     return;
   }
 
@@ -330,7 +329,7 @@ static void gravitymon_gateway_init_common(lv_disp_t* disp, bool darkmode) {
   // Initialize last-darkmode tracking so theme is applied on first loop
   g_state.flg_last_darkmode = darkmode;
 
-  Log.info(F("UI: Gravitymon Gateway common init complete (%s mode)" CR),
+  Log.info(F("UI  : Gravitymon Gateway common init complete (%s mode)" CR),
            darkmode ? "dark" : "light");
 }
 
@@ -626,7 +625,7 @@ void gravitymon_gateway_set_layout(uint8_t layout_id) {
 
   // If the requested layout is already active, do nothing
   if (layout_id == layout_mgr.current_layout) {
-    Log.verbose(F("UI: Layout %d already active" CR), layout_id);
+    Log.verbose(F("UI  : Layout %d already active" CR), layout_id);
     return;
   }
 
@@ -646,7 +645,7 @@ void gravitymon_gateway_set_layout(uint8_t layout_id) {
     gravitymon_gateway_setup_layout_1();
   }
 
-  Log.verbose(F("UI: Layout switched to %d" CR), layout_id);
+  Log.verbose(F("UI  : Layout switched to %d" CR), layout_id);
 }
 
 /**
@@ -662,7 +661,7 @@ void gravitymon_gateway_set_layout(uint8_t layout_id) {
 void gravitymon_gateway_init(lv_disp_t* disp, bool darkmode,
                              uint8_t layout_id) {
   if (!disp) {
-    Log.error(F("UI: gravitymon_gateway_init: NULL display" CR));
+    Log.error(F("UI  : gravitymon_gateway_init: NULL display" CR));
     return;
   }
 
@@ -684,7 +683,7 @@ void gravitymon_gateway_init(lv_disp_t* disp, bool darkmode,
     gravitymon_gateway_setup_layout_1();
   }
 
-  Log.info(F("UI: Gravitymon Gateway UI initialized (320x240 landscape, %s "
+  Log.info(F("UI  : Gravitymon Gateway UI initialized (320x240 landscape, %s "
              "mode) - layout %d active" CR),
            darkmode ? "dark" : "light", layout_id);
 }

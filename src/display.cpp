@@ -467,10 +467,11 @@ void Display::updatePressure(const char* name, uint8_t index, uint8_t maxIndex,
                       const char* timestamp, float pressure, char unit,
                       float temp, char tempUnit, float batteryVoltage,
                       float batteryPercentage, int rssi)) {}
-void Display::updateTemperature(const char* name, uint8_t index, uint8_t maxIndex,
-                        const char* timestamp, const char* type,
-                        const char* source, float temp, float temp2,
-                        char tempUnit, int rssi) {}
+void Display::updateTemperature(const char *name, uint8_t index,
+                                uint8_t maxIndex, const char *timestamp,
+                                const char *type, const char *source,
+                                float temp, float temp2, char tempUnit,
+                                int rssi) {}
 void Display::updateHistory(const char *history, int idx) {}
 
 void Display::updateStatus(const char *status) {}
