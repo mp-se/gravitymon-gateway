@@ -132,6 +132,7 @@ void setup() {
   checkResetReason();
   checkCrashReason();
   myConfig.loadFile();
+  myConfig.setWifiScanAP(true);
 
 #if defined(ENABLE_MMC)
   myDisplay.printLineCentered(3, "Mounting SD (SD_MMC) card");
