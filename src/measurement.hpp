@@ -363,20 +363,23 @@ class ChamberData : public MeasurementBaseData {
   float _chamberTempC = 0;
   float _beerTempC = 0;
   int _rssi = 0;
+  String _name = "";
 
  public:
-  ChamberData(MeasurementSource source, String id, float chamberTempC,
-              float beerTempC, int rssi)
+  ChamberData(MeasurementSource source, String id, String name,
+              float chamberTempC, float beerTempC, int rssi)
       : MeasurementBaseData(id, MeasurementType::Chamber, source) {
     _chamberTempC = chamberTempC;
     _beerTempC = beerTempC;
     _rssi = rssi;
+    _name = name;
   }
   virtual ~ChamberData() {}
 
   float getChamberTempC() const { return _chamberTempC; }
   float getBeerTempC() const { return _beerTempC; }
   int getRssi() const { return _rssi; }
+  const char* getName() const { return _name.c_str(); }
 
   void writeToFile(File& file) const {
     char buffer[300];
@@ -391,7 +394,7 @@ class ChamberData : public MeasurementBaseData {
     // 5, ChamberTemp (C)
     // 6, BeerTemp (C)
     // 7, Rssi
-    // 8,
+    // 8, Name (new in 0.9.0)
     // 9,
     // 10,
     // 11,
@@ -400,9 +403,9 @@ class ChamberData : public MeasurementBaseData {
 
     snprintf(buffer, sizeof(buffer),
              "1,%s,%s,%s,%s,"
-             "%.2f,%.2f,%d,,,,,,",
+             "%.2f,%.2f,%d,%s,,,,,",
              getTypeAsString(), getSourceAsString(), getCreatedAsString(),
-             getId(), getChamberTempC(), getBeerTempC(), getRssi());
+             getId(), getChamberTempC(), getBeerTempC(), getRssi(), getName());
     file.println(buffer);
   }
 };

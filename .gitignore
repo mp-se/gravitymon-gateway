@@ -5,3 +5,4 @@
 *.pyc
 version.json
 .DS_Store
+idf_component.*

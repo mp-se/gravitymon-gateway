@@ -78,7 +78,11 @@ void MdnsScanner::loop() {
       strncpy(nameBuf, MDNS.hostname(i).c_str(), sizeof(nameBuf) - 1);
       nameBuf[sizeof(nameBuf) - 1] = '\0';
       if (strlen(nameBuf) == 0) continue;  // Skip invalid hostnames
-      IPAddress ip = MDNS.address(i);
+#if ESP_ARDUINO_VERSION_MAJOR >= 3
+      IPAddress ip = MDNS.address(i);  // For Arduino Core 3.x
+#else
+      IPAddress ip = MDNS.IP(i);  // For Arduino Core 2.x
+#endif
       uint16_t port = MDNS.port(i);
       if (port == 0) continue;  // Skip invalid ports
 
@@ -129,7 +133,6 @@ const std::vector<MdnsDevice>& MdnsScanner::getDevices() const {
 }
 
 void MdnsScanner::populateJson(JsonObject& doc) const {
-
   JsonArray arr = doc["mdns"].to<JsonArray>();
   for (const auto& d : _devices) {
     JsonObject o = arr.add<JsonObject>();
@@ -231,7 +234,8 @@ bool MdnsScanner::loadFromFile() {
 
 void MdnsScanner::clear() { _devices.clear(); }
 
-String MdnsScanner::findDeviceByTxt(const String& key, const String& value) const {
+String MdnsScanner::findDeviceByTxt(const String& key, const String& value,
+                                    bool valueOnNotFound) const {
   for (const auto& d : _devices) {
     for (const auto& t : d.txt) {
       if (t.first == key && t.second == value) {
@@ -240,7 +244,7 @@ String MdnsScanner::findDeviceByTxt(const String& key, const String& value) cons
     }
   }
 
-  return value;
+  return valueOnNotFound ? value : "";
 }
 
 int MdnsScanner::findDeviceIndex(const String& name, const IPAddress& ip,

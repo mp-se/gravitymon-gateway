@@ -51,7 +51,7 @@ class BleScanner {
   void setScanTime(int scanTime) { _scanTime = scanTime; }
   void setAllowActiveScan(bool activeScan) { _activeScan = activeScan; }
 
-  void loop();
+  void loop(int sdLogMinTime);
 
   void proccesTiltBeacon(const std::string &advertStringHex,
                          const int8_t &currentRSSI);
@@ -63,8 +63,6 @@ class BleScanner {
                          NimBLEAddress address);
   void proccesPressuremonBeacon(const std::string &advertStringHex,
                                 NimBLEAddress address);
-  void processPressuremonEddystoneBeacon(NimBLEAddress address,
-                                         const std::vector<uint8_t> &payload);
   void proccesChamberBeacon(const std::string &advertStringHex,
                             NimBLEAddress address);
 

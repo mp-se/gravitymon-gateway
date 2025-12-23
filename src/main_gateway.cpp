@@ -80,7 +80,7 @@ SerialWebSocket mySerialWebSocket;
 Display myDisplay;
 BatteryVoltage myBatteryVoltage(
     &myConfig);  // Needs to be defined but not used in gateway
-MdnsScanner myMdnsScanner(60000); // Scan every 60 seconds
+MdnsScanner myMdnsScanner(60000);   // Scan every 60 seconds
 MeasurementList myMeasurementList;  // Data recevied from http or bluetooth
 LoopTimer controllerTimer(20 *
                           1000);  // For handling push and other periodic tasks
@@ -298,7 +298,7 @@ void loop() {
   myWebServer.loop();
   mySerialWebSocket.loop();
   myWifi.loop();
-  bleScanner.loop();
+  bleScanner.loop(myConfig.getSdLogMinTime());
   myMdnsScanner.loop();
 
   switch (runMode) {
@@ -427,7 +427,9 @@ void loop() {
                                 ? convertToPlato(gd->getGravity())
                                 : gd->getGravity();
 
-            String name = strlen(gd->getName()) ? gd->getName() : myMdnsScanner.findDeviceByTxt("id", gd->getId());
+            String name = strlen(gd->getName()) ? gd->getName()
+                                                : myMdnsScanner.findDeviceByTxt(
+                                                      "id", gd->getId(), true);
 
             myDisplay.updateGravity(
                 name.c_str(), displayMeasurementIndex + 1,
@@ -442,20 +444,32 @@ void loop() {
         case MeasurementType::Pressuremon: {
           const PressureData* pd = entry->getPressureData();
           if (pd) {
-            float temp = myConfig.isTempFormatF() ? convertCtoF(pd->getTempC())
-                                                  : pd->getTempC();
-            float pressure = myConfig.isPressureBar()
-                                 ? convertPsiPressureToBar(pd->getPressure())
-                             : myConfig.isPressureKpa()
-                                 ? convertPsiPressureToKPa(pd->getPressure())
-                                 : pd->getPressure();
-            float pressure1 = myConfig.isPressureBar()
-                                  ? convertPsiPressureToBar(pd->getPressure1())
-                              : myConfig.isPressureKpa()
-                                  ? convertPsiPressureToKPa(pd->getPressure1())
-                                  : pd->getPressure1();
+            float temp = NAN, pressure = NAN, pressure1 = NAN;
 
-            String name = strlen(pd->getName()) ? pd->getName() : myMdnsScanner.findDeviceByTxt("id", pd->getId());
+            if (!isnan(pd->getPressure())) {
+              temp = myConfig.isTempFormatF() ? convertCtoF(pd->getTempC())
+                                              : pd->getTempC();
+            }
+
+            if (!isnan(pd->getPressure())) {
+              pressure = myConfig.isPressureBar()
+                             ? convertPsiPressureToBar(pd->getPressure())
+                         : myConfig.isPressureKpa()
+                             ? convertPsiPressureToKPa(pd->getPressure())
+                             : pd->getPressure();
+            }
+
+            if (!isnan(pd->getPressure1())) {
+              pressure1 = myConfig.isPressureBar()
+                              ? convertPsiPressureToBar(pd->getPressure1())
+                          : myConfig.isPressureKpa()
+                              ? convertPsiPressureToKPa(pd->getPressure1())
+                              : pd->getPressure1();
+            }
+
+            String name = strlen(pd->getName()) ? pd->getName()
+                                                : myMdnsScanner.findDeviceByTxt(
+                                                      "id", pd->getId(), true);
 
             myDisplay.updatePressure(
                 name.c_str(), displayMeasurementIndex + 1,
@@ -470,14 +484,22 @@ void loop() {
         case MeasurementType::Chamber: {
           const ChamberData* cd = entry->getChamberData();
           if (cd) {
-            float chamberTemp = myConfig.isTempFormatF()
-                                    ? convertCtoF(cd->getChamberTempC())
-                                    : cd->getChamberTempC();
-            float beerTemp = myConfig.isTempFormatF()
-                                 ? convertCtoF(cd->getBeerTempC())
-                                 : cd->getBeerTempC();
+            float chamberTemp = NAN, beerTemp = NAN;
 
-            String name = myMdnsScanner.findDeviceByTxt("id", cd->getId());
+            if (!isnan(cd->getChamberTempC())) {
+              chamberTemp = myConfig.isTempFormatF()
+                                ? convertCtoF(cd->getChamberTempC())
+                                : cd->getChamberTempC();
+            }
+
+            if (!isnan(cd->getBeerTempC())) {
+              beerTemp = myConfig.isTempFormatF()
+                             ? convertCtoF(cd->getBeerTempC())
+                             : cd->getBeerTempC();
+            }
+
+            String name =
+                myMdnsScanner.findDeviceByTxt("id", cd->getId(), true);
 
             myDisplay.updateTemperature(
                 name.c_str(), displayMeasurementIndex + 1,
@@ -513,7 +535,8 @@ void loop() {
                                 ? convertToPlato(rd->getGravity())
                                 : rd->getGravity();
 
-            String name = myMdnsScanner.findDeviceByTxt("id", rd->getId());
+            String name =
+                myMdnsScanner.findDeviceByTxt("id", rd->getId(), true);
 
             myDisplay.updateGravity(
                 name.c_str(), displayMeasurementIndex + 1,

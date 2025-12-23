@@ -28,6 +28,7 @@ SOFTWARE.
 #include <ble_gateway.hpp>
 #include <config_gateway.hpp>
 #include <main_gateway.hpp>
+#include <mdns_discovery.hpp>
 #include <measurement.hpp>
 #include <memory>
 #include <push_gateway.hpp>
@@ -35,7 +36,6 @@ SOFTWARE.
 #include <sdcard_sd.hpp>
 #include <uptime.hpp>
 #include <web_gateway.hpp>
-#include <mdns_discovery.hpp>
 
 constexpr auto PARAM_GRAVITY_DEVICE = "gravity_device";
 constexpr auto PARAM_PRESSURE_DEVICE = "pressure_device";
@@ -102,8 +102,10 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
 
         gravityDevices[gravIdx][PARAM_NAME] = gd->getName();
         gravityDevices[gravIdx][PARAM_DEVICE] = gd->getId();
-        gravityDevices[gravIdx][PARAM_GRAVITY] = gd->getGravity();
-        gravityDevices[gravIdx][PARAM_TEMP] = gd->getTempC();
+        if(!isnan(gd->getGravity()))
+          gravityDevices[gravIdx][PARAM_GRAVITY] = gd->getGravity();
+        if(!isnan(gd->getTempC()))  
+          gravityDevices[gravIdx][PARAM_TEMP] = gd->getTempC();
         gravityDevices[gravIdx][PARAM_UPDATE_TIME] = entry->getUpdateAge();
         gravityDevices[gravIdx][PARAM_PUSH_TIME] = entry->getPushAge();
         gravityDevices[gravIdx][PARAM_SOURCE] = gd->getSourceAsString();
@@ -117,9 +119,12 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
 
         pressureDevices[pressIdx][PARAM_NAME] = pd->getName();
         pressureDevices[pressIdx][PARAM_DEVICE] = pd->getId();
-        pressureDevices[pressIdx][PARAM_PRESSURE] = pd->getPressure();
-        pressureDevices[pressIdx][PARAM_PRESSURE1] = pd->getPressure1();
-        pressureDevices[pressIdx][PARAM_TEMP] = pd->getTempC();
+        if (!isnan(pd->getPressure()))
+          pressureDevices[pressIdx][PARAM_PRESSURE] = pd->getPressure();
+        if (!isnan(pd->getPressure1()))
+          pressureDevices[pressIdx][PARAM_PRESSURE1] = pd->getPressure1();
+        if (!isnan(pd->getTempC()))
+          pressureDevices[pressIdx][PARAM_TEMP] = pd->getTempC();
         pressureDevices[pressIdx][PARAM_UPDATE_TIME] = entry->getUpdateAge();
         pressureDevices[pressIdx][PARAM_PUSH_TIME] = entry->getPushAge();
         pressureDevices[pressIdx][PARAM_SOURCE] = pd->getSourceAsString();
@@ -134,8 +139,10 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
 
         gravityDevices[gravIdx][PARAM_NAME] = td->getTiltColor();
         gravityDevices[gravIdx][PARAM_DEVICE] = td->getId();
-        gravityDevices[gravIdx][PARAM_GRAVITY] = td->getGravity();
-        gravityDevices[gravIdx][PARAM_TEMP] = td->getTempC();
+        if(!isnan(td->getGravity()))
+          gravityDevices[gravIdx][PARAM_GRAVITY] = td->getGravity();
+        if(!isnan(td->getTempC()))
+            gravityDevices[gravIdx][PARAM_TEMP] = td->getTempC();
         gravityDevices[gravIdx][PARAM_UPDATE_TIME] = entry->getUpdateAge();
         gravityDevices[gravIdx][PARAM_PUSH_TIME] = entry->getPushAge();
         gravityDevices[gravIdx][PARAM_SOURCE] = td->getSourceAsString();
@@ -147,10 +154,13 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
         Log.notice("WEB: Processing Chamber data %d." CR, i);
         const ChamberData *cd = entry->getChamberData();
 
-        temperatureDevices[tempIdx][PARAM_NAME] = "";
+        temperatureDevices[tempIdx][PARAM_NAME] = cd->getName();
         temperatureDevices[tempIdx][PARAM_DEVICE] = cd->getId();
-        temperatureDevices[tempIdx][PARAM_CHAMBER_TEMP] = cd->getChamberTempC();
-        temperatureDevices[tempIdx][PARAM_BEER_TEMP] = cd->getBeerTempC();
+        if (!isnan(cd->getChamberTempC()))
+          temperatureDevices[tempIdx][PARAM_CHAMBER_TEMP] =
+              cd->getChamberTempC();
+        if (!isnan(cd->getBeerTempC()))
+          temperatureDevices[tempIdx][PARAM_BEER_TEMP] = cd->getBeerTempC();
         temperatureDevices[tempIdx][PARAM_UPDATE_TIME] = entry->getUpdateAge();
         temperatureDevices[tempIdx][PARAM_PUSH_TIME] = entry->getPushAge();
         temperatureDevices[tempIdx][PARAM_SOURCE] = cd->getSourceAsString();
@@ -162,11 +172,13 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
         Log.notice("WEB: Processing Rapt data %d." CR, i);
         const RaptData *rd = entry->getRaptData();
 
-        gravityDevices[gravIdx][PARAM_NAME] = rd->getId();
         gravityDevices[gravIdx][PARAM_DEVICE] = rd->getId();
-        gravityDevices[gravIdx][PARAM_GRAVITY] = rd->getGravity();
-        gravityDevices[gravIdx][PARAM_VELOCITY] = rd->getVelocity();
-        gravityDevices[gravIdx][PARAM_TEMP] = rd->getTempC();
+        if(!isnan(rd->getGravity()))
+          gravityDevices[gravIdx][PARAM_GRAVITY] = rd->getGravity();
+        if(!isnan(rd->getVelocity()))
+          gravityDevices[gravIdx][PARAM_VELOCITY] = rd->getVelocity();
+        if(!isnan(rd->getTempC()))
+          gravityDevices[gravIdx][PARAM_TEMP] = rd->getTempC();
         gravityDevices[gravIdx][PARAM_UPDATE_TIME] = entry->getUpdateAge();
         gravityDevices[gravIdx][PARAM_PUSH_TIME] = entry->getPushAge();
         gravityDevices[gravIdx][PARAM_SOURCE] = rd->getSourceAsString();
@@ -202,8 +214,9 @@ bool GatewayWebServer::setupWebServer(const char *serviceName) {
       "/api/sd", std::bind(&GatewayWebServer::webHandleSecureDigital, this,
                            std::placeholders::_1, std::placeholders::_2));
   _server->addHandler(handler);
-  _server->on("/api/mdns", (WebRequestMethodComposite)HTTP_GET,
-              [this](AsyncWebServerRequest *request) { webHandleMdns(request); });
+  _server->on(
+      "/api/mdns", (WebRequestMethodComposite)HTTP_GET,
+      [this](AsyncWebServerRequest *request) { webHandleMdns(request); });
 #if defined(ENABLE_MMC) || defined(ENABLE_SD)
   _server->serveStatic("/sd", mySdStorage.getFS(), "/");
 #endif

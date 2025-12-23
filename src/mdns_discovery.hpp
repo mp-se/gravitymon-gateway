@@ -54,7 +54,8 @@ class MdnsScanner {
   void populateJson(JsonObject& doc) const;
   void clear();
 
-  String findDeviceByTxt(const String& key, const String& value) const;
+  String findDeviceByTxt(const String& key, const String& value,
+                         bool valueOnNotFound = false) const;
 
  private:
   std::vector<MdnsDevice> _devices;
