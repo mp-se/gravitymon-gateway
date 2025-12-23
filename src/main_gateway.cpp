@@ -98,8 +98,10 @@ std::deque<String> logEntryList;  // Last number of events
 bool logUpdated = true;           // If the history log should be updated
 int displayMeasurementIndex =
     0;  // What entry is shown on the top of the display
-#if defined(ENABLE_MMC) || defined(ENABLE_SD)
-Storage mySdStorage;
+#if defined(ENABLE_MMC)
+SdCardMMC mySdStorage;
+#elif defined(ENABLE_SD)
+SdCardSD mySdStorage;
 #endif
 
 void setup() {
@@ -274,8 +276,8 @@ void setup() {
   myMeasurementList.updateData(tiltData2);
 
   std::unique_ptr<MeasurementBaseData> chamberData1;
-  chamberData1.reset(
-      new ChamberData(MeasurementSource::BleBeacon, "CHAM01", 14.2, 18.3, -72));
+  chamberData1.reset(new ChamberData(MeasurementSource::BleBeacon, "CHAM01",
+                                     "Chamber01", 14.2, 18.3, 10, -72));
   myMeasurementList.updateData(chamberData1);
 
   std::unique_ptr<MeasurementBaseData> raptData1;

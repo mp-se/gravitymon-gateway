@@ -463,10 +463,10 @@ void Display::updateGravity(const char *name, uint8_t index, uint8_t maxIndex,
                             float temp, char tempUnit, float batteryVoltage,
                             float batteryPercentage, int rssi) {}
 
-void Display::updatePressure(const char* name, uint8_t index, uint8_t maxIndex,
-                      const char* timestamp, float pressure, char unit,
-                      float temp, char tempUnit, float batteryVoltage,
-                      float batteryPercentage, int rssi)) {}
+void Display::updatePressure(const char *name, uint8_t index, uint8_t maxIndex,
+                             const char *timestamp, float pressure, char unit,
+                             float temp, char tempUnit, float batteryVoltage,
+                             float batteryPercentage, int rssi) {}
 void Display::updateTemperature(const char *name, uint8_t index,
                                 uint8_t maxIndex, const char *timestamp,
                                 const char *type, const char *source,

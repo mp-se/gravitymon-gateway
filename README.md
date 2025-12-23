@@ -26,6 +26,7 @@ Visit the gravitymon homepage here for more information about the project: https
 * Adding mDNS scanning to map BLE data to device name based on device id, if found this will be shown in the web interface and tft.
 * Added view to show the current mDNS data under support in the web interface.
 * Fixed parsing of chamber-controller and pressuremon ble to handle invalid values when sensors are not avaialble.
+* Fixed extraxtion of txpower and rssi from ble transmissions
 
 ### v0.8.1
 

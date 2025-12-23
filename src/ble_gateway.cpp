@@ -78,7 +78,8 @@ void BleDeviceCallbacks::onResult(
     if (eddyStone) {
       // Log.notice(F("BLE : Processing gravitymon eddy stone device" CR));
       bleScanner.processGravitymonEddystoneBeacon(
-          advertisedDevice->getAddress(), advertisedDevice->getPayload());
+          advertisedDevice->getAddress(), advertisedDevice->getPayload(),
+          advertisedDevice->getRSSI(), advertisedDevice->getTXPower());
     }
 
     return;
@@ -110,14 +111,17 @@ void BleDeviceCallbacks::onResult(
       //     F("BLE : Advertised iBeacon GRAVMON/PRESMON/CHAMBER device: %s"
       //     CR), advertisedDevice->getAddress().toString().c_str());
 
+      int8_t rssi = advertisedDevice->getRSSI();
+      int8_t txPower = advertisedDevice->getTXPower();
       bleScanner.proccesGravitymonBeacon(
           advertisedDevice->getManufacturerData(),
-          advertisedDevice->getAddress());
+          advertisedDevice->getAddress(), rssi, txPower);
       bleScanner.proccesPressuremonBeacon(
           advertisedDevice->getManufacturerData(),
-          advertisedDevice->getAddress());
+          advertisedDevice->getAddress(), rssi, txPower);
       bleScanner.proccesChamberBeacon(advertisedDevice->getManufacturerData(),
-                                      advertisedDevice->getAddress());
+                                      advertisedDevice->getAddress(), rssi,
+                                      txPower);
     }
   }
 
@@ -132,7 +136,9 @@ void BleDeviceCallbacks::onResult(
       //            advertisedDevice->getAddress().toString().c_str());
 
       bleScanner.proccesRaptBeacon(advertisedDevice->getManufacturerData(),
-                                   advertisedDevice->getAddress());
+                                   advertisedDevice->getAddress(),
+                                   advertisedDevice->getRSSI(),
+                                   advertisedDevice->getTXPower());
     }
   }
 
@@ -152,7 +158,8 @@ void BleDeviceCallbacks::onResult(
 }
 
 void BleScanner::proccesGravitymonBeacon(const std::string &advertStringHex,
-                                         NimBLEAddress address) {
+                                         NimBLEAddress address, int8_t rssi,
+                                         int8_t txPower) {
   const char *payload = advertStringHex.c_str();
 
   if (*(payload + 4) == 'G' && *(payload + 5) == 'R' && *(payload + 6) == 'A' &&
@@ -181,8 +188,8 @@ void BleScanner::proccesGravitymonBeacon(const std::string &advertStringHex,
 
     std::unique_ptr<MeasurementBaseData> gravityData;
     gravityData.reset(new GravityData(MeasurementSource::BleBeacon, chip, name,
-                                      "", temp, gravity, angle, battery, 0, 0,
-                                      0));
+                                      "", temp, gravity, angle, battery,
+                                      txPower, rssi, 0));
 
     Log.info(F("BLE : Update data for gravitymon %s." CR),
              gravityData->getId());
@@ -191,7 +198,8 @@ void BleScanner::proccesGravitymonBeacon(const std::string &advertStringHex,
 }
 
 void BleScanner::processGravitymonEddystoneBeacon(
-    NimBLEAddress address, const std::vector<uint8_t> &payload) {
+    NimBLEAddress address, const std::vector<uint8_t> &payload, int8_t rssi,
+    int8_t txPower) {
   //                                                                      <--------------
   //                                                                      beacon
   //                                                                      data
@@ -208,8 +216,8 @@ void BleScanner::processGravitymonEddystoneBeacon(
   float temp = t == 0xffff ? NAN : static_cast<float>(t) / 1000;
   float gravity = g == 0xffff ? NAN : static_cast<float>(g) / 10000;
   float angle = a == 0xffff ? NAN : static_cast<float>(a) / 100;
-  uint32_t chipId = (payload[33] << 24) | (payload[34] << 16) | (payload[35] << 8) |
-           (payload[36]);
+  uint32_t chipId = (payload[33] << 24) | (payload[34] << 16) |
+                    (payload[35] << 8) | (payload[36]);
 
   char chip[20];
   snprintf(chip, sizeof(chip), "%06x", chipId);
@@ -217,15 +225,16 @@ void BleScanner::processGravitymonEddystoneBeacon(
 
   std::unique_ptr<MeasurementBaseData> gravityData;
   gravityData.reset(new GravityData(MeasurementSource::BleEddyStone, chip, name,
-                                    "", temp, gravity, angle, battery, 0, 0,
-                                    0));
+                                    "", temp, gravity, angle, battery, txPower,
+                                    rssi, 0));
 
   Log.info(F("BLE : Update data for gravitymon %s." CR), gravityData->getId());
   addData(std::move(gravityData));
 }
 
 void BleScanner::proccesPressuremonBeacon(const std::string &advertStringHex,
-                                          NimBLEAddress address) {
+                                          NimBLEAddress address, int8_t rssi,
+                                          int8_t txPower) {
   const char *payload = advertStringHex.c_str();
 
   if (*(payload + 4) == 'P' && *(payload + 5) == 'R' && *(payload + 6) == 'E' &&
@@ -256,7 +265,7 @@ void BleScanner::proccesPressuremonBeacon(const std::string &advertStringHex,
     std::unique_ptr<MeasurementBaseData> pressureData;
     pressureData.reset(new PressureData(MeasurementSource::BleBeacon, chip,
                                         name, "", temp, pressure, pressure1,
-                                        battery, 0, 0, 0));
+                                        battery, txPower, rssi, 0));
 
     Log.info(F("BLE : Update data for pressuremon %s." CR),
              pressureData->getId());
@@ -264,45 +273,9 @@ void BleScanner::proccesPressuremonBeacon(const std::string &advertStringHex,
   }
 }
 
-// void BleScanner::processPressuremonEddystoneBeacon(
-//     NimBLEAddress address, const std::vector<uint8_t> &payload) {
-//   // <--------------
-//   // beacon
-//   // data
-//   // ------------>
-//   // 0b 09 67 72 61 76 69 74 79 6d 6f 6e 02 01 06 03 03 aa fe 11 16 aa fe 20
-//   00
-//   // 0c 8b 10 8b 00 00 30 39 00 00 16 2e
-
-//   uint16_t p = static_cast<uint16_t>((payload[29] << 8) | payload[30]);
-//   uint16_t p1 = static_cast<uint16_t>((payload[31] << 8) | payload[32]);
-//   uint16_t t = static_cast<uint16_t>((payload[27] << 8) | payload[28]);
-//   uint16_t b = static_cast<uint16_t>((payload[25] << 8) | payload[26]);
-
-//   float battery = b == 0xffff ? NAN : static_cast<float>(b) / 1000;
-//   float temp = t == 0xffff ? NAN : static_cast<float>(t) / 1000;
-//   float pressure = p == 0xffff ? NAN : static_cast<float>(p) / 100;
-//   float pressure1 = p1 == 0xffff ? NAN : static_cast<float>(p1) / 100;
-
-//   uint32_t chipId = (payload[33] << 24) | (payload[34] << 16) |
-//                     (payload[35] << 8) | (payload[36]);
-
-//   char chip[20];
-//   snprintf(chip, sizeof(chip), "%06x", chipId);
-//   String name = myMdnsScanner.findDeviceByTxt("id", chip, false);
-
-//   std::unique_ptr<MeasurementBaseData> pressureData;
-//   pressureData.reset(new PressureData(MeasurementSource::BleEddyStone, chip,
-//                                       name, "", temp, pressure, pressure1,
-//                                       battery, 0, 0, 0));
-
-//   Log.info(F("BLE : Update data for pressuremon %s." CR),
-//            pressureData->getId());
-//   addData(std::move(pressureData));
-// }
-
 void BleScanner::proccesChamberBeacon(const std::string &advertStringHex,
-                                      NimBLEAddress address) {
+                                      NimBLEAddress address, int8_t rssi,
+                                      int8_t txPower) {
   const char *payload = advertStringHex.c_str();
 
   if (*(payload + 4) == 'C' && *(payload + 5) == 'H' && *(payload + 6) == 'A' &&
@@ -325,7 +298,7 @@ void BleScanner::proccesChamberBeacon(const std::string &advertStringHex,
 
     std::unique_ptr<MeasurementBaseData> chamberData;
     chamberData.reset(new ChamberData(MeasurementSource::BleBeacon, chip, name,
-                                      chamberTempC, beerTempC, 0));
+                                      chamberTempC, beerTempC, txPower, rssi));
 
     Log.info(F("BLE : Update data for chamber %s." CR), chamberData->getId());
     addData(std::move(chamberData));
@@ -362,10 +335,6 @@ bool BleScanner::scan() {
              _activeScan ? "ACTIVE" : "PASSIVE");
   _bleScan->setActiveScan(_activeScan);
   _bleScan->start(_scanTime * 1000, false, true);
-
-  // NimBLEScanResults foundDevices =
-  //     _bleScan->getResults(_scanTime * 1000, false);
-  // _bleScan->clearResults();  // delete results scan buffer to release memory
 
   Log.notice(F("BLE : Scanning completed." CR));
   return true;
@@ -468,7 +437,8 @@ TiltColor BleScanner::uuidToTiltColor(std::string uuid) {
 }
 
 void BleScanner::proccesRaptBeacon(const std::string &advertStringHex,
-                                   NimBLEAddress address) {
+                                   NimBLEAddress address, int8_t rssi,
+                                   int8_t txPower) {
   const char *payload = advertStringHex.c_str();
 
   float battery;
@@ -531,7 +501,7 @@ void BleScanner::proccesRaptBeacon(const std::string &advertStringHex,
 
     std::unique_ptr<MeasurementBaseData> raptData;
     raptData.reset(new RaptData(MeasurementSource::BleBeacon, chip, temp,
-                                gravity, 0, angleX, battery, 0, 0));
+                                gravity, 0, angleX, battery, txPower, rssi));
 
     Log.info(F("BLE : Update data for rapt v1 %s." CR), raptData->getId());
     addData(std::move(raptData));
@@ -587,7 +557,8 @@ void BleScanner::proccesRaptBeacon(const std::string &advertStringHex,
 
     std::unique_ptr<MeasurementBaseData> raptData;
     raptData.reset(new RaptData(MeasurementSource::BleBeacon, chip, temp,
-                                gravity, velocity, angleX, battery, 0, 0));
+                                gravity, velocity, angleX, battery, txPower,
+                                rssi));
 
     Log.info(F("BLE : Update data for rapt v2 %s." CR), raptData->getId());
     addData(std::move(raptData));

@@ -37,8 +37,10 @@ SOFTWARE.
 #include <utility>
 #include <utils.hpp>
 
-#if defined(ENABLE_MMC) || defined(ENABLE_SD)
-extern Storage mySdStorage;
+#if defined(ENABLE_MMC)
+extern SdCardMMC mySdStorage;
+#elif defined(ENABLE_SD)
+extern SdCardSD mySdStorage;
 #endif
 
 enum MeasurementType {
@@ -362,22 +364,25 @@ class ChamberData : public MeasurementBaseData {
  private:
   float _chamberTempC = 0;
   float _beerTempC = 0;
+  int _txPower = 0;
   int _rssi = 0;
   String _name = "";
 
  public:
   ChamberData(MeasurementSource source, String id, String name,
-              float chamberTempC, float beerTempC, int rssi)
+              float chamberTempC, float beerTempC, int txPower, int rssi)
       : MeasurementBaseData(id, MeasurementType::Chamber, source) {
     _chamberTempC = chamberTempC;
     _beerTempC = beerTempC;
     _rssi = rssi;
+    _txPower = txPower;
     _name = name;
   }
   virtual ~ChamberData() {}
 
   float getChamberTempC() const { return _chamberTempC; }
   float getBeerTempC() const { return _beerTempC; }
+  int getTxPower() const { return _txPower; }
   int getRssi() const { return _rssi; }
   const char* getName() const { return _name.c_str(); }
 
@@ -395,7 +400,7 @@ class ChamberData : public MeasurementBaseData {
     // 6, BeerTemp (C)
     // 7, Rssi
     // 8, Name (new in 0.9.0)
-    // 9,
+    // 9, TxPower (new 0.9.0)
     // 10,
     // 11,
     // 12,
@@ -403,9 +408,10 @@ class ChamberData : public MeasurementBaseData {
 
     snprintf(buffer, sizeof(buffer),
              "1,%s,%s,%s,%s,"
-             "%.2f,%.2f,%d,%s,,,,,",
+             "%.2f,%.2f,%d,%s,%d,,,,",
              getTypeAsString(), getSourceAsString(), getCreatedAsString(),
-             getId(), getChamberTempC(), getBeerTempC(), getRssi(), getName());
+             getId(), getChamberTempC(), getBeerTempC(), getRssi(), getName(),
+             getTxPower());
     file.println(buffer);
   }
 };

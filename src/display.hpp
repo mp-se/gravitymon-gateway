@@ -32,11 +32,11 @@ SOFTWARE.
 #include <main.hpp>
 
 #if defined(ENABLE_TFT)
+#include <TFT_eSPI.h>
 #include <freertos/semphr.h>
 #include <lvgl.h>
 
-#include "TFT_eSPI.h"
-#include "ui_helpers.hpp"
+#include <ui_helpers.hpp>
 #endif
 
 enum FontSize { FONT_9 = 9, FONT_12 = 12, FONT_18 = 18, FONT_24 = 24 };

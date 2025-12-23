@@ -62,8 +62,10 @@ constexpr auto PARAM_SD_MOUNTED = "sd_mounted";
 constexpr auto PARAM_SD = "sd";
 constexpr auto PARAM_TFT = "tft";
 
-#if defined(ENABLE_MMC) || defined(ENABLE_SD)
-extern Storage mySdStorage;
+#if defined(ENABLE_MMC)
+extern SdCardMMC mySdStorage;
+#elif defined(ENABLE_SD)
+extern SdCardSD mySdStorage;
 #endif
 
 extern MdnsScanner myMdnsScanner;
@@ -102,9 +104,9 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
 
         gravityDevices[gravIdx][PARAM_NAME] = gd->getName();
         gravityDevices[gravIdx][PARAM_DEVICE] = gd->getId();
-        if(!isnan(gd->getGravity()))
+        if (!isnan(gd->getGravity()))
           gravityDevices[gravIdx][PARAM_GRAVITY] = gd->getGravity();
-        if(!isnan(gd->getTempC()))  
+        if (!isnan(gd->getTempC()))
           gravityDevices[gravIdx][PARAM_TEMP] = gd->getTempC();
         gravityDevices[gravIdx][PARAM_UPDATE_TIME] = entry->getUpdateAge();
         gravityDevices[gravIdx][PARAM_PUSH_TIME] = entry->getPushAge();
@@ -139,10 +141,10 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
 
         gravityDevices[gravIdx][PARAM_NAME] = td->getTiltColor();
         gravityDevices[gravIdx][PARAM_DEVICE] = td->getId();
-        if(!isnan(td->getGravity()))
+        if (!isnan(td->getGravity()))
           gravityDevices[gravIdx][PARAM_GRAVITY] = td->getGravity();
-        if(!isnan(td->getTempC()))
-            gravityDevices[gravIdx][PARAM_TEMP] = td->getTempC();
+        if (!isnan(td->getTempC()))
+          gravityDevices[gravIdx][PARAM_TEMP] = td->getTempC();
         gravityDevices[gravIdx][PARAM_UPDATE_TIME] = entry->getUpdateAge();
         gravityDevices[gravIdx][PARAM_PUSH_TIME] = entry->getPushAge();
         gravityDevices[gravIdx][PARAM_SOURCE] = td->getSourceAsString();
@@ -173,11 +175,11 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
         const RaptData *rd = entry->getRaptData();
 
         gravityDevices[gravIdx][PARAM_DEVICE] = rd->getId();
-        if(!isnan(rd->getGravity()))
+        if (!isnan(rd->getGravity()))
           gravityDevices[gravIdx][PARAM_GRAVITY] = rd->getGravity();
-        if(!isnan(rd->getVelocity()))
+        if (!isnan(rd->getVelocity()))
           gravityDevices[gravIdx][PARAM_VELOCITY] = rd->getVelocity();
-        if(!isnan(rd->getTempC()))
+        if (!isnan(rd->getTempC()))
           gravityDevices[gravIdx][PARAM_TEMP] = rd->getTempC();
         gravityDevices[gravIdx][PARAM_UPDATE_TIME] = entry->getUpdateAge();
         gravityDevices[gravIdx][PARAM_PUSH_TIME] = entry->getPushAge();
