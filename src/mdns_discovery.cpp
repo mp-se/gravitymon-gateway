@@ -22,15 +22,22 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
  */
 #include <ESPmDNS.h>
-#include <LittleFS.h>
 #include <WiFi.h>
 
 #include <log.hpp>
 #include <mdns_discovery.hpp>
+#include <sdcard_mmc.hpp>
+#include <sdcard_sd.hpp>
 #include <utility>
 #include <vector>
 
-constexpr const char* DEFAULT_FILENAME = "/mdns_devices.json";
+constexpr const char *DEFAULT_FILENAME = "/mdns_devices.json";
+
+#if defined(ENABLE_MMC)
+extern SdCardMMC mySdStorage;
+#elif defined(ENABLE_SD)
+extern SdCardSD mySdStorage;
+#endif
 
 MdnsScanner::MdnsScanner(uint32_t scanIntervalMs)
     : _scanIntervalMs(scanIntervalMs), _scanTimer(scanIntervalMs) {}
@@ -38,11 +45,25 @@ MdnsScanner::MdnsScanner(uint32_t scanIntervalMs)
 void MdnsScanner::setup() {
   // Assume filesystem is mounted for persistence
   // Assument networking and MDNS is already initialized
+  loadFromFile();
 }
 
 void MdnsScanner::loop() {
-  if (!_scanTimer.hasExpired()) return;
-  _scanTimer.reset();
+  if (_scanTimer.hasExpired()) {
+    _scanTimer.reset();
+
+    scan();
+  }
+
+  if (_saveTimer.hasExpired()) {
+    _saveTimer.reset();
+
+    saveToFile();
+  }
+}
+
+void MdnsScanner::scan() {
+  Log.notice(F("MDNS: Scanning for mDNS services on the network." CR));
 
   // Static list of services to query
   const std::pair<String, String> servicesToQuery[] = {
@@ -55,7 +76,7 @@ void MdnsScanner::loop() {
 
   time_t t = time(nullptr);
 
-  for (const auto& sp : servicesToQuery) {
+  for (const auto &sp : servicesToQuery) {
     String svc = sp.first;
     String proto = sp.second.length() ? sp.second : String("tcp");
 
@@ -107,7 +128,7 @@ void MdnsScanner::loop() {
         _devices.emplace_back(std::move(d));
         Log.verbose(F("MDNS: Found new device %s" CR), nameBuf);
       } else {
-        MdnsDevice& d = _devices[idx];
+        MdnsDevice &d = _devices[idx];
         d.lastSeen = (t > 0) ? t : 0;
 
         // update IP/port in case it changed
@@ -128,33 +149,34 @@ void MdnsScanner::loop() {
   }
 }
 
-const std::vector<MdnsDevice>& MdnsScanner::getDevices() const {
+const std::vector<MdnsDevice> &MdnsScanner::getDevices() const {
   return _devices;
 }
 
-void MdnsScanner::populateJson(JsonObject& doc) const {
+void MdnsScanner::populateJson(JsonObject &doc) const {
   JsonArray arr = doc["mdns"].to<JsonArray>();
-  for (const auto& d : _devices) {
+  for (const auto &d : _devices) {
     JsonObject o = arr.add<JsonObject>();
     o["name"] = d.name.c_str();
     o["ip"] = d.ip.toString().c_str();
     o["port"] = d.port;
     o["last_seen"] = static_cast<uint32_t>(d.lastSeen);
     JsonObject ta = o["txt"].to<JsonObject>();
-    for (const auto& t : d.txt) {
+    for (const auto &t : d.txt) {
       ta[t.first] = t.second;
     }
   }
 }
 
 bool MdnsScanner::saveToFile() {
-  const char* fn = DEFAULT_FILENAME;
-  if (!LittleFS.begin()) {
-    Log.warning(F("MDNS: LittleFS not mounted, cannot save." CR));
+#if defined(ENABLE_MMC) || defined(ENABLE_SD)
+  const char *fn = DEFAULT_FILENAME;
+  if (!mySdStorage.hasCard()) {
+    Log.warning(F("MDNS: SD card not available, cannot save." CR));
     return false;
   }
 
-  File f = LittleFS.open(fn, "w");
+  File f = mySdStorage.open(String(fn), "w", true);
   if (!f) {
     Log.error(F("MDNS: Failed to open %s for writing." CR), fn);
     return false;
@@ -173,22 +195,24 @@ bool MdnsScanner::saveToFile() {
 
   f.close();
   Log.info(F("MDNS: Saved %d devices to %s." CR), _devices.size(), fn);
+#endif  // ENABLE_MMC || ENABLE_SD
   return true;
 }
 
 bool MdnsScanner::loadFromFile() {
-  const char* fn = DEFAULT_FILENAME;
-  if (!LittleFS.begin()) {
-    Log.warning(F("MDNS: LittleFS not mounted, cannot load." CR));
+#if defined(ENABLE_MMC) || defined(ENABLE_SD)
+  const char *fn = DEFAULT_FILENAME;
+  if (!mySdStorage.hasCard()) {
+    Log.warning(F("MDNS: SD card not available, cannot load." CR));
     return false;
   }
 
-  if (!LittleFS.exists(fn)) {
+  if (!mySdStorage.exists(String(fn))) {
     Log.info(F("MDNS: %s does not exist, nothing to load." CR), fn);
     return true;
   }
 
-  File f = LittleFS.open(fn, "r");
+  File f = mySdStorage.open(String(fn), "r");
   if (!f) {
     Log.error(F("MDNS: Failed to open %s for reading." CR), fn);
     return false;
@@ -208,36 +232,40 @@ bool MdnsScanner::loadFromFile() {
     return false;
   }
 
+  parseJson(doc);
+  Log.info(F("MDNS: Loaded %d devices from %s." CR), _devices.size(), fn);
+#endif  // ENABLE_MMC || ENABLE_SD
+  return true;
+}
+
+void MdnsScanner::parseJson(const JsonDocument &doc) {
   _devices.clear();
-  JsonArray arr = doc.as<JsonArray>();
-  for (JsonVariant v : arr) {
-    JsonObject o = v.as<JsonObject>();
+  JsonArrayConst arr = doc["mdns"].as<JsonArrayConst>();
+  for (JsonVariantConst v : arr) {
+    JsonObjectConst o = v.as<JsonObjectConst>();
     MdnsDevice d;
-    d.name = o["name"].as<const char*>();
-    d.ip.fromString(o["ip"].as<const char*>());
+    d.name = o["name"].as<const char *>();
+    d.ip.fromString(o["ip"].as<const char *>());
     d.port = static_cast<uint16_t>(o["port"].as<uint32_t>());
-    d.lastSeen = (time_t)(o["lastSeen"].as<uint32_t>());
+    d.lastSeen = (time_t)(o["last_seen"].as<uint32_t>());
     d.txt.clear();
-    if (o["txt"].is<JsonObject>()) {
-      for (JsonPair kv : o["txt"].as<JsonObject>()) {
+    if (o["txt"].is<JsonObjectConst>()) {
+      for (JsonPairConst kv : o["txt"].as<JsonObjectConst>()) {
         String key(kv.key().c_str());
-        String value = kv.value().as<const char*>();
+        String value = kv.value().as<const char *>();
         d.txt.emplace_back(std::make_pair(key, value));
       }
     }
     _devices.emplace_back(std::move(d));
   }
-
-  Log.info(F("MDNS: Loaded %d devices from %s." CR), _devices.size(), fn);
-  return true;
 }
 
 void MdnsScanner::clear() { _devices.clear(); }
 
-String MdnsScanner::findDeviceByTxt(const String& key, const String& value,
+String MdnsScanner::findDeviceByTxt(const String &key, const String &value,
                                     bool valueOnNotFound) const {
-  for (const auto& d : _devices) {
-    for (const auto& t : d.txt) {
+  for (const auto &d : _devices) {
+    for (const auto &t : d.txt) {
       if (t.first == key && t.second == value) {
         return d.name;
       }
@@ -247,10 +275,10 @@ String MdnsScanner::findDeviceByTxt(const String& key, const String& value,
   return valueOnNotFound ? value : "";
 }
 
-int MdnsScanner::findDeviceIndex(const String& name, const IPAddress& ip,
+int MdnsScanner::findDeviceIndex(const String &name, const IPAddress &ip,
                                  uint16_t port) const {
   for (size_t i = 0; i < _devices.size(); ++i) {
-    const MdnsDevice& d = _devices[i];
+    const MdnsDevice &d = _devices[i];
     if (d.name == name && d.ip == ip && d.port == port)
       return static_cast<int>(i);
   }

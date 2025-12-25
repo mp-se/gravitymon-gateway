@@ -47,22 +47,25 @@ class MdnsScanner {
   void setup();
   void loop();
 
-  const std::vector<MdnsDevice>& getDevices() const;
+  const std::vector<MdnsDevice> &getDevices() const;
 
   bool saveToFile();
   bool loadFromFile();
-  void populateJson(JsonObject& doc) const;
+  void populateJson(JsonObject &doc) const;
+  void parseJson(const JsonDocument &doc);
   void clear();
 
-  String findDeviceByTxt(const String& key, const String& value,
+  String findDeviceByTxt(const String &key, const String &value,
                          bool valueOnNotFound = false) const;
 
  private:
   std::vector<MdnsDevice> _devices;
   uint32_t _scanIntervalMs;
   LoopTimer _scanTimer{0};
+  LoopTimer _saveTimer{1000 * 60 * 30};  // Save mdns data every 30 minutes
 
-  int findDeviceIndex(const String& name, const IPAddress& ip,
+  void scan();
+  int findDeviceIndex(const String &name, const IPAddress &ip,
                       uint16_t port) const;
 };
 
