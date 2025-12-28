@@ -4,10 +4,13 @@
 ![issues](https://img.shields.io/github/issues/mp-se/gravitymon-gateway)
 ![pr](https://img.shields.io/github/issues-pr/mp-se/gravitymon-gateway)
 ![dev_build](https://img.shields.io/github/actions/workflow/status/mp-se/gravitymon-gateway/pio-build.yaml?branch=dev)
+![License](https://img.shields.io/github/license/mp-se/gravitymon-gateway)
+![GitHub Stars](https://img.shields.io/github/stars/mp-se/gravitymon-gateway)
+![Last Commit](https://img.shields.io/github/last-commit/mp-se/gravitymon-gateway)
 
 # GravityMon Gateway
 
-This is a companion device for use with GravityMon v2.0, it will support the new BLE options and Wifi Direct options introduced into v2.0. 
+This is a companion device for use with GravityMon v2.0, it will support the new BLE options and Wifi Direct options introduced into v2.0.
 
 For documentation see www.gravitymon.com.
 
