@@ -36,15 +36,16 @@ SOFTWARE.
 #include <SD.h>
 
 #include <log.hpp>
+#include <sdcard.hpp>
 
-class Storage {
+class SdCardSD : public SdCard {
  public:
   uint64_t _cardSize = 0;
   bool _hasCard = false;
 
  public:
-  Storage() {}
-  ~Storage() { end(); }
+  SdCardSD() {}
+  ~SdCardSD() { end(); }
 
   bool hasCard() const { return _hasCard; }
 
@@ -100,7 +101,7 @@ class Storage {
     return SD.open(path, mode);
   }
 
-  bool exists(const String &path) {
+  bool exists(const String &path) const {
     Serial.println("3");
 
     if (!_hasCard) {

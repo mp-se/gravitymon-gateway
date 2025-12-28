@@ -25,6 +25,7 @@ SOFTWARE.
 
 // #define CREATE_TESTDATA
 
+#include <WiFi.h>
 #include <esp_core_dump.h>
 
 #include <battery.hpp>
@@ -39,6 +40,7 @@ SOFTWARE.
 #include <looptimer.hpp>
 #include <main.hpp>
 #include <main_gateway.hpp>
+#include <mdns_discovery.hpp>
 #include <measurement.hpp>
 #include <memory>
 #include <push_gateway.hpp>
@@ -50,7 +52,6 @@ SOFTWARE.
 #include <utils.hpp>
 #include <web_gateway.hpp>
 #include <wificonnection.hpp>
-#include <WiFi.h>
 
 constexpr auto CFG_FILENAME = "/gravitymon-gw.json";
 constexpr auto CFG_AP_SSID = "Gateway";
@@ -79,10 +80,12 @@ SerialWebSocket mySerialWebSocket;
 Display myDisplay;
 BatteryVoltage myBatteryVoltage(
     &myConfig);  // Needs to be defined but not used in gateway
+MdnsScanner myMdnsScanner(60000);   // Scan every 60 seconds
 MeasurementList myMeasurementList;  // Data recevied from http or bluetooth
-LoopTimer controllerTimer(20 * 1000); // For handling push and other periodic tasks
+LoopTimer controllerTimer(20 *
+                          1000);  // For handling push and other periodic tasks
 LoopTimer cycleTimer(4 * 1000);   // Cycle through the devices on the display
-LoopTimer displayTimer(100);  // Process text updates for display
+LoopTimer displayTimer(100);      // Process text updates for display
 LoopTimer sdTimer(30 * 1000);     // Check if there is an SD card attached
 
 bool sleepModeAlwaysSkip =
@@ -95,8 +98,10 @@ std::deque<String> logEntryList;  // Last number of events
 bool logUpdated = true;           // If the history log should be updated
 int displayMeasurementIndex =
     0;  // What entry is shown on the top of the display
-#if defined(ENABLE_MMC) || defined(ENABLE_SD)
-Storage mySdStorage;
+#if defined(ENABLE_MMC)
+SdCardMMC mySdStorage;
+#elif defined(ENABLE_SD)
+SdCardSD mySdStorage;
 #endif
 
 void setup() {
@@ -129,6 +134,7 @@ void setup() {
   checkResetReason();
   checkCrashReason();
   myConfig.loadFile();
+  myConfig.setWifiScanAP(true);
 
 #if defined(ENABLE_MMC)
   myDisplay.printLineCentered(3, "Mounting SD (SD_MMC) card");
@@ -225,35 +231,36 @@ void setup() {
     bleScanner.init();
   }
 
+  myMdnsScanner.setup();
+
   Log.notice(F("Main: Startup completed." CR));
 #if defined(ENABLE_TFT)
   myDisplay.printLineCentered(3, "Startup completed");
   myDisplay.setFont(FontSize::FONT_9);
   delay(1000);
-  myDisplay.createUI();
+  myDisplay.createUI(myConfig.getDisplayLayoutId());
 #endif
 
 #if defined(CREATE_TESTDATA)
   std::unique_ptr<MeasurementBaseData> gravityData1;
-  gravityData1.reset(new GravityData(MeasurementSource::HttpPost, "123456",
+  gravityData1.reset(new GravityData(MeasurementSource::HttpPost, "GRAV001",
                                      "grav-1", "token1", 22.1, 1.045, 45.2,
                                      3.78, 0, -67, 900));
   myMeasurementList.updateData(gravityData1);
 
   std::unique_ptr<MeasurementBaseData> pressureData1;
-  pressureData1.reset(new PressureData(MeasurementSource::HttpPost, "321654",
-                                       "press-1", "token", 10.2, 105, 106, 3.58,
-                                       0, -78, 900));
+  pressureData1.reset(new PressureData(MeasurementSource::HttpPost, "PRESS01",
+                                       "press-1", "token", 10.2, 15.13, 16.12,
+                                       3.58, 0, -78, 900));
   myMeasurementList.updateData(pressureData1);
 
   std::unique_ptr<MeasurementBaseData> gravityData2;
-  gravityData2.reset(new GravityData(MeasurementSource::HttpPost, "789ABC",
-                                     "grav-2", "token2", 10.2, 1.025, 35.2,
-                                     3.58, 0, -78, 900));
+  gravityData2.reset(new RaptData(MeasurementSource::BleBeacon, "RAPT01", 10.2,
+                                  1.025, 3.2, 40, 30.1, 50, -78));
   myMeasurementList.updateData(gravityData2);
 
   std::unique_ptr<MeasurementBaseData> gravityData3;
-  gravityData3.reset(new GravityData(MeasurementSource::HttpPost, "DEF123",
+  gravityData3.reset(new GravityData(MeasurementSource::HttpPost, "GRAV002",
                                      "grav-3", "token3", 14.2, 1.085, 67.2,
                                      4.08, 0, -74, 600));
   myMeasurementList.updateData(gravityData3);
@@ -269,13 +276,13 @@ void setup() {
   myMeasurementList.updateData(tiltData2);
 
   std::unique_ptr<MeasurementBaseData> chamberData1;
-  chamberData1.reset(
-      new ChamberData(MeasurementSource::BleBeacon, "FFF111", 14.2, 18.3, -72));
+  chamberData1.reset(new ChamberData(MeasurementSource::BleBeacon, "CHAM01",
+                                     "Chamber01", 14.2, 18.3, 10, -72));
   myMeasurementList.updateData(chamberData1);
 
   std::unique_ptr<MeasurementBaseData> raptData1;
-  raptData1.reset(new RaptData(MeasurementSource::BleBeacon, "EEE222", 15.2,
-                               1.030, 1.2, 35.33, 3.84, 10, -72));
+  raptData1.reset(new RaptData(MeasurementSource::BleBeacon, "RAPT02", 15.2,
+                               1.030, 1.2, 35.33, 40, 10, -72));
   myMeasurementList.updateData(raptData1);
 
   myDisplay.updateHistory("Line 1", 0);
@@ -291,8 +298,10 @@ void setup() {
 void loop() {
   myUptime.calculate();
   myWebServer.loop();
+  mySerialWebSocket.loop();
   myWifi.loop();
-  bleScanner.loop();
+  bleScanner.loop(myConfig.getSdLogMinTime());
+  myMdnsScanner.loop();
 
   switch (runMode) {
     case RunMode::measurementMode:
@@ -398,7 +407,8 @@ void loop() {
     updateDisplayStatus();
 
     if (myMeasurementList.size() == 0) {  // No data to display
-      myDisplay.updateDevice("No data received", "", "", "", "", 0, 0);
+      myDisplay.updateEmpty();
+
     } else {
       if (displayMeasurementIndex >= myMeasurementList.size())
         displayMeasurementIndex = 0;
@@ -419,69 +429,85 @@ void loop() {
                                 ? convertToPlato(gd->getGravity())
                                 : gd->getGravity();
 
-            float battery = gd->getBattery();
+            String name = strlen(gd->getName()) ? gd->getName()
+                                                : myMdnsScanner.findDeviceByTxt(
+                                                      "id", gd->getId(), true);
 
-            snprintf(v1, sizeof(v1), "%.1f%s", temp,
-                     myConfig.isTempUnitC() ? "°C" : "°F");
-            snprintf(v2, sizeof(v2), "%.3f%s", gravity,
-                     myConfig.isGravitySG() ? "SG" : "P");
-            snprintf(v3, sizeof(v3), "%.2fV", battery);
-            snprintf(s, sizeof(s), "Gravmon (%s)", gd->getId());
-
-            myDisplay.updateDevice(strlen(gd->getName()) ? gd->getName() : s,
-                                   v1, v2, v3, t, displayMeasurementIndex,
-                                   myMeasurementList.size());
+            myDisplay.updateGravity(
+                name.c_str(), displayMeasurementIndex + 1,
+                myMeasurementList.size(), gd->getTypeAsString(),
+                gd->getSourceAsString(), gd->getCreatedAsString(), gravity,
+                myConfig.getGravityUnit(), temp, myConfig.getTempUnit(),
+                gd->getBattery(),
+                getBatteryPercentage(gd->getBattery(), BatteryType::LithiumIon),
+                gd->getRssi());
           }
         } break;
         case MeasurementType::Pressuremon: {
           const PressureData* pd = entry->getPressureData();
           if (pd) {
-            float temp = myConfig.isTempFormatF() ? convertCtoF(pd->getTempC())
-                                                  : pd->getTempC();
-            float pressure = myConfig.isPressureBar()
-                                 ? convertPsiPressureToBar(pd->getPressure())
-                             : myConfig.isPressureKpa()
-                                 ? convertPsiPressureToKPa(pd->getPressure())
-                                 : pd->getPressure();
-            float pressure1 = myConfig.isPressureBar()
-                                  ? convertPsiPressureToBar(pd->getPressure1())
-                              : myConfig.isPressureKpa()
-                                  ? convertPsiPressureToKPa(pd->getPressure1())
-                                  : pd->getPressure1();
+            float temp = NAN, pressure = NAN, pressure1 = NAN;
 
-            float battery = pd->getBattery();
+            if (!isnan(pd->getPressure())) {
+              temp = myConfig.isTempFormatF() ? convertCtoF(pd->getTempC())
+                                              : pd->getTempC();
+            }
 
-            snprintf(v1, sizeof(v1), "%.1f%s", temp,
-                     myConfig.isTempUnitC() ? "°C" : "°F");
-            snprintf(v2, sizeof(v2), "%.2f%s", pressure,
-                     myConfig.getPressureUnit());
-            snprintf(v3, sizeof(v3), "%.2fV", battery);
-            snprintf(s, sizeof(s), "Pressmon (%s)", pd->getId());
+            if (!isnan(pd->getPressure())) {
+              pressure = myConfig.isPressureBar()
+                             ? convertPsiPressureToBar(pd->getPressure())
+                         : myConfig.isPressureKpa()
+                             ? convertPsiPressureToKPa(pd->getPressure())
+                             : pd->getPressure();
+            }
 
-            myDisplay.updateDevice(strlen(pd->getName()) ? pd->getName() : s,
-                                   v1, v2, v3, t, displayMeasurementIndex,
-                                   myMeasurementList.size());
+            if (!isnan(pd->getPressure1())) {
+              pressure1 = myConfig.isPressureBar()
+                              ? convertPsiPressureToBar(pd->getPressure1())
+                          : myConfig.isPressureKpa()
+                              ? convertPsiPressureToKPa(pd->getPressure1())
+                              : pd->getPressure1();
+            }
+
+            String name = strlen(pd->getName()) ? pd->getName()
+                                                : myMdnsScanner.findDeviceByTxt(
+                                                      "id", pd->getId(), true);
+
+            myDisplay.updatePressure(
+                name.c_str(), displayMeasurementIndex + 1,
+                myMeasurementList.size(), pd->getTypeAsString(),
+                pd->getSourceAsString(), pd->getCreatedAsString(), pressure,
+                pressure1, myConfig.getPressureUnit(), temp,
+                myConfig.getTempUnit(), pd->getBattery(),
+                getBatteryPercentage(pd->getBattery(), BatteryType::LiPo),
+                pd->getRssi());
           }
         } break;
         case MeasurementType::Chamber: {
           const ChamberData* cd = entry->getChamberData();
           if (cd) {
-            float chamberTemp = myConfig.isTempFormatF()
-                                    ? convertCtoF(cd->getChamberTempC())
-                                    : cd->getChamberTempC();
-            float beerTemp = myConfig.isTempFormatF()
-                                 ? convertCtoF(cd->getBeerTempC())
-                                 : cd->getBeerTempC();
+            float chamberTemp = NAN, beerTemp = NAN;
 
-            snprintf(v1, sizeof(v1), "C: %.1f%s", chamberTemp,
-                     myConfig.isTempUnitC() ? "°C" : "°F");
-            snprintf(v2, sizeof(v2), "B: %.1f%s", beerTemp,
-                     myConfig.isTempUnitC() ? "°C" : "°F");
-            snprintf(v3, sizeof(v3), "");
-            snprintf(s, sizeof(s), "Chamber (%s)", cd->getId());
+            if (!isnan(cd->getChamberTempC())) {
+              chamberTemp = myConfig.isTempFormatF()
+                                ? convertCtoF(cd->getChamberTempC())
+                                : cd->getChamberTempC();
+            }
 
-            myDisplay.updateDevice(s, v1, v2, v3, t, displayMeasurementIndex,
-                                   myMeasurementList.size());
+            if (!isnan(cd->getBeerTempC())) {
+              beerTemp = myConfig.isTempFormatF()
+                             ? convertCtoF(cd->getBeerTempC())
+                             : cd->getBeerTempC();
+            }
+
+            String name =
+                myMdnsScanner.findDeviceByTxt("id", cd->getId(), true);
+
+            myDisplay.updateTemperature(
+                name.c_str(), displayMeasurementIndex + 1,
+                myMeasurementList.size(), cd->getTypeAsString(),
+                cd->getSourceAsString(), cd->getCreatedAsString(), chamberTemp,
+                beerTemp, myConfig.getTempUnit(), cd->getRssi());
           }
         } break;
         case MeasurementType::TiltPro:
@@ -494,15 +520,32 @@ void loop() {
                                 ? convertToPlato(td->getGravity())
                                 : td->getGravity();
 
-            snprintf(v1, sizeof(v1), "%.1f%s", temp,
-                     myConfig.isTempUnitC() ? "°C" : "°F");
-            snprintf(v2, sizeof(v2), "%.3f%s", gravity,
-                     myConfig.isGravitySG() ? "SG" : "P");
-            snprintf(v3, sizeof(v3), "");
-            snprintf(s, sizeof(s), "Tilt: %s", td->getId());
+            myDisplay.updateGravity(
+                td->getId(), displayMeasurementIndex + 1,
+                myMeasurementList.size(), td->getTypeAsString(),
+                td->getSourceAsString(), td->getCreatedAsString(), gravity,
+                myConfig.getGravityUnit(), temp, myConfig.getTempUnit(), NAN,
+                NAN, td->getRssi());
+          }
+        } break;
+        case MeasurementType::Rapt: {
+          const RaptData* rd = entry->getRaptData();
+          if (rd) {
+            float temp = myConfig.isTempFormatF() ? convertCtoF(rd->getTempC())
+                                                  : rd->getTempC();
+            float gravity = myConfig.isGravityPlato()
+                                ? convertToPlato(rd->getGravity())
+                                : rd->getGravity();
 
-            myDisplay.updateDevice(s, v1, v2, v3, t, displayMeasurementIndex,
-                                   myMeasurementList.size());
+            String name =
+                myMdnsScanner.findDeviceByTxt("id", rd->getId(), true);
+
+            myDisplay.updateGravity(
+                name.c_str(), displayMeasurementIndex + 1,
+                myMeasurementList.size(), rd->getTypeAsString(),
+                rd->getSourceAsString(), rd->getCreatedAsString(), gravity,
+                myConfig.getGravityUnit(), temp, myConfig.getTempUnit(), NAN,
+                rd->getBatteryPercent(), rd->getRssi());
           }
         } break;
       }
@@ -712,7 +755,9 @@ void controller() {
         }
       }
     } else {
-      Log.warning(F("Loop: Push skipped due WiFi %s not, heap %d" CR), WiFi.status() == WL_CONNECTED ? "connected" : "disconnected", ESP.getFreeHeap());
+      Log.warning(F("Loop: Push skipped due WiFi %s not, heap %d" CR),
+                  WiFi.status() == WL_CONNECTED ? "connected" : "disconnected",
+                  ESP.getFreeHeap());
     }
 
     controllerTimer.reset();
@@ -722,14 +767,26 @@ void controller() {
 void updateDisplayStatus() {
   char info[80];
 
+  /*
+      if (!myWifi.isConnected()) {
+        snprintf(statusBar, sizeof(statusBar), "Not connected");
+      } else {
+        snprintf(statusBar, sizeof(statusBar), "ssid: %s ip: %s, rssi: %d",
+                 WiFi.SSID().c_str(), WiFi.localIP().toString().c_str(),
+                 WiFi.RSSI());
+      }
+  */
+
   switch (runMode) {
     case RunMode::measurementMode:
       if (strlen(myConfig.getWifiDirectSSID())) {
-        snprintf(info, sizeof(info), "%s - %s",
+        snprintf(info, sizeof(info), "ip: %s direct: %s rssi: %d",
                  WiFi.localIP().toString().c_str(),
-                 myConfig.getWifiDirectSSID());
+                 myConfig.getWifiDirectSSID(), WiFi.RSSI());
       } else {
-        snprintf(info, sizeof(info), "%s", WiFi.localIP().toString().c_str());
+        snprintf(info, sizeof(info), "ssid: %s ip: %s rssi: %d",
+                 WiFi.SSID().c_str(), WiFi.localIP().toString().c_str(),
+                 WiFi.RSSI());
       }
       break;
 
@@ -738,7 +795,9 @@ void updateDisplayStatus() {
       break;
   }
 
-  myDisplay.updateStatus(info, myConfig.getDarkMode());
+  myDisplay.updateStatus(info);
+  myDisplay.updateDarkmode(myConfig.getDarkMode());
+  myDisplay.setLayout(myConfig.getDisplayLayoutId());
 }
 
 void updateDisplayLogs() {

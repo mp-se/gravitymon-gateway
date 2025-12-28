@@ -30,10 +30,12 @@ SOFTWARE.
 #include <fonts.hpp>
 #include <log.hpp>
 #include <looptimer.hpp>
+#include <ui_gravitymon_gateway.hpp>
+#include <ui_helpers.hpp>
 
 #if defined(ENABLE_TFT)
 TaskHandle_t lvglTaskHandler;
-struct LVGL_Data lvglData;
+#endif
 
 constexpr auto TTF_CALIBRATION_FILENAME = "/tft.dat";
 
@@ -100,8 +102,15 @@ void Display::clear(uint32_t color) {
   delay(1);
 }
 
-void Display::createUI() {
+void Display::createUI(uint8_t layoutId) {
   if (!_tft) return;
+
+  // Create UI semaphore for thread-safe access
+  _uiSemaphore = xSemaphoreCreateMutex();
+  if (!_uiSemaphore) {
+    Log.error(F("DISP: Failed to create UI semaphore." CR));
+    return;
+  }
 
   Log.notice(F("DISP: Using LVL v%d.%d.%d." CR), lv_version_major(),
              lv_version_minor(), lv_version_patch());
@@ -117,16 +126,12 @@ void Display::createUI() {
     Log.error(
         F("DISP: Failed to allocate ps ram for display buffer, size=%d" CR),
         DRAW_BUF_SIZE);
+    return;
   }
 
-  lvglData._display =
-      lv_tft_espi_create(TFT_WIDTH, TFT_HEIGHT, draw_buf, DRAW_BUF_SIZE);
+  _display = lv_tft_espi_create(TFT_WIDTH, TFT_HEIGHT, draw_buf, DRAW_BUF_SIZE);
 
-  // if (_rotation == Rotation::ROTATION_90) {
-  lv_display_set_rotation(lvglData._display, LV_DISPLAY_ROTATION_90);
-  // } else {  // Rotation::ROTATION_270
-  //   lv_display_set_rotation(lvglData._display, LV_DISPLAY_ROTATION_270);
-  // }
+  lv_display_set_rotation(_display, LV_DISPLAY_ROTATION_90);
 
   // Initialize an LVGL input device object (Touchscreen)
   lv_indev_t *indev = lv_indev_create();
@@ -137,55 +142,8 @@ void Display::createUI() {
   lv_obj_t *scr = lv_scr_act();
   lv_obj_add_event_cb(scr, gestureScreenHandler, LV_EVENT_GESTURE, NULL);
 
-  // Create components
-  lv_style_init(&lvglData._font12);
-  lv_style_init(&lvglData._font12c);
-  lv_style_init(&lvglData._font16c);
-  lv_style_init(&lvglData._font20c);
-  lv_style_set_text_font(&lvglData._font12, &lv_font_montserrat_12);
-  lv_style_set_text_font(&lvglData._font12c, &lv_font_montserrat_12);
-  lv_style_set_text_font(&lvglData._font16c, &lv_font_montserrat_16);
-  lv_style_set_text_font(&lvglData._font20c, &lv_font_montserrat_20);
-  lv_style_set_text_align(&lvglData._font12, LV_TEXT_ALIGN_LEFT);
-  lv_style_set_text_align(&lvglData._font12c, LV_TEXT_ALIGN_CENTER);
-  lv_style_set_text_align(&lvglData._font16c, LV_TEXT_ALIGN_CENTER);
-  lv_style_set_text_align(&lvglData._font20c, LV_TEXT_ALIGN_CENTER);
-
-  // For showing the layout
-  // lv_style_set_outline_width(&lvglData._font12, 1);
-  // lv_style_set_outline_color(&lvglData._font12,
-  // lv_palette_main(LV_PALETTE_BLUE));
-  // lv_style_set_outline_width(&lvglData._font12c, 1);
-  // lv_style_set_outline_color(&lvglData._font12c,
-  // lv_palette_main(LV_PALETTE_BLUE));
-  // lv_style_set_outline_width(&lvglData._font16c, 1);
-  // lv_style_set_outline_color(&lvglData._font16c,
-  // lv_palette_main(LV_PALETTE_BLUE));
-  // lv_style_set_outline_width(&lvglData._font20c, 1);
-  // lv_style_set_outline_color(&lvglData._font20c,
-  // lv_palette_main(LV_PALETTE_BLUE));
-
-  Log.notice(F("DISP: Creating UI components." CR));
-
-  lvglData._txtDeviceName = createLabel("", 5, 5, 250, 36, &lvglData._font20c);
-  lvglData._txtDeviceIndex =
-      createLabel("", 260, 5, 54, 36, &lvglData._font16c);
-  lvglData._txtDeviceValue1 =
-      createLabel("", 30, 45, 75, 36, &lvglData._font16c);
-  lvglData._txtDeviceValue2 =
-      createLabel("", 110, 45, 100, 36, &lvglData._font16c);
-  lvglData._txtDeviceValue3 =
-      createLabel("", 215, 45, 75, 36, &lvglData._font16c);
-  lvglData._txtDeviceTimeStamp =
-      createLabel("", 30, 85, 260, 26, &lvglData._font16c);
-  lvglData._txtStatusbar = createLabel("", 5, 219, 310, 18, &lvglData._font12c);
-
-  for (int i = 0; i < 5; i++)
-    lvglData._txtHistory[i] =
-        createLabel("", 5, 114 + (i * 21), 310, 18, &lvglData._font12);
-
-  lvglData._btnLeft = createButton("<", 5, 45, 25, 66, btnLeftEventHandler);
-  lvglData._btnRight = createButton(">", 290, 45, 26, 66, btnRightEventHandler);
+  // Initialize the gravitymon gateway UI with selected layout
+  gravitymon_gateway_init(_display, false, layoutId);
 
   xTaskCreatePinnedToCore(lvgl_loop_handler,  // Function to implement the task
                           "LVGL_Handler",     // Name of the task
@@ -196,29 +154,95 @@ void Display::createUI() {
                           0);                 // Core where the task should run
 }
 
-void Display::updateDevice(const char *name, const char *value1,
-                           const char *value2, const char *value3,
-                           const char *timestamp, int index, int maxIndex) {
-  lvglData._dataDeviceName = name;
-  lvglData._dataDeviceValue1 = value1;
-  lvglData._dataDeviceValue2 = value2;
-  lvglData._dataDeviceValue3 = value3;
-  lvglData._dataDeviceTimeStamp = timestamp;
+void Display::updateEmpty() {
+  gravitymon_gateway_set_name("");
+  gravitymon_gateway_set_index(0, 0);
+  gravitymon_gateway_set_type("");
+  gravitymon_gateway_set_source("");
+  gravitymon_gateway_set_time("");
+  gravitymon_gateway_set_gravity(NAN, ' ');
+  gravitymon_gateway_set_temp(NAN, NAN, ' ');
+  gravitymon_gateway_set_battery_voltage(NAN);
+  gravitymon_gateway_set_battery_percentage(NAN);
+  gravitymon_gateway_set_rssi(0);
+}
 
-  char buf[10] = "";
+void Display::updateGravity(const char *name, uint8_t index, uint8_t maxIndex,
+                            const char *type, const char *source,
+                            const char *timestamp, float gravity,
+                            char gravityUnit, float temp, char tempUnit,
+                            float batteryVoltage, float batteryPercentage,
+                            int rrsi) {
+  gravitymon_gateway_set_name(name);
+  gravitymon_gateway_set_index(index, maxIndex);
+  gravitymon_gateway_set_type(type);
+  gravitymon_gateway_set_source(source);
+  gravitymon_gateway_set_time(timestamp);
+  gravitymon_gateway_set_gravity(gravity, gravityUnit);
+  gravitymon_gateway_set_temp(temp, NAN, tempUnit);
+  gravitymon_gateway_set_battery_voltage(batteryVoltage);
+  gravitymon_gateway_set_battery_percentage(batteryPercentage);
+  gravitymon_gateway_set_rssi(rrsi);
+}
 
-  if (maxIndex) snprintf(buf, sizeof(buf), "%d/%d", index + 1, maxIndex);
+void Display::updatePressure(const char *name, uint8_t index, uint8_t maxIndex,
+                             const char *type, const char *source,
+                             const char *timestamp, float pressure,
+                             float pressure2, const char *pressureUnit,
+                             float temp, char tempUnit, float batteryVoltage,
+                             float batteryPercentage, int rrsi) {
+  gravitymon_gateway_set_name(name);
+  gravitymon_gateway_set_index(index, maxIndex);
+  gravitymon_gateway_set_type(type);
+  gravitymon_gateway_set_source(source);
+  gravitymon_gateway_set_time(timestamp);
+  gravitymon_gateway_set_pressure(pressure, pressure2, pressureUnit);
+  gravitymon_gateway_set_temp(temp, NAN, tempUnit);
+  gravitymon_gateway_set_battery_voltage(batteryVoltage);
+  gravitymon_gateway_set_battery_percentage(batteryPercentage);
+  gravitymon_gateway_set_rssi(rrsi);
+}
 
-  lvglData._dataDeviceIndex = buf;
+void Display::updateTemperature(const char *name, uint8_t index,
+                                uint8_t maxIndex, const char *type,
+                                const char *source, const char *timestamp,
+                                float temp, float temp2, char tempUnit,
+                                int rrsi) {
+  gravitymon_gateway_set_name(name);
+  gravitymon_gateway_set_index(index, maxIndex);
+  gravitymon_gateway_set_type(type);
+  gravitymon_gateway_set_source(source);
+  gravitymon_gateway_set_time(timestamp);
+  gravitymon_gateway_set_temp(temp, temp2, tempUnit);
+  gravitymon_gateway_set_battery_voltage(NAN);
+  gravitymon_gateway_set_battery_percentage(NAN);
+  gravitymon_gateway_set_rssi(rrsi);
 }
 
 void Display::updateHistory(const char *history, int idx) {
-  lvglData._dataHistory[idx] = history;
+  gravitymon_gateway_set_history(idx, history);
 }
 
-void Display::updateStatus(const char *status, bool darkmode) {
-  lvglData._dataStatusbar = status;
-  lvglData._darkmode = darkmode;
+void Display::updateStatus(const char *status) {
+  gravitymon_gateway_set_status(status);
+}
+
+void Display::updateDarkmode(bool darkmode) {
+  gravitymon_gateway_set_theme(darkmode);
+}
+
+void Display::setLayout(uint8_t layoutId) {
+  if (gravitymon_gateway_get_layout() == layoutId) {
+    return;
+  }
+
+  if (_uiSemaphore && xSemaphoreTake(_uiSemaphore, pdMS_TO_TICKS(100))) {
+    gravitymon_gateway_set_layout(layoutId);
+    xSemaphoreGive(_uiSemaphore);
+  } else {
+    Log.warning(
+        F("DISP: Failed to acquire UI semaphore for layout change." CR));
+  }
 }
 
 void Display::calibrateTouch() {
@@ -332,6 +356,7 @@ bool Display::getTouch(uint16_t *x, uint16_t *y) {
 // LVGL Wrappers and Handlers
 // **************************************************************************************************
 
+#if defined(ENABLE_TFT)
 void touchScreenHandler(lv_indev_t *indev, lv_indev_data_t *data) {
   uint16_t x = 0, y = 0;
 
@@ -388,29 +413,6 @@ void log_print(lv_log_level_t level, const char *buf) {
   Log.notice(F("LVGL: %s." CR), buf);
 }
 
-lv_obj_t *createButton(const char *label, int32_t x, int32_t y, int32_t w,
-                       int32_t h, lv_event_cb_t handler) {
-  lv_obj_t *btn;
-  btn = lv_button_create(lv_screen_active());
-  lv_obj_set_size(btn, w, h);
-  lv_obj_set_pos(btn, x, y);
-  lv_obj_add_event_cb(btn, handler, LV_EVENT_ALL, NULL);
-  lv_obj_t *lbl = lv_label_create(btn);
-  lv_label_set_text(lbl, label);
-  lv_obj_center(lbl);
-  return btn;
-}
-
-lv_obj_t *createLabel(const char *label, int32_t x, int32_t y, int32_t w,
-                      int32_t h, lv_style_t *style) {
-  lv_obj_t *lbl = lv_label_create(lv_screen_active());
-  lv_label_set_text(lbl, label);
-  lv_obj_set_size(lbl, w, h);
-  lv_obj_set_pos(lbl, x, y);
-  lv_obj_add_style(lbl, style, 0);
-  return lbl;
-}
-
 void updateLabel(lv_obj_t *obj, const char *label) {
   lv_label_set_text(obj, label);
 }
@@ -419,52 +421,21 @@ void lvgl_loop_handler(void *parameter) {
   LoopTimer taskLoop(500);
 
   for (;;) {
-    if (taskLoop.hasExpired()) {
-      taskLoop.reset();
-
-      lv_obj_t *scr = lv_scr_act();
-      lv_color_t color;
-
-      if (lvglData._darkmode) {
-        lv_obj_set_style_bg_color(scr, lv_color_hex(0x1F1F1F), LV_PART_MAIN);
-        lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, LV_PART_MAIN);
-        color = lv_color_white();
-      } else {
-        lv_obj_set_style_bg_color(scr, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
-        lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, LV_PART_MAIN);
-        color = lv_color_black();
+    // Call the gravitymon gateway main loop to update all UI elements
+    // Protect with semaphore to prevent crashes during layout changes
+    if (myDisplay.getUISemaphore() &&
+        xSemaphoreTake(myDisplay.getUISemaphore(), pdMS_TO_TICKS(100))) {
+      if (taskLoop.hasExpired()) {
+        taskLoop.reset();
+        gravitymon_gateway_loop();
       }
-
-      lv_obj_set_style_text_color(lvglData._txtDeviceName, color, 0);
-      lv_obj_set_style_text_color(lvglData._txtDeviceIndex, color, 0);
-      lv_obj_set_style_text_color(lvglData._txtDeviceValue1, color, 0);
-      lv_obj_set_style_text_color(lvglData._txtDeviceValue2, color, 0);
-      lv_obj_set_style_text_color(lvglData._txtDeviceValue3, color, 0);
-      lv_obj_set_style_text_color(lvglData._txtDeviceTimeStamp, color, 0);
-      lv_obj_set_style_text_color(lvglData._txtStatusbar, color, 0);
-
-      for (int i = 0; i < 5; i++)
-        lv_obj_set_style_text_color(lvglData._txtHistory[i], color, 0);
-
-      updateLabel(lvglData._txtDeviceName, lvglData._dataDeviceName.c_str());
-      updateLabel(lvglData._txtDeviceIndex, lvglData._dataDeviceIndex.c_str());
-      updateLabel(lvglData._txtDeviceValue1,
-                  lvglData._dataDeviceValue1.c_str());
-      updateLabel(lvglData._txtDeviceValue2,
-                  lvglData._dataDeviceValue2.c_str());
-      updateLabel(lvglData._txtDeviceValue3,
-                  lvglData._dataDeviceValue3.c_str());
-      updateLabel(lvglData._txtDeviceTimeStamp,
-                  lvglData._dataDeviceTimeStamp.c_str());
-      updateLabel(lvglData._txtStatusbar, lvglData._dataStatusbar.c_str());
-
-      for (int i = 0; i < 5; i++)
-        updateLabel(lvglData._txtHistory[i], lvglData._dataHistory[i].c_str());
     }
 
     lv_task_handler();
-    lv_tick_inc(5);
-    delay(5);
+    lv_tick_inc(10);
+    xSemaphoreGive(myDisplay.getUISemaphore());
+
+    delay(10);
   }
 }
 
@@ -474,25 +445,42 @@ Display::Display() {}
 
 void Display::setup() {}
 
-void Display::createUI() {}
+void Display::createUI(uint8_t layoutId) {}
 
 void Display::calibrateTouch() {}
 
 void Display::setFont(FontSize f) {}
 
-void Display::printLine(int l, const String& text) {}
+void Display::printLine(int l, const String &text) {}
 
-void Display::printLineCentered(int l, const String& text) {}
+void Display::printLineCentered(int l, const String &text) {}
 
 void Display::clear(uint32_t color) {}
 
-void Display::updateDevice(const char* name, const char* value1,
-                           const char* value2, const char* value3,
-                           const char* timestamp, int index, int maxIndex) {}
-void Display::updateHistory(const char* history, int idx) {}
-void Display::updateStatus(const char* status, bool darkmode) {}
+void Display::updateEmpty() {}
+void Display::updateGravity(const char *name, uint8_t index, uint8_t maxIndex,
+                            const char *timestamp, float gravity, char unit,
+                            float temp, char tempUnit, float batteryVoltage,
+                            float batteryPercentage, int rssi) {}
 
-#endif
+void Display::updatePressure(const char *name, uint8_t index, uint8_t maxIndex,
+                             const char *timestamp, float pressure, char unit,
+                             float temp, char tempUnit, float batteryVoltage,
+                             float batteryPercentage, int rssi) {}
+void Display::updateTemperature(const char *name, uint8_t index,
+                                uint8_t maxIndex, const char *timestamp,
+                                const char *type, const char *source,
+                                float temp, float temp2, char tempUnit,
+                                int rssi) {}
+void Display::updateHistory(const char *history, int idx) {}
+
+void Display::updateStatus(const char *status) {}
+
+void Display::updateDarkmode(bool darkmode) {}
+
+void Display::setLayout(uint8_t layoutId) {}
+
+#endif  // ENABLE_TFT
 
 #endif  // GATEWAY
 

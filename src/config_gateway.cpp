@@ -46,6 +46,7 @@ void GravmonGatewayConfig::createJson(JsonObject& doc) const {
   doc[CONFIG_PRESSURE_UNIT] = getPressureUnit();
   doc[CONFIG_SD_LOG_FILES] = getSdLogFiles();
   doc[CONFIG_SD_LOG_MIN_TIME] = getSdLogMinTime();
+  doc[CONFIG_DISPLAY_LAYOUT_ID] = getDisplayLayoutId();
 
   doc[CONFIG_HTTP_POST_GRAVITY_ENABLE] = isHttpPostGravityEnable();
   doc[CONFIG_HTTP_POST_PRESSURE_ENABLE] = isHttpPostPressureEnable();
@@ -91,6 +92,8 @@ void GravmonGatewayConfig::parseJson(JsonObject& doc) {
     setSdLogFiles(doc[CONFIG_SD_LOG_FILES].as<int>());
   if (!doc[CONFIG_SD_LOG_MIN_TIME].isNull())
     setSdLogMinTime(doc[CONFIG_SD_LOG_MIN_TIME].as<int>());
+  if (!doc[CONFIG_DISPLAY_LAYOUT_ID].isNull())
+    setDisplayLayoutId(doc[CONFIG_DISPLAY_LAYOUT_ID].as<int>());
 
   if (!doc[CONFIG_HTTP_POST_GRAVITY_ENABLE].isNull())
     setHttpPostGravityEnable(doc[CONFIG_HTTP_POST_GRAVITY_ENABLE].as<bool>());

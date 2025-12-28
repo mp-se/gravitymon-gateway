@@ -31,6 +31,7 @@ SOFTWARE.
 #include <NimBLEScan.h>
 #include <NimBLEUtils.h>
 
+#include <map>
 #include <measurement.hpp>
 #include <queue>
 #include <string>
@@ -50,22 +51,23 @@ class BleScanner {
   void setScanTime(int scanTime) { _scanTime = scanTime; }
   void setAllowActiveScan(bool activeScan) { _activeScan = activeScan; }
 
-  void loop();
+  void loop(int sdLogMinTime);
 
   void proccesTiltBeacon(const std::string &advertStringHex,
                          const int8_t &currentRSSI);
   void proccesGravitymonBeacon(const std::string &advertStringHex,
-                               NimBLEAddress address);
+                               NimBLEAddress address, int8_t rssi,
+                               int8_t txPower);
   void processGravitymonEddystoneBeacon(NimBLEAddress address,
-                                        const std::vector<uint8_t> &payload);
+                                        const std::vector<uint8_t> &payload,
+                                        int8_t rssi, int8_t txPower);
   void proccesRaptBeacon(const std::string &advertStringHex,
-                         NimBLEAddress address);
+                         NimBLEAddress address, int8_t rssi, int8_t txPower);
   void proccesPressuremonBeacon(const std::string &advertStringHex,
-                                NimBLEAddress address);
-  void processPressuremonEddystoneBeacon(NimBLEAddress address,
-                                         const std::vector<uint8_t> &payload);
+                                NimBLEAddress address, int8_t rssi,
+                                int8_t txPower);
   void proccesChamberBeacon(const std::string &advertStringHex,
-                            NimBLEAddress address);
+                            NimBLEAddress address, int8_t rssi, int8_t txPower);
 
  private:
   int _scanTime = 5;

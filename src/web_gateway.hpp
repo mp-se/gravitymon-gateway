@@ -40,6 +40,7 @@ class GatewayWebServer : public BrewingWebServer {
   void webHandleRemotePost(AsyncWebServerRequest *request, JsonVariant &json);
   void webHandleSecureDigital(AsyncWebServerRequest *request,
                               JsonVariant &json);
+  void webHandleMdns(AsyncWebServerRequest *request);
 
   void doWebStatus(JsonObject &obj);
   bool setupWebServer(const char *serviceName);

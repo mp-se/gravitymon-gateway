@@ -4,10 +4,13 @@
 ![issues](https://img.shields.io/github/issues/mp-se/gravitymon-gateway)
 ![pr](https://img.shields.io/github/issues-pr/mp-se/gravitymon-gateway)
 ![dev_build](https://img.shields.io/github/actions/workflow/status/mp-se/gravitymon-gateway/pio-build.yaml?branch=dev)
+![License](https://img.shields.io/github/license/mp-se/gravitymon-gateway)
+![GitHub Stars](https://img.shields.io/github/stars/mp-se/gravitymon-gateway)
+![Last Commit](https://img.shields.io/github/last-commit/mp-se/gravitymon-gateway)
 
 # GravityMon Gateway
 
-This is a companion device for use with GravityMon v2.0, it will support the new BLE options and Wifi Direct options introduced into v2.0. 
+This is a companion device for use with GravityMon v2.0, it will support the new BLE options and Wifi Direct options introduced into v2.0.
 
 For documentation see www.gravitymon.com.
 
@@ -17,13 +20,24 @@ Visit the gravitymon homepage here for more information about the project: https
 
 # Releases
 
+### v0.9.0
+
+* Added additional TFT layouts and option to choose in web interface.
+* (Bug) Fixed parsing of RAPT data to percentage instead of voltage.
+* Updated dependant libraries to latest version (security fixes).
+* Added scanning for strongest access point when starting to ensure good wifi signal.
+* Adding mDNS scanning to map BLE data to device name based on device id, if found this will be shown in the web interface and tft.
+* Added view to show the current mDNS data under support in the web interface.
+* Fixed parsing of chamber-controller and pressuremon ble to handle invalid values when sensors are not avaialble.
+* Fixed extraxtion of txpower and rssi from ble transmissions
+
 ### v0.8.1
 
 * Now display file size in file system viewer
 * Added option to configure the number of log files on SD card, default is 4 (4x16kb) but max limit is now 100 files, loading that many would be really slow.
 * Added option to define how often to log BLE data to SD card in order to avoid filling the logs, default is 5 minutes. 
 * Added throtteling of 30s on ble processing to avoid crashing
-* Fixed unit conversion on main page (gravity + temperature)
+* (Bug) Fixed unit conversion on main page (gravity + temperature)
 
 ### v0.8.0
 
@@ -41,7 +55,7 @@ Note! The build for ESP32pro will crash itermitent with BLE enabled this is due 
 
 ### v0.7.1
 
-* Fixed crash when using large format templates (stack overflow)
+* (Bug) Fixed crash when using large format templates (stack overflow)
 
 ### v0.7.0
 
@@ -52,11 +66,11 @@ Note! I have enabled the touch controller so on lolin TFT the touch screen will 
 * Added device name to web based UI
 * Added push test option to UI so that format templates can be tested
 * Created board definition for Waveshare
-* Fixed printout of device id’s with leading zero
+* (Bug) Fixed printout of device id’s with leading zero
 * Added defined pressure templates for one and two sensors.
-* Fixed bug that blocked upload of firmware files over 1.8Mb
+* (Bug) Fixed bug that blocked upload of firmware files over 1.8Mb
 * Major update to also handle the new pressuremon device.
-* Fixed wifi scanning that was broken in previous beta
+* (Bug) Fixed wifi scanning that was broken in previous beta
 * Sharing most of the codebase with gravitymon to simplify maintenance
 * Now using new partition schema (32Mb) so full flashing is needed.
 * Refactored push logic
@@ -75,4 +89,3 @@ Note! I have enabled the touch controller so on lolin TFT the touch screen will 
 ### v0.4.0 and earlier
 
 * Test versions
-

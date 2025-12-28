@@ -37,8 +37,10 @@ SOFTWARE.
 #include <utility>
 #include <utils.hpp>
 
-#if defined(ENABLE_MMC) || defined(ENABLE_SD)
-extern Storage mySdStorage;
+#if defined(ENABLE_MMC)
+extern SdCardMMC mySdStorage;
+#elif defined(ENABLE_SD)
+extern SdCardSD mySdStorage;
 #endif
 
 enum MeasurementType {
@@ -362,21 +364,27 @@ class ChamberData : public MeasurementBaseData {
  private:
   float _chamberTempC = 0;
   float _beerTempC = 0;
+  int _txPower = 0;
   int _rssi = 0;
+  String _name = "";
 
  public:
-  ChamberData(MeasurementSource source, String id, float chamberTempC,
-              float beerTempC, int rssi)
+  ChamberData(MeasurementSource source, String id, String name,
+              float chamberTempC, float beerTempC, int txPower, int rssi)
       : MeasurementBaseData(id, MeasurementType::Chamber, source) {
     _chamberTempC = chamberTempC;
     _beerTempC = beerTempC;
     _rssi = rssi;
+    _txPower = txPower;
+    _name = name;
   }
   virtual ~ChamberData() {}
 
   float getChamberTempC() const { return _chamberTempC; }
   float getBeerTempC() const { return _beerTempC; }
+  int getTxPower() const { return _txPower; }
   int getRssi() const { return _rssi; }
+  const char* getName() const { return _name.c_str(); }
 
   void writeToFile(File& file) const {
     char buffer[300];
@@ -391,8 +399,8 @@ class ChamberData : public MeasurementBaseData {
     // 5, ChamberTemp (C)
     // 6, BeerTemp (C)
     // 7, Rssi
-    // 8,
-    // 9,
+    // 8, Name (new in 0.9.0)
+    // 9, TxPower (new 0.9.0)
     // 10,
     // 11,
     // 12,
@@ -400,9 +408,10 @@ class ChamberData : public MeasurementBaseData {
 
     snprintf(buffer, sizeof(buffer),
              "1,%s,%s,%s,%s,"
-             "%.2f,%.2f,%d,,,,,,",
+             "%.2f,%.2f,%d,%s,%d,,,,",
              getTypeAsString(), getSourceAsString(), getCreatedAsString(),
-             getId(), getChamberTempC(), getBeerTempC(), getRssi());
+             getId(), getChamberTempC(), getBeerTempC(), getRssi(), getName(),
+             getTxPower());
     file.println(buffer);
   }
 };
@@ -413,7 +422,7 @@ class RaptData : public MeasurementBaseData {
   float _gravity = 0;
   float _angle = 0;
   float _velocity = 0;
-  float _battery = 0;
+  float _batteryPercent = 0;
   int _rssi = 0;
   int _txPower = 0;
 
@@ -421,13 +430,14 @@ class RaptData : public MeasurementBaseData {
   // Note! For RAPT the last part of the MAC adress is used as ID since the
   // payload does not contain that.
   RaptData(MeasurementSource source, String id, float tempC, float gravity,
-           float velocity, float angle, float battery, int txPower, int rssi)
+           float velocity, float angle, float batteryPercent, int txPower,
+           int rssi)
       : MeasurementBaseData(id, MeasurementType::Rapt, source) {
     _tempC = tempC;
     _velocity = velocity;
     _gravity = gravity;
     _angle = angle;
-    _battery = battery;
+    _batteryPercent = batteryPercent;
     _txPower = txPower;
     _rssi = rssi;
   }
@@ -437,7 +447,7 @@ class RaptData : public MeasurementBaseData {
   float getGravity() const { return _gravity; }
   float getVelocity() const { return _velocity; }
   float getAngle() const { return _angle; }
-  float getBattery() const { return _battery; }
+  float getBatteryPercent() const { return _batteryPercent; }
   int getTxPower() const { return _txPower; }
   int getRssi() const { return _rssi; }
 
@@ -454,7 +464,7 @@ class RaptData : public MeasurementBaseData {
     // 5, Temperature (C)
     // 6, Gravity (SG)
     // 7, Angle
-    // 8, Battery
+    // 8, BatteryPercent
     // 9, Tx Power
     // 10, Rssi
 
@@ -462,7 +472,7 @@ class RaptData : public MeasurementBaseData {
              "1,%s,%s,%s,%s,"
              "%.2f,%.4f,%.4f,%.2f,%d,%d,,,",
              getTypeAsString(), getSourceAsString(), getCreatedAsString(),
-             getId(), getTempC(), getGravity(), getAngle(), getBattery(),
+             getId(), getTempC(), getGravity(), getAngle(), getBatteryPercent(),
              getTxPower(), getRssi());
     file.println(buffer);
   }

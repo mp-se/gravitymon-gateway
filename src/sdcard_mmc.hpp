@@ -30,15 +30,16 @@ SOFTWARE.
 #include <SD_MMC.h>
 
 #include <log.hpp>
+#include <sdcard.hpp>
 
-class Storage {
+class SdCardMMC : public SdCard {
  public:
   uint64_t _cardSize = 0;
   bool _hasCard = false;
 
  public:
-  Storage() {}
-  ~Storage() { end(); }
+  SdCardMMC() {}
+  ~SdCardMMC() { end(); }
 
   bool hasCard() const { return _hasCard; }
 
@@ -95,7 +96,7 @@ class Storage {
     return SD_MMC.open(path, mode);
   }
 
-  bool exists(const String &path) {
+  bool exists(const String &path) const {
     Serial.println("3");
 
     if (!_hasCard) {
