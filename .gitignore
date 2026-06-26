@@ -6,3 +6,5 @@
 version.json
 .DS_Store
 idf_component.*
+.venv/
+graphify-out/

@@ -109,6 +109,7 @@ void setup() {
 
 #if defined(ENABLE_TFT)
   Log.notice(F("Main: TOUCH_CS %d." CR), TOUCH_CS);
+#if LV_USE_TFT_ESPI == 1
   Log.notice(F("Main: TFT_BL %d." CR), TFT_BL);
   Log.notice(F("Main: TFT_DC %d." CR), TFT_DC);
   Log.notice(F("Main: TFT_MISO %d." CR), TFT_MISO);
@@ -116,6 +117,7 @@ void setup() {
   Log.notice(F("Main: TFT_SCLK %d." CR), TFT_SCLK);
   Log.notice(F("Main: TFT_RST %d." CR), TFT_RST);
   Log.notice(F("Main: TFT_CS %d." CR), TFT_CS);
+#endif
 #endif
 
   Log.notice(F("Main: Initialize display." CR));
@@ -141,11 +143,21 @@ void setup() {
 
 #if defined(ENABLE_SD)
   myDisplay.printLineCentered(3, "Mounting SD (SD) card");
-#if defined(ENABLE_TFT)
+#if defined(WAVESHARE_S3_TFT43)
+  // SD CS is on CH422G EXIO4, not a GPIO. Assert it LOW permanently — the SD
+  // card is the only device on this SPI bus so it is safe to leave it selected.
+  // SD_CS=255 is an out-of-range pin: the SD library skips all CS GPIO calls.
+  {
+    auto expander = myDisplay.getExpander();
+    if (expander) expander->digitalWrite(SD_EXPANDER_CS, LOW);
+    SPI.begin(SD_SCK, SD_MISO, SD_MOSI, -1);
+    mySdStorage.begin(SD_CS, SPI);
+  }
+#elif defined(ENABLE_TFT)
   mySdStorage.begin(SD_CS, myDisplay.getSPI());
 #else
   mySdStorage.begin(SD_CS, SPI);
-#endif  // ENABLE_TFT
+#endif  // WAVESHARE_S3_TFT43 / ENABLE_TFT
 #endif  // ENABLE_SD
 
   // No stored config, move to portal
@@ -330,11 +342,17 @@ void loop() {
     if (!mySdStorage.hasCard()) {
       Log.notice(F("Loop: SD card not mounted, retry mounting." CR));
       mySdStorage.end();
-#if defined(ENABLE_TFT)
+#if defined(WAVESHARE_S3_TFT43)
+      {
+        auto expander = myDisplay.getExpander();
+        if (expander) expander->digitalWrite(SD_EXPANDER_CS, LOW);
+        mySdStorage.begin(SD_CS, SPI);
+      }
+#elif defined(ENABLE_TFT)
       mySdStorage.begin(SD_CS, myDisplay.getSPI());
 #else
       mySdStorage.begin(SD_CS, SPI);
-#endif  // ENABLE_TFT
+#endif  // WAVESHARE_S3_TFT43 / ENABLE_TFT
     }
 #endif  // ENABLE_SD
   }

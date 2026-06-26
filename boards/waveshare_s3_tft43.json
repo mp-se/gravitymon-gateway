@@ -7,10 +7,10 @@
     },
     "core": "esp32",
     "extra_flags": [
-      "-DARDUINO_WAVESHARE_S3_TFT",
+      "-DARDUINO_WAVESHARE_S3_TFT43",
       "-DBOARD_HAS_PSRAM",
       "-DARDUINO_USB_MODE=1",
-      "-DARDUINO_USB_CDC_ON_BOOT=1",
+      "-DARDUINO_USB_CDC_ON_BOOT=0",
       "-DARDUINO_RUNNING_CORE=1",
       "-DARDUINO_EVENT_RUNNING_CORE=1"
     ],
@@ -24,7 +24,7 @@
       ]
     ],
     "mcu": "esp32s3",
-    "variant": "waveshare_s3_tft"
+    "variant": "waveshare_s3_tft43"
   },
   "connectivity": [
     "wifi",
@@ -37,7 +37,7 @@
     "arduino",
     "espidf"
   ],
-  "name": "WAVESHARE S3 TFT 2.8",
+  "name": "WAVESHARE S3 Touch LCD 4.3",
   "upload": {
     "flash_size": "16MB",
     "maximum_ram_size": 327680,
@@ -45,6 +45,6 @@
     "require_upload_port": true,
     "speed": 460800
   },
-  "url": "https://www.waveshare.com/esp32-s3-touch-lcd-2.8.htm",
+  "url": "https://www.waveshare.com/esp32-s3-touch-lcd-4.3.htm",
   "vendor": "WAVESHARE"
 }

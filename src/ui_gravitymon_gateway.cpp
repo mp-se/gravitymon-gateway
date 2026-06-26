@@ -84,13 +84,15 @@ static lv_disp_t* g_disp = NULL;
  * Layout manager
  */
 typedef struct {
-  uint8_t current_layout;
-  uint8_t total_layouts;
+  uint8_t current_layout;  // absolute internal layout index (0-3)
+  uint8_t layout_base;     // first layout for this screen size (0 or 2)
+  uint8_t pair_size;       // number of layouts in this pair (always 2)
 } gravitymon_layout_mgr_t;
 
 static gravitymon_layout_mgr_t layout_mgr = {
     .current_layout = 0,
-    .total_layouts = 0,
+    .layout_base    = 0,
+    .pair_size      = 2,
 };
 
 /**
@@ -317,9 +319,7 @@ static void gravitymon_gateway_init_common(lv_disp_t* disp, bool darkmode) {
   g_state.measurement_min = 1000;
   g_state.measurement_max = 1100;
 
-  // Initialize layout manager
-  layout_mgr.current_layout = 0;
-  layout_mgr.total_layouts = 2;
+  // layout_mgr fields (base, pair_size, current) are set in gravitymon_gateway_init()
 
   // Initialize last-darkmode tracking so theme is applied on first loop
   g_state.flg_last_darkmode = darkmode;
@@ -598,12 +598,232 @@ static void gravitymon_gateway_setup_layout_1(void) {
                           0);  // No radius for full bottom bar
 }
 
+// ── 800×480 layouts ──────────────────────────────────────────────────────────
+
 /**
- * Fetch the current active layout
- *
- * @return layout_id Layout index
+ * Setup layout 2 (compact, 800×480): left panel with key values, right panel
+ * with history. Mirrors layout 0 philosophy on a larger canvas.
  */
-uint8_t gravitymon_gateway_get_layout() { return layout_mgr.current_layout; }
+static void gravitymon_gateway_setup_layout_2(void) {
+  lv_obj_t* scr = lv_scr_act();
+  if (!scr) return;
+
+  ui_theme_colors_t tc = ui_get_theme_colors(
+      g_state.flg_darkmode ? UI_THEME_DARK : UI_THEME_LIGHT);
+
+  // ── Header (full width, h=54) ──────────────────────────────────────────────
+  g_state.lbl_name = create_label(scr, "", 5, 5, 600, 44,
+      LV_TEXT_ALIGN_CENTER, tc.text, &lv_font_montserrat_20);
+  lv_obj_set_style_bg_color(g_state.lbl_name, tc.panel_alt_bg, LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(g_state.lbl_name, LV_OPA_80, LV_PART_MAIN);
+  lv_obj_set_style_radius(g_state.lbl_name, 8, 0);
+  lv_obj_set_style_pad_top(g_state.lbl_name, 8, LV_PART_MAIN);
+
+  g_state.lbl_index = create_label(scr, "", 615, 5, 80, 44,
+      LV_TEXT_ALIGN_CENTER, tc.text, &lv_font_montserrat_16);
+  lv_obj_set_style_bg_color(g_state.lbl_index, tc.muted_bg, LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(g_state.lbl_index, LV_OPA_80, LV_PART_MAIN);
+  lv_obj_set_style_radius(g_state.lbl_index, 6, 0);
+  lv_obj_set_style_pad_top(g_state.lbl_index, 10, LV_PART_MAIN);
+
+  g_state.lbl_battery = create_label(scr, "", 705, 5, 90, 44,
+      LV_TEXT_ALIGN_CENTER, tc.text, &lv_font_montserrat_16);
+  lv_obj_set_style_bg_color(g_state.lbl_battery, tc.panel_alt_bg, LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(g_state.lbl_battery, LV_OPA_80, LV_PART_MAIN);
+  lv_obj_set_style_radius(g_state.lbl_battery, 6, 0);
+  lv_obj_set_style_pad_top(g_state.lbl_battery, 10, LV_PART_MAIN);
+
+  // ── Left panel: measurement, temp, time (x=5..524) ────────────────────────
+  g_state.lbl_measurement = create_label(scr, "", 5, 64, 520, 80,
+      LV_TEXT_ALIGN_CENTER, tc.text, &lv_font_montserrat_28);
+  lv_obj_set_style_bg_color(g_state.lbl_measurement, tc.panel_bg, LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(g_state.lbl_measurement, LV_OPA_80, LV_PART_MAIN);
+  lv_obj_set_style_radius(g_state.lbl_measurement, 12, 0);
+  lv_obj_set_style_pad_top(g_state.lbl_measurement, 18, LV_PART_MAIN);
+
+  g_state.lbl_temp = create_label(scr, "", 5, 152, 255, 48,
+      LV_TEXT_ALIGN_CENTER, tc.text, &lv_font_montserrat_20);
+  lv_obj_set_style_bg_color(g_state.lbl_temp, tc.panel_alt_bg, LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(g_state.lbl_temp, LV_OPA_80, LV_PART_MAIN);
+  lv_obj_set_style_radius(g_state.lbl_temp, 10, 0);
+  lv_obj_set_style_pad_top(g_state.lbl_temp, 10, LV_PART_MAIN);
+
+  g_state.lbl_time = create_label(scr, "", 5, 208, 520, 36,
+      LV_TEXT_ALIGN_CENTER, tc.text, &lv_font_montserrat_14);
+  lv_obj_set_style_bg_color(g_state.lbl_time, tc.muted_bg, LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(g_state.lbl_time, LV_OPA_70, LV_PART_MAIN);
+  lv_obj_set_style_radius(g_state.lbl_time, 6, 0);
+  lv_obj_set_style_pad_top(g_state.lbl_time, 8, LV_PART_MAIN);
+
+  // ── Right panel: history list (x=540..795) ────────────────────────────────
+  for (int i = 0; i < 5; i++) {
+    g_state.lbl_history[i] = create_label(scr, "", 540, 64 + (i * 72), 255, 66,
+        LV_TEXT_ALIGN_LEFT, tc.text, &lv_font_montserrat_14);
+    lv_obj_set_style_pad_left(g_state.lbl_history[i], 6, LV_PART_MAIN);
+    lv_obj_set_style_pad_top(g_state.lbl_history[i], 4, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(g_state.lbl_history[i], tc.muted_bg, LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(g_state.lbl_history[i], LV_OPA_50, LV_PART_MAIN);
+    lv_obj_set_style_radius(g_state.lbl_history[i], 6, 0);
+  }
+
+  // ── Status bar (full width, pinned to bottom) ─────────────────────────────
+  g_state.lbl_status = create_label(scr, "", 0, 432, 800, 48,
+      LV_TEXT_ALIGN_CENTER, tc.text, &lv_font_montserrat_14);
+  lv_obj_set_style_bg_color(g_state.lbl_status, tc.status_bg, LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(g_state.lbl_status, LV_OPA_60, LV_PART_MAIN);
+  lv_obj_set_style_pad_top(g_state.lbl_status, 12, LV_PART_MAIN);
+}
+
+/**
+ * Setup layout 3 (detail, 800×480): larger text, full metadata row, battery
+ * canvas. Mirrors layout 1 philosophy on a larger canvas.
+ */
+static void gravitymon_gateway_setup_layout_3(void) {
+  lv_obj_t* scr = lv_scr_act();
+  if (!scr) return;
+
+  ui_theme_colors_t tc = ui_get_theme_colors(
+      g_state.flg_darkmode ? UI_THEME_DARK : UI_THEME_LIGHT);
+
+  // ── Header (full width, h=54) ──────────────────────────────────────────────
+  g_state.lbl_name = create_label(scr, "", 5, 5, 570, 44,
+      LV_TEXT_ALIGN_LEFT, tc.text, &lv_font_montserrat_20);
+  lv_obj_set_style_bg_color(g_state.lbl_name, tc.panel_alt_bg, LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(g_state.lbl_name, LV_OPA_80, LV_PART_MAIN);
+  lv_obj_set_style_radius(g_state.lbl_name, 8, 0);
+  lv_obj_set_style_pad_top(g_state.lbl_name, 10, LV_PART_MAIN);
+  lv_obj_set_style_pad_left(g_state.lbl_name, 8, LV_PART_MAIN);
+
+  g_state.wid_battery_canvas =
+      create_battery_indicator(scr, 588, 7, g_state.battery_percentage);
+
+  g_state.lbl_index = create_label(scr, "", 680, 5, 115, 44,
+      LV_TEXT_ALIGN_CENTER, tc.text, &lv_font_montserrat_16);
+  lv_obj_set_style_bg_color(g_state.lbl_index, tc.muted_bg, LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(g_state.lbl_index, LV_OPA_80, LV_PART_MAIN);
+  lv_obj_set_style_radius(g_state.lbl_index, 6, 0);
+  lv_obj_set_style_pad_top(g_state.lbl_index, 10, LV_PART_MAIN);
+
+  // ── Left panel: big values + metadata (x=5..524) ──────────────────────────
+  g_state.lbl_measurement = create_label(scr, "", 5, 64, 520, 96,
+      LV_TEXT_ALIGN_CENTER, tc.text, &lv_font_montserrat_28);
+  lv_obj_set_style_bg_color(g_state.lbl_measurement, tc.panel_bg, LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(g_state.lbl_measurement, LV_OPA_80, LV_PART_MAIN);
+  lv_obj_set_style_radius(g_state.lbl_measurement, 12, 0);
+  lv_obj_set_style_pad_top(g_state.lbl_measurement, 28, LV_PART_MAIN);
+
+  g_state.lbl_temp = create_label(scr, "", 5, 168, 520, 56,
+      LV_TEXT_ALIGN_CENTER, tc.text, &lv_font_montserrat_28);
+  lv_obj_set_style_bg_color(g_state.lbl_temp, tc.panel_alt_bg, LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(g_state.lbl_temp, LV_OPA_80, LV_PART_MAIN);
+  lv_obj_set_style_radius(g_state.lbl_temp, 10, 0);
+  lv_obj_set_style_pad_top(g_state.lbl_temp, 12, LV_PART_MAIN);
+
+  // Metadata row 1: time ago (left) + RSSI (right)
+  g_state.lbl_time = create_label(scr, "", 5, 234, 255, 36,
+      LV_TEXT_ALIGN_CENTER, tc.text, &lv_font_montserrat_16);
+  lv_obj_set_style_bg_color(g_state.lbl_time, tc.muted_bg, LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(g_state.lbl_time, LV_OPA_70, LV_PART_MAIN);
+  lv_obj_set_style_radius(g_state.lbl_time, 8, 0);
+  lv_obj_set_style_pad_top(g_state.lbl_time, 7, LV_PART_MAIN);
+
+  g_state.lbl_rssi = create_label(scr, "", 268, 234, 257, 36,
+      LV_TEXT_ALIGN_CENTER, tc.text, &lv_font_montserrat_16);
+  lv_obj_set_style_bg_color(g_state.lbl_rssi, tc.muted_bg, LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(g_state.lbl_rssi, LV_OPA_70, LV_PART_MAIN);
+  lv_obj_set_style_radius(g_state.lbl_rssi, 8, 0);
+  lv_obj_set_style_pad_top(g_state.lbl_rssi, 7, LV_PART_MAIN);
+
+  // Metadata row 2: type (left) + source (right)
+  g_state.lbl_type = create_label(scr, "", 5, 278, 255, 32,
+      LV_TEXT_ALIGN_CENTER, tc.text, &lv_font_montserrat_14);
+  lv_obj_set_style_bg_color(g_state.lbl_type, tc.muted_bg, LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(g_state.lbl_type, LV_OPA_70, LV_PART_MAIN);
+  lv_obj_set_style_radius(g_state.lbl_type, 6, 0);
+  lv_obj_set_style_pad_top(g_state.lbl_type, 6, LV_PART_MAIN);
+
+  g_state.lbl_source = create_label(scr, "", 268, 278, 257, 32,
+      LV_TEXT_ALIGN_CENTER, tc.text, &lv_font_montserrat_14);
+  lv_obj_set_style_bg_color(g_state.lbl_source, tc.muted_bg, LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(g_state.lbl_source, LV_OPA_70, LV_PART_MAIN);
+  lv_obj_set_style_radius(g_state.lbl_source, 6, 0);
+  lv_obj_set_style_pad_top(g_state.lbl_source, 6, LV_PART_MAIN);
+
+  // ── Right panel: history list (x=540..795) ────────────────────────────────
+  for (int i = 0; i < 5; i++) {
+    g_state.lbl_history[i] = create_label(scr, "", 540, 64 + (i * 72), 255, 66,
+        LV_TEXT_ALIGN_LEFT, tc.text, &lv_font_montserrat_16);
+    lv_obj_set_style_pad_left(g_state.lbl_history[i], 6, LV_PART_MAIN);
+    lv_obj_set_style_pad_top(g_state.lbl_history[i], 4, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(g_state.lbl_history[i], tc.muted_bg, LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(g_state.lbl_history[i], LV_OPA_50, LV_PART_MAIN);
+    lv_obj_set_style_radius(g_state.lbl_history[i], 6, 0);
+  }
+
+  // ── Status bar (full width, pinned to bottom) ─────────────────────────────
+  g_state.lbl_status = create_label(scr, "", 0, 432, 800, 48,
+      LV_TEXT_ALIGN_CENTER, tc.text, &lv_font_montserrat_14);
+  lv_obj_set_style_bg_color(g_state.lbl_status, tc.status_bg, LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(g_state.lbl_status, LV_OPA_60, LV_PART_MAIN);
+  lv_obj_set_style_pad_top(g_state.lbl_status, 12, LV_PART_MAIN);
+}
+
+// ── 800×480 loop handlers ─────────────────────────────────────────────────────
+
+static void gravitymon_gateway_loop_layout_2(void) {
+  if (g_state.lbl_name) lv_label_set_text(g_state.lbl_name, g_state.data_name);
+  if (g_state.lbl_index) lv_label_set_text(g_state.lbl_index, g_state.data_index);
+  if (g_state.lbl_battery)
+    lv_label_set_text(g_state.lbl_battery,
+        strcmp(g_state.data_battery_voltage, "--")
+            ? g_state.data_battery_voltage
+            : g_state.data_battery_percentage);
+  if (g_state.lbl_measurement)
+    lv_label_set_text(g_state.lbl_measurement, g_state.data_measurement);
+  if (g_state.lbl_temp) lv_label_set_text(g_state.lbl_temp, g_state.data_temp);
+  if (g_state.lbl_time) lv_label_set_text(g_state.lbl_time, g_state.data_time);
+  if (g_state.lbl_status)
+    lv_label_set_text(g_state.lbl_status, g_state.data_status);
+  for (int i = 0; i < 5; i++) {
+    if (g_state.lbl_history[i])
+      lv_label_set_text(g_state.lbl_history[i], g_state.data_history[i]);
+  }
+}
+
+static void gravitymon_gateway_loop_layout_3(void) {
+  if (g_state.lbl_name) lv_label_set_text(g_state.lbl_name, g_state.data_name);
+  if (g_state.lbl_index) lv_label_set_text(g_state.lbl_index, g_state.data_index);
+
+  // Recreate battery canvas each loop (percentage may have changed)
+  if (g_state.wid_battery_canvas) lv_obj_del(g_state.wid_battery_canvas);
+  g_state.wid_battery_canvas =
+      create_battery_indicator(lv_scr_act(), 588, 7, g_state.battery_percentage);
+
+  if (g_state.lbl_measurement)
+    lv_label_set_text(g_state.lbl_measurement, g_state.data_measurement);
+  if (g_state.lbl_temp) lv_label_set_text(g_state.lbl_temp, g_state.data_temp);
+  if (g_state.lbl_time) lv_label_set_text(g_state.lbl_time, g_state.data_time_ago);
+  if (g_state.lbl_rssi) lv_label_set_text(g_state.lbl_rssi, g_state.data_rssi);
+  if (g_state.lbl_type) lv_label_set_text(g_state.lbl_type, g_state.data_type);
+  if (g_state.lbl_source)
+    lv_label_set_text(g_state.lbl_source, g_state.data_source);
+  if (g_state.lbl_status)
+    lv_label_set_text(g_state.lbl_status, g_state.data_status);
+  for (int i = 0; i < 5; i++) {
+    if (g_state.lbl_history[i])
+      lv_label_set_text(g_state.lbl_history[i], g_state.data_history[i]);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Fetch the current active layout as a user-facing index (0 or 1), regardless
+ * of which screen-size pair is active.
+ */
+uint8_t gravitymon_gateway_get_layout() {
+  return layout_mgr.current_layout - layout_mgr.layout_base;
+}
 
 /**
  * Switch to the specified layout ID.
@@ -614,33 +834,28 @@ uint8_t gravitymon_gateway_get_layout() { return layout_mgr.current_layout; }
  * @param layout_id Layout index to activate.
  */
 void gravitymon_gateway_set_layout(uint8_t layout_id) {
-  if (layout_id >= layout_mgr.total_layouts) {
-    layout_id = 0;
-  }
+  // Clamp to pair size (0 or 1), then map to absolute index for this screen
+  if (layout_id >= layout_mgr.pair_size) layout_id = 0;
+  uint8_t absolute_id = layout_mgr.layout_base + layout_id;
 
-  // If the requested layout is already active, do nothing
-  if (layout_id == layout_mgr.current_layout) {
+  if (absolute_id == layout_mgr.current_layout) {
     Log.verbose(F("UI  : Layout %d already active" CR), layout_id);
     return;
   }
 
-  // Cleanup current layout objects
   gravitymon_gateway_cleanup_layout();
-
-  // Clear entire state for clean new layout
   memset(&g_state, 0, sizeof(g_state));
+  layout_mgr.current_layout = absolute_id;
 
-  // Update layout ID
-  layout_mgr.current_layout = layout_id;
-
-  // Setup new layout
-  if (layout_id == 0) {
-    gravitymon_gateway_setup_layout_0();
-  } else if (layout_id == 1) {
-    gravitymon_gateway_setup_layout_1();
+  switch (absolute_id) {
+    case 0: gravitymon_gateway_setup_layout_0(); break;
+    case 1: gravitymon_gateway_setup_layout_1(); break;
+    case 2: gravitymon_gateway_setup_layout_2(); break;
+    case 3: gravitymon_gateway_setup_layout_3(); break;
   }
 
-  Log.verbose(F("UI  : Layout switched to %d" CR), layout_id);
+  Log.verbose(F("UI  : Layout switched to %d (absolute %d)" CR), layout_id,
+              absolute_id);
 }
 
 /**
@@ -662,25 +877,30 @@ void gravitymon_gateway_init(lv_disp_t* disp, bool darkmode,
 
   memset(&g_state, 0, sizeof(g_state));
 
+  // Detect screen size and select the appropriate layout pair
+  int32_t scr_w = lv_disp_get_hor_res(disp);
+  int32_t scr_h = lv_disp_get_ver_res(disp);
+  layout_mgr.pair_size   = 2;
+  layout_mgr.layout_base = (scr_w >= 800) ? 2 : 0;
+
   // Common initialization (one-time setup)
   gravitymon_gateway_init_common(disp, darkmode);
 
-  // Clamp layout_id to valid range (0..1)
-  if (layout_id >= 2) {
-    layout_id = 0;
-  }
-  layout_mgr.current_layout = layout_id;
+  // Clamp user preference to pair size, then resolve to absolute index
+  if (layout_id >= layout_mgr.pair_size) layout_id = 0;
+  layout_mgr.current_layout = layout_mgr.layout_base + layout_id;
 
-  // Setup requested layout
-  if (layout_id == 0) {
-    gravitymon_gateway_setup_layout_0();
-  } else if (layout_id == 1) {
-    gravitymon_gateway_setup_layout_1();
+  switch (layout_mgr.current_layout) {
+    case 0: gravitymon_gateway_setup_layout_0(); break;
+    case 1: gravitymon_gateway_setup_layout_1(); break;
+    case 2: gravitymon_gateway_setup_layout_2(); break;
+    case 3: gravitymon_gateway_setup_layout_3(); break;
   }
 
-  Log.info(F("UI  : Gravitymon Gateway UI initialized (320x240 landscape, %s "
-             "mode) - layout %d active" CR),
-           darkmode ? "dark" : "light", layout_id);
+  Log.info(F("UI  : Gravitymon Gateway UI initialized (%dx%d, %s mode) "
+             "- layout %d (abs %d)" CR),
+           scr_w, scr_h, darkmode ? "dark" : "light", layout_id,
+           layout_mgr.current_layout);
 }
 
 /**
@@ -706,8 +926,14 @@ void gravitymon_gateway_set_name(const char* name) {
  * @param total Total number of devices.
  */
 void gravitymon_gateway_set_index(uint8_t current, uint8_t total) {
-  snprintf(g_state.data_index, sizeof(g_state.data_index), "%d/%d", current,
-           total);
+  // How many devices fit on one "page" depends on the active layout.
+  // Layouts 0/1 (320×240) show 5 history slots; layouts 2/3 (800×480) also
+  // show 5. Keep page_size in the UI layer so the caller stays layout-agnostic.
+  const int page_size  = 5;
+  const int cur_page   = (current - 1) / page_size + 1;
+  const int tot_pages  = (total + page_size - 1) / page_size;
+  snprintf(g_state.data_index, sizeof(g_state.data_index), "%d/%d",
+           cur_page, tot_pages < 1 ? 1 : tot_pages);
 }
 
 /**
@@ -1138,10 +1364,11 @@ static void gravitymon_gateway_loop_layout_1(void) {
  * LVGL task context.
  */
 void gravitymon_gateway_loop(void) {
-  if (layout_mgr.current_layout == 0) {
-    gravitymon_gateway_loop_layout_0();
-  } else if (layout_mgr.current_layout == 1) {
-    gravitymon_gateway_loop_layout_1();
+  switch (layout_mgr.current_layout) {
+    case 0: gravitymon_gateway_loop_layout_0(); break;
+    case 1: gravitymon_gateway_loop_layout_1(); break;
+    case 2: gravitymon_gateway_loop_layout_2(); break;
+    case 3: gravitymon_gateway_loop_layout_3(); break;
   }
 
   // Apply theme only when it changed since last application

@@ -31,9 +31,12 @@
 #elif defined(LOLIN_S3_PRO)
 #define PIN_VOLT A3
 #define CFG_FILENAMEBIN "firmware32s3pro-tft-sd.bin"
-#elif defined(WAVESHARE_S3_TFT)
+#elif defined(WAVESHARE_S3_TFT28)
 #define PIN_VOLT A3
-#define CFG_FILENAMEBIN "firmware32s3wave-tft-sd.bin"
+#define CFG_FILENAMEBIN "firmware32s3wave-tft28-sd.bin"
+#elif defined(WAVESHARE_S3_TFT43)
+#define PIN_VOLT A3
+#define CFG_FILENAMEBIN "firmware32s3wave-tft43-sd.bin"
 #endif
 
 #endif  // GATEWAY

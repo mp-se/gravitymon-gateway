@@ -27,11 +27,17 @@
 #include <main.hpp>
 
 #if defined(ENABLE_TFT)
+#if LV_USE_TFT_ESPI == 1
 #include <TFT_eSPI.h>
+#endif
 #include <freertos/semphr.h>
 #include <lvgl.h>
 
 #include <ui_helpers.hpp>
+#endif
+
+#if defined(WAVESHARE_S3_TFT43)
+#include <chip/esp_expander_base.hpp>
 #endif
 
 enum FontSize { FONT_9 = 9, FONT_12 = 12, FONT_18 = 18, FONT_24 = 24 };
@@ -39,11 +45,13 @@ enum FontSize { FONT_9 = 9, FONT_12 = 12, FONT_18 = 18, FONT_24 = 24 };
 class Display {
  private:
 #if defined(ENABLE_TFT)
-  TFT_eSPI* _tft = nullptr;
   lv_display_t* _display = nullptr;
+#if defined(WAVESHARE_S3_TFT43)
+#else
+  TFT_eSPI* _tft = nullptr;
   uint32_t _backgroundColor = TFT_BLACK;
   uint16_t _touchCalibrationlData[5] = {0, 0, 0, 0, 0};
-  SemaphoreHandle_t _uiSemaphore = nullptr;
+#endif
 #endif
   FontSize _fontSize = FontSize::FONT_9;
   // Rotation _rotation = ROTATION_90;
@@ -54,8 +62,12 @@ class Display {
   void createUI();
   void calibrateTouch();
 
+#if defined(WAVESHARE_S3_TFT43)
+  esp_expander::Base* getExpander();
+#endif
+
   SPIClass& getSPI() {
-#if defined(ENABLE_TFT)
+#if defined(ENABLE_TFT) && LV_USE_TFT_ESPI == 1
     return _tft->getSPIinstance();
 #else
     return SPI;
@@ -95,7 +107,6 @@ class Display {
   // LVGL methods
   bool getTouch(uint16_t* x, uint16_t* y);  // Check for touch callback
   void handleGestureEventEvent(char gesture);
-  SemaphoreHandle_t getUISemaphore() { return _uiSemaphore; }
 };
 
 // LVGL handlers and utilities
