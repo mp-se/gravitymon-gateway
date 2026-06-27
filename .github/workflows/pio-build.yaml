@@ -38,15 +38,33 @@ jobs:
       - name: Setup PlatformIO
         uses: n-vr/setup-platformio-action@v1.0.1    
 
-      - name: PlatformIO Run
+      - name: Build gateway32pro-tft
         uses: karniv00l/platformio-run-action@v1
         with:
-          environments: "gateway32pro-tft,gateway32s3pro-tft-sd,gateway32s3wave-tft28-sd,gateway32s3wave-tft43-sd"
-          # environments: "gateway32s3wave-release,gateway32s3pro-release,gateway32pro-release"
-          jobs: 6
+          environments: "gateway32pro-tft"
           silent: false
           verbose: true
-          disable-auto-clean: false
+
+      - name: Build gateway32s3pro-tft-sd
+        uses: karniv00l/platformio-run-action@v1
+        with:
+          environments: "gateway32s3pro-tft-sd"
+          silent: false
+          verbose: true
+
+      - name: Build gateway32s3wave-tft28-sd
+        uses: karniv00l/platformio-run-action@v1
+        with:
+          environments: "gateway32s3wave-tft28-sd"
+          silent: false
+          verbose: true
+
+      - name: Build gateway32s3wave-tft43-sd
+        uses: karniv00l/platformio-run-action@v1
+        with:
+          environments: "gateway32s3wave-tft43-sd"
+          silent: false
+          verbose: true
     
       - uses: EndBug/add-and-commit@v9 # You can change this to use a specific version. https://github.com/marketplace/actions/add-commit
         with:
