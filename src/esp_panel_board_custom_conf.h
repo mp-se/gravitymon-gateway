@@ -1,13 +1,30 @@
 /*
+ * GravityMon Gateway
+ * Copyright (c) 2021-2026 Magnus
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ */
+#ifndef SRC_ESP_PANEL_BOARD_CUSTOM_CONF_HPP_
+#define SRC_ESP_PANEL_CUSTOM_CONF_HPP_
+
+#if defined(WAVESHARE_S3_TFT43)
+/*
  * ESP32_Display_Panel board configuration for Waveshare ESP32-S3-Touch-LCD-4.3.
  * Only active when WAVESHARE_S3_TFT43 is defined (gateway32s3wave-tft43-sd env).
  * This header is discovered automatically by ESP32_Display_Panel at compile time.
  */
-#pragma once
-
-// *INDENT-OFF*
-
-#if defined(WAVESHARE_S3_TFT43)
 
 #define ESP_PANEL_BOARD_DEFAULT_USE_CUSTOM  (1)
 
@@ -157,10 +174,6 @@
 #define ESP_PANEL_BOARD_CUSTOM_FILE_VERSION_MINOR 0
 #define ESP_PANEL_BOARD_CUSTOM_FILE_VERSION_PATCH 0
 
-#else  // !WAVESHARE_S3_TFT43
-
-#define ESP_PANEL_BOARD_DEFAULT_USE_CUSTOM  (0)
-
 #endif  // WAVESHARE_S3_TFT43
 
-// *INDENT-ON*
+#endif  // SRC_ESP_PANEL_BOARD_CUSTOM_CONF_HPP_
