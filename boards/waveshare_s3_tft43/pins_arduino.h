@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-static const uint8_t LED_BUILTIN = 43;
+static const uint8_t LED_BUILTIN = 48;  // no LED on this board; 48 is unused
 #define BUILTIN_LED  LED_BUILTIN
 #define LED_BUILTIN LED_BUILTIN
 
