@@ -548,8 +548,8 @@ void lvgl_loop_handler(void *parameter) {
     }
 
     lv_task_handler();
-    lv_tick_inc(10);
-    delay(10);
+    lv_tick_inc(33);
+    delay(33);
   }
 }
 
