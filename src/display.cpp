@@ -254,7 +254,7 @@ void Display::createUI(uint8_t layoutId) {
                           NULL,               // Task input parameter
                           0,                  // Priority of the task
                           &lvglTaskHandler,   // Task handle.
-                          0);                 // Core where the task should run
+                          1);                 // Core 1 — keeps LVGL away from BLE (Core 0)
 
 #if defined(WAVESHARE_S3_TFT43)
   // The flush callback (esp_panel_flush_cb) blocks on ulTaskNotifyTake() and
@@ -548,8 +548,8 @@ void lvgl_loop_handler(void *parameter) {
     }
 
     lv_task_handler();
-    lv_tick_inc(33);
-    delay(33);
+    lv_tick_inc(10);
+    delay(10);
   }
 }
 
