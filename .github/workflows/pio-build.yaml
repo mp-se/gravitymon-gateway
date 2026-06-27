@@ -13,7 +13,7 @@ jobs:
 
     steps:
       - name: Checkout 
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       - name: Checkout UI
         run: |
@@ -35,38 +35,25 @@ jobs:
           # cp -R gravitymon-gateway/boards/ ./
           # cp gravitymon-gateway/platformio.ini ./platformio.ini
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+
       - name: Setup PlatformIO
-        uses: n-vr/setup-platformio-action@v1.0.1    
+        run: pip install platformio
 
       - name: Build gateway32pro-tft
-        uses: karniv00l/platformio-run-action@v1
-        with:
-          environments: "gateway32pro-tft"
-          silent: false
-          verbose: true
+        run: pio run -e gateway32pro-tft
 
       - name: Build gateway32s3pro-tft-sd
-        uses: karniv00l/platformio-run-action@v1
-        with:
-          environments: "gateway32s3pro-tft-sd"
-          silent: false
-          verbose: true
+        run: pio run -e gateway32s3pro-tft-sd
 
       - name: Build gateway32s3wave-tft28-sd
-        uses: karniv00l/platformio-run-action@v1
-        with:
-          environments: "gateway32s3wave-tft28-sd"
-          silent: false
-          verbose: true
+        run: pio run -e gateway32s3wave-tft28-sd
 
       - name: Build gateway32s3wave-tft43-sd
-        uses: karniv00l/platformio-run-action@v1
-        with:
-          environments: "gateway32s3wave-tft43-sd"
-          silent: false
-          verbose: true
+        run: pio run -e gateway32s3wave-tft43-sd
     
-      - uses: EndBug/add-and-commit@v9 # You can change this to use a specific version. https://github.com/marketplace/actions/add-commit
+      - uses: EndBug/add-and-commit@v10 # You can change this to use a specific version. https://github.com/marketplace/actions/add-commit
         with:
           add: 'bin html'
           author_name: GitHub Action
