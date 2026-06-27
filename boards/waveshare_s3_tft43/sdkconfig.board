@@ -1,0 +1,6 @@
+# Prevent esp_bt_mem_release() from freeing non-heap BT controller memory.
+# On ESP32-S3 + IDF 5.x, releasing classic-BT memory causes a heap_caps_free
+# assert because the pointer is outside heap areas. ESP32-S3 has no classic BT
+# so this memory was never allocated from heap in the first place.
+CONFIG_BT_CTRL_PINNED_TO_CORE_0=y
+CONFIG_BT_NIMBLE_MEM_ALLOC_MODE_INTERNAL=y

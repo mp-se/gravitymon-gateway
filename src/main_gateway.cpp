@@ -232,7 +232,7 @@ void setup() {
 
   if (runMode == RunMode::measurementMode && myConfig.isBleEnable()) {
     myDisplay.printLineCentered(3, "Setting up BLE scanner");
-    Log.notice(F("Main: Initialize ble scanner." CR));
+    Log.notice(F("Main: Initialize ble scanner, free heap=%d." CR), ESP.getFreeHeap());
     bleScanner.setScanTime(myConfig.getBleScanTime());
     bleScanner.setAllowActiveScan(myConfig.getBleActiveScan());
     bleScanner.init();

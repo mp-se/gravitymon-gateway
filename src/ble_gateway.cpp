@@ -19,6 +19,7 @@
 #if defined(GATEWAY)
 
 #include <ble_gateway.hpp>
+#include <esp_bt.h>
 #include <cmath>
 #include <cstdio>
 #include <log.hpp>
@@ -303,6 +304,9 @@ void BleScanner::proccesChamberBeacon(const std::string &advertStringHex,
 BleScanner::BleScanner() { _deviceCallbacks = new BleDeviceCallbacks(); }
 
 void BleScanner::init() {
+  // After RTC_SW_CPU_RST the BT controller state is retained in RTC memory but
+  // heap allocations are gone. Deinit first so the controller starts clean.
+  esp_bt_controller_deinit();
   NimBLEDevice::init("");
   _bleScan = NimBLEDevice::getScan();
   _bleScan->setScanCallbacks(_deviceCallbacks);
