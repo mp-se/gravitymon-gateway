@@ -5,13 +5,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build Commands
 
 ```bash
-pio run -e gateway32pro-tft            # ESP32 + ILI9341 TFT (Lolin D32 Pro)
-pio run -e gateway32s3pro-tft-sd       # ESP32-S3 + TFT + SPI SD (Lolin S3 Pro)
-pio run -e gateway32s3wave-tft-sd      # ESP32-S3 + TFT + MMC SD (Waveshare S3 TFT)
+pio run -e gateway32pro-tft            # ESP32 + ILI9341 TFT (Lolin D32 Pro) — builds UI automatically
+pio run -e gateway32s3pro-tft-sd       # ESP32-S3 + TFT + SPI SD (Lolin S3 Pro) — builds UI automatically
+pio run -e gateway32s3wave-tft-sd      # ESP32-S3 + TFT + MMC SD (Waveshare S3 TFT) — builds UI automatically
 pio run -e gateway32-unit              # Unit tests only (ESP32-C3)
 pio run -t upload -e <env>             # Flash firmware
 pio device monitor -e <env>            # Serial monitor at 115200
 ```
+
+### UI Build Integration
+The UI is built manually before firmware builds:
+```bash
+cd ui && npm run build               # Build the UI with Vite
+pio run -e gateway32pro-tft          # Build firmware (pre-build step copies assets)
+cd ui && npm run dev                 # Development with hot reload
+```
+
+UI source lives in `ui/` (Vue 3 + Vite). Build outputs (`dist/`, `node_modules/`) are excluded from git. See `UI_MERGE.md` for full integration details.
 
 ## Architecture
 
@@ -40,13 +50,17 @@ Touch controllers: **XPT2046** (SPI resistive, via TFT_eSPI), **CST328** (I2C ca
 ### Data Flow
 ```
 BLE scan (ble_gateway) → measurement structs → push_gateway (HTTP/MQTT/InfluxDB)
-                                             → display (LVGL UI)
+                                             → display (LVGL UI on TFT)
                                              → sdcard (CSV logging)
 ```
 
-Web server (`web_gateway.cpp`, ESPAsyncWebServer) serves the embedded gzipped SPA from `html/` and exposes the REST API for configuration and data.
+### Web Server & API
+`src/web_gateway.cpp` (ESPAsyncWebServer) serves:
+- Embedded SPA from `html/` (gzipped Vue.js UI built from `ui/` source)
+- REST API for configuration, data query, and control
+- Configuration stored as JSON in LittleFS at `/gravitymon-gw.json`
 
-Configuration is stored as JSON in LittleFS at `/gravitymon-gw.json`.
+The web UI (`ui/`) is a Vue 3 + Vite project that builds to gzipped assets and is embedded in the firmware at build time.
 
 ### Key External Libraries
 - `espframework` / `gravitymon` — shared sensor + push logic (external repos)

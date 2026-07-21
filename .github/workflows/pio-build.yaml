@@ -15,31 +15,22 @@ jobs:
       - name: Checkout 
         uses: actions/checkout@v4.2.2
 
-      - name: Checkout UI
-        run: |
-          echo "Checkout UI"
-          git clone https://github.com/mp-se/gravitymon-gateway-ui gravitymon-gateway-ui 
-          cp gravitymon-gateway-ui/dist/assets/style.css.gz html/app.css.gz
-          cp gravitymon-gateway-ui/dist/assets/index.js.gz html/app.js.gz
-          cp gravitymon-gateway-ui/gravitymon-gateway.html html/index.html
-          cp gravitymon-gateway-ui/dist/favicon.ico html/favicon.ico
-          gzip -f html/favicon.ico
-
-          # echo "Checkout shared code"
-          # git clone -b dev https://github.com/mp-se/gravitymon gravitymon-gateway 
-          # rm ./src/*
-          # rm ./lib/espfwk/*
-          # cp -R gravitymon-gateway/lib/ ./
-          # cp -R gravitymon-gateway/src/ ./
-          # cp -R gravitymon-gateway/script/ ./
-          # cp -R gravitymon-gateway/boards/ ./
-          # cp gravitymon-gateway/platformio.ini ./platformio.ini
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
 
       - name: Setup Python
         uses: actions/setup-python@v5
 
       - name: Setup PlatformIO
         run: pip install platformio
+
+      - name: Build UI
+        run: |
+          cd ui
+          npm install
+          npm run build
 
       - name: Build gateway32pro-tft
         run: pio run -e gateway32pro-tft

@@ -1,10 +1,10 @@
-.pio/*
-.vscode/*
+.pio
+.vscode
+.venv
+.claude
+graphify-out
+
 *.map
-.env/*
 *.pyc
-version.json
 .DS_Store
 idf_component.*
-.venv/
-graphify-out/
