@@ -22,9 +22,11 @@ jobs:
 
       - name: Setup Python
         uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
       - name: Setup PlatformIO
-        run: pip install platformio
+        run: pip install platformio intelhex
 
       - name: Build UI
         run: |
