@@ -22,12 +22,17 @@
 #include <AUnit.h>
 #include <battery.hpp>
 #include <config_gateway.hpp>
+#include <mdns_discovery.hpp>
 
 using aunit::Printer;
 using aunit::TestRunner;
 using aunit::Verbosity;
 
 extern GravmonGatewayConfig myConfig;
+
+// main_gateway.cpp is excluded from the unit-test target, but BLE parsing
+// uses this shared scanner to resolve advertised device names.
+MdnsScanner myMdnsScanner(60000);
 
 void setup() {
   Serial.begin(115200);

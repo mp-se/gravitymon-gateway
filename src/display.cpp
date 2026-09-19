@@ -75,6 +75,8 @@ static volatile int8_t s_pending_layout = -1;  // -1 = no change pending
 
 constexpr auto TTF_CALIBRATION_FILENAME = "/tft.dat";
 
+#if defined(ENABLE_TFT)
+
 #if defined(WAVESHARE_S3_TFT43)
 Display::Display() {}
 #else
@@ -461,7 +463,6 @@ bool Display::getTouch(uint16_t *x, uint16_t *y) {
 // LVGL Wrappers and Handlers
 // **************************************************************************************************
 
-#if defined(ENABLE_TFT)
 void touchScreenHandler(lv_indev_t *indev, lv_indev_data_t *data) {
   uint16_t x = 0, y = 0;
 
@@ -573,12 +574,15 @@ void Display::clear(uint32_t color) {}
 
 void Display::updateEmpty() {}
 void Display::updateGravity(const char *name, uint8_t index, uint8_t maxIndex,
+                            const char *type, const char *source,
                             const char *timestamp, float gravity, char unit,
                             float temp, char tempUnit, float batteryVoltage,
                             float batteryPercentage, int rssi) {}
 
 void Display::updatePressure(const char *name, uint8_t index, uint8_t maxIndex,
-                             const char *timestamp, float pressure, char unit,
+                             const char *type, const char *source,
+                             const char *timestamp, float pressure,
+                             float pressure2, const char *pressureUnit,
                              float temp, char tempUnit, float batteryVoltage,
                              float batteryPercentage, int rssi) {}
 void Display::updateTemperature(const char *name, uint8_t index,

@@ -136,7 +136,7 @@ test(measure_pressure) {
 }
 
 test(measure_chamber) {
-  ChamberData d(MeasurementSource::NoSource, "id", 11.5, 2.2, -10);
+  ChamberData d(MeasurementSource::NoSource, "id", "", 11.5, 2.2, 0, -10);
 
   assertEqual(d.getType(), MeasurementType::Chamber);
   assertEqual(d.getId(), "id");
