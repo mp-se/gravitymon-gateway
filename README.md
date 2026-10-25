@@ -14,6 +14,8 @@ This is a companion device for use with GravityMon v2.0, it will support the new
 
 For documentation see www.gravitymon.com.
 
+Note! The documentation for this project is part of the gravitymon documentation since they share a lot of common features and behaviours
+
 # About GravityMon & GravityMon Gateway
 
 Visit the gravitymon homepage here for more information about the project: https://www.gravitymon.com
