@@ -1,45 +1,129 @@
 /*
-MIT License
-
-Copyright (c) 2024-2025 Magnus
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+ * GravityMon Gateway
+ * Copyright (c) 2021-2026 Magnus
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
  */
 #if defined(GATEWAY)
 
+#if defined(WAVESHARE_S3_TFT43)
+
+// It wraps the ESP-IDF RGB panel driver which supports the bounce-buffer mode
+// that prevents the "screen drift" (left-right shift) caused by PSRAM bandwidth
+// contention between the LCD_CAM GDMA and CPU accesses on ESP32-S3.
+#include <esp_display_panel.hpp>
+#include <lvgl.h>
+
+using namespace esp_panel::drivers;
+using namespace esp_panel::board;
+
+static Board* s_board = nullptr;
+static TaskHandle_t s_lvgl_task = nullptr;
+
+// ISR: fired at end of every frame scan-out (vsync).  Unblocks the flush
+// callback so LVGL can hand the freshly-rendered buffer to the display.
+// Guard against the ISR firing before the LVGL task is created (the RGB panel
+// starts scanning immediately inside board->begin(), before createUI() runs).
+IRAM_ATTR static bool onLcdVsync(void* /*user_data*/) {
+  if (!s_lvgl_task) return false;
+  BaseType_t yield = pdFALSE;
+  vTaskNotifyGiveFromISR(s_lvgl_task, &yield);
+  return yield == pdTRUE;
+}
+
+// Double-buffer flush: atomically switch which frame buffer the LCD scans out,
+// then block until that frame has been fully sent (vsync).  Only after vsync
+// does LVGL get back the buffer it just displayed so it can render the next
+// frame into it — no tearing, no drift.
+static void esp_panel_flush_cb(lv_display_t* disp, const lv_area_t* /*area*/,
+                                uint8_t* px_map) {
+  s_board->getLCD()->switchFrameBufferTo(px_map);
+  ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+  lv_display_flush_ready(disp);
+}
+
+#else  // !WAVESHARE_S3_TFT43
+
 #include <Touch_CST328.h>
+
+#endif  // WAVESHARE_S3_TFT43
 
 #include <cstdio>
 #include <display.hpp>
 #include <fonts.hpp>
 #include <log.hpp>
 #include <looptimer.hpp>
+#include <ui_gravitymon_gateway.hpp>
+#include <ui_helpers.hpp>
 
 #if defined(ENABLE_TFT)
 TaskHandle_t lvglTaskHandler;
-struct LVGL_Data lvglData;
+static volatile int8_t s_pending_layout = -1;  // -1 = no change pending
+#endif
 
 constexpr auto TTF_CALIBRATION_FILENAME = "/tft.dat";
 
+#if defined(ENABLE_TFT)
+
+#if defined(WAVESHARE_S3_TFT43)
+Display::Display() {}
+#else
 Display::Display() { _tft = new TFT_eSPI(); }
+#endif
+
+#if defined(WAVESHARE_S3_TFT43)
+esp_expander::Base* Display::getExpander() {
+  if (s_board) {
+    auto io_exp = s_board->getIO_Expander();
+    return io_exp ? io_exp->getBase() : nullptr;
+  }
+  return nullptr;
+}
+#endif
 
 void Display::setup() {
+#if defined(WAVESHARE_S3_TFT43)
+  s_board = new Board();
+
+  // init() builds the LCD and bus objects — must come first.
+  if (!s_board->init()) {
+    Log.error(F("DISP: ESP32_Display_Panel init failed." CR));
+    return;
+  }
+
+  // Configure double-buffering and bounce-buffer AFTER init() (objects exist)
+  // but BEFORE begin() (IDF panel not yet started).
+  auto lcd = s_board->getLCD();
+  // Two hardware frame buffers for tear-free double-buffering.
+  lcd->configFrameBufferNumber(2);
+  // Bounce buffer: internal-SRAM staging area decouples the LCD_CAM GDMA
+  // from PSRAM, preventing the "screen drift" issue on ESP32-S3.
+  auto lcd_bus = lcd->getBus();
+  if (lcd_bus && lcd_bus->getBasicAttributes().type == ESP_PANEL_BUS_TYPE_RGB) {
+    static_cast<BusRGB*>(lcd_bus)->configRGB_BounceBufferSize(TFT_WIDTH * 10);
+  }
+
+  if (!s_board->begin()) {
+    Log.error(F("DISP: ESP32_Display_Panel begin failed." CR));
+    return;
+  }
+
+  Log.notice(F("DISP: ESP32_Display_Panel ready, fb0=0x%x fb1=0x%x" CR),
+             (uint32_t)(uintptr_t)lcd->getFrameBufferByIndex(0),
+             (uint32_t)(uintptr_t)lcd->getFrameBufferByIndex(1));
+#else
   if (!_tft) return;
 
   _tft->init();
@@ -53,9 +137,13 @@ void Display::setup() {
     Log.error(F("DISP: Unable to initialize CST328 touch controller." CR));
   }
 #endif
+#endif  // WAVESHARE_S3_TFT43
 }
 
 void Display::setFont(FontSize f) {
+#if defined(WAVESHARE_S3_TFT43)
+  // Do nothing; We only use lvgl, no loading progress
+#else 
   if (!_tft) return;
 
   switch (f) {
@@ -73,35 +161,52 @@ void Display::setFont(FontSize f) {
       _tft->setFreeFont(FF20);
       break;
   }
+#endif
 }
 
 void Display::printLine(int l, const String &text) {
+#if defined(WAVESHARE_S3_TFT43)
+  // Do nothing; We only use lvgl, no loading progress
+#else
   if (!_tft) return;
 
   uint16_t h = _tft->fontHeight();
   _tft->fillRect(0, l * h, _tft->width(), h, TFT_BLACK);
   _tft->drawString(text.c_str(), 0, l * h, GFXFF);
+#endif
 }
 
 void Display::printLineCentered(int l, const String &text) {
+#if defined(WAVESHARE_S3_TFT43)
+  // Do nothing; We only use lvgl, no loading progress
+#else
   if (!_tft) return;
 
   uint16_t h = _tft->fontHeight();
   uint16_t w = _tft->textWidth(text);
   _tft->fillRect(0, l * h, _tft->width(), h, TFT_BLACK);
   _tft->drawString(text.c_str(), (_tft->width() - w) / 2, l * h, GFXFF);
+#endif
 }
 
 void Display::clear(uint32_t color) {
+#if defined(WAVESHARE_S3_TFT43)
+  // Do nothing; We only use lvgl, no loading progress
+#else
   if (!_tft) return;
 
   _backgroundColor = color;
   _tft->fillScreen(_backgroundColor);
   delay(1);
+#endif
 }
 
-void Display::createUI() {
+void Display::createUI(uint8_t layoutId) {
+#if defined(WAVESHARE_S3_TFT43)
+  if (!s_board) return;
+#else
   if (!_tft) return;
+#endif
 
   Log.notice(F("DISP: Using LVL v%d.%d.%d." CR), lv_version_major(),
              lv_version_minor(), lv_version_patch());
@@ -109,24 +214,29 @@ void Display::createUI() {
   lv_init();
   lv_log_register_print_cb(log_print);
 
-#define DRAW_BUF_SIZE (TFT_WIDTH * TFT_HEIGHT / 10 * (LV_COLOR_DEPTH / 8))
-
-  void *draw_buf = ps_malloc(DRAW_BUF_SIZE);
-
+#if defined(WAVESHARE_S3_TFT43)
+  // Use the two hardware frame buffers as LVGL's draw buffers.
+  // LVGL renders into one while the LCD scans out the other; the flush callback
+  // switches them atomically on vsync — no tearing, no copy overhead.
+  auto lcd_dev = s_board->getLCD();
+  void* buf0 = lcd_dev->getFrameBufferByIndex(0);
+  void* buf1 = lcd_dev->getFrameBufferByIndex(1);
+  size_t buf_size = (size_t)TFT_WIDTH * TFT_HEIGHT * 2;  // RGB565 = 2 bytes/px
+  _display = lv_display_create(TFT_WIDTH, TFT_HEIGHT);
+  lv_display_set_flush_cb(_display, esp_panel_flush_cb);
+  lv_display_set_buffers(_display, buf0, buf1, buf_size,
+                         LV_DISPLAY_RENDER_MODE_FULL);
+#else
+  const size_t DRAW_BUF_SIZE = TFT_WIDTH * TFT_HEIGHT / 10 * (LV_COLOR_DEPTH / 8);
+  void* draw_buf = ps_malloc(DRAW_BUF_SIZE);
   if (!draw_buf) {
-    Log.error(
-        F("DISP: Failed to allocate ps ram for display buffer, size=%d" CR),
-        DRAW_BUF_SIZE);
+    Log.error(F("DISP: Failed to allocate PSRAM draw buffer (%u bytes)" CR),
+              (unsigned)DRAW_BUF_SIZE);
+    return;
   }
-
-  lvglData._display =
-      lv_tft_espi_create(TFT_WIDTH, TFT_HEIGHT, draw_buf, DRAW_BUF_SIZE);
-
-  // if (_rotation == Rotation::ROTATION_90) {
-  lv_display_set_rotation(lvglData._display, LV_DISPLAY_ROTATION_90);
-  // } else {  // Rotation::ROTATION_270
-  //   lv_display_set_rotation(lvglData._display, LV_DISPLAY_ROTATION_270);
-  // }
+  _display = lv_tft_espi_create(TFT_WIDTH, TFT_HEIGHT, draw_buf, DRAW_BUF_SIZE);
+  lv_display_set_rotation(_display, LV_DISPLAY_ROTATION_90);
+#endif
 
   // Initialize an LVGL input device object (Touchscreen)
   lv_indev_t *indev = lv_indev_create();
@@ -137,55 +247,8 @@ void Display::createUI() {
   lv_obj_t *scr = lv_scr_act();
   lv_obj_add_event_cb(scr, gestureScreenHandler, LV_EVENT_GESTURE, NULL);
 
-  // Create components
-  lv_style_init(&lvglData._font12);
-  lv_style_init(&lvglData._font12c);
-  lv_style_init(&lvglData._font16c);
-  lv_style_init(&lvglData._font20c);
-  lv_style_set_text_font(&lvglData._font12, &lv_font_montserrat_12);
-  lv_style_set_text_font(&lvglData._font12c, &lv_font_montserrat_12);
-  lv_style_set_text_font(&lvglData._font16c, &lv_font_montserrat_16);
-  lv_style_set_text_font(&lvglData._font20c, &lv_font_montserrat_20);
-  lv_style_set_text_align(&lvglData._font12, LV_TEXT_ALIGN_LEFT);
-  lv_style_set_text_align(&lvglData._font12c, LV_TEXT_ALIGN_CENTER);
-  lv_style_set_text_align(&lvglData._font16c, LV_TEXT_ALIGN_CENTER);
-  lv_style_set_text_align(&lvglData._font20c, LV_TEXT_ALIGN_CENTER);
-
-  // For showing the layout
-  // lv_style_set_outline_width(&lvglData._font12, 1);
-  // lv_style_set_outline_color(&lvglData._font12,
-  // lv_palette_main(LV_PALETTE_BLUE));
-  // lv_style_set_outline_width(&lvglData._font12c, 1);
-  // lv_style_set_outline_color(&lvglData._font12c,
-  // lv_palette_main(LV_PALETTE_BLUE));
-  // lv_style_set_outline_width(&lvglData._font16c, 1);
-  // lv_style_set_outline_color(&lvglData._font16c,
-  // lv_palette_main(LV_PALETTE_BLUE));
-  // lv_style_set_outline_width(&lvglData._font20c, 1);
-  // lv_style_set_outline_color(&lvglData._font20c,
-  // lv_palette_main(LV_PALETTE_BLUE));
-
-  Log.notice(F("DISP: Creating UI components." CR));
-
-  lvglData._txtDeviceName = createLabel("", 5, 5, 250, 36, &lvglData._font20c);
-  lvglData._txtDeviceIndex =
-      createLabel("", 260, 5, 54, 36, &lvglData._font16c);
-  lvglData._txtDeviceValue1 =
-      createLabel("", 30, 45, 75, 36, &lvglData._font16c);
-  lvglData._txtDeviceValue2 =
-      createLabel("", 110, 45, 100, 36, &lvglData._font16c);
-  lvglData._txtDeviceValue3 =
-      createLabel("", 215, 45, 75, 36, &lvglData._font16c);
-  lvglData._txtDeviceTimeStamp =
-      createLabel("", 30, 85, 260, 26, &lvglData._font16c);
-  lvglData._txtStatusbar = createLabel("", 5, 219, 310, 18, &lvglData._font12c);
-
-  for (int i = 0; i < 5; i++)
-    lvglData._txtHistory[i] =
-        createLabel("", 5, 114 + (i * 21), 310, 18, &lvglData._font12);
-
-  lvglData._btnLeft = createButton("<", 5, 45, 25, 66, btnLeftEventHandler);
-  lvglData._btnRight = createButton(">", 290, 45, 26, 66, btnRightEventHandler);
+  // Initialize the gravitymon gateway UI with selected layout
+  gravitymon_gateway_init(_display, false, layoutId);
 
   xTaskCreatePinnedToCore(lvgl_loop_handler,  // Function to implement the task
                           "LVGL_Handler",     // Name of the task
@@ -193,32 +256,102 @@ void Display::createUI() {
                           NULL,               // Task input parameter
                           0,                  // Priority of the task
                           &lvglTaskHandler,   // Task handle.
-                          0);                 // Core where the task should run
+                          1);                 // Core 1 — keeps LVGL away from BLE (Core 0)
+
+#if defined(WAVESHARE_S3_TFT43)
+  // The flush callback (esp_panel_flush_cb) blocks on ulTaskNotifyTake() and
+  // the vsync ISR (onLcdVsync) unblocks it via vTaskNotifyGiveFromISR().
+  // s_lvgl_task must point at the LVGL task handle — set it now, after the
+  // task has been created and its handle is valid.
+  s_lvgl_task = lvglTaskHandler;
+#endif
 }
 
-void Display::updateDevice(const char *name, const char *value1,
-                           const char *value2, const char *value3,
-                           const char *timestamp, int index, int maxIndex) {
-  lvglData._dataDeviceName = name;
-  lvglData._dataDeviceValue1 = value1;
-  lvglData._dataDeviceValue2 = value2;
-  lvglData._dataDeviceValue3 = value3;
-  lvglData._dataDeviceTimeStamp = timestamp;
+void Display::updateEmpty() {
+  gravitymon_gateway_set_name("");
+  gravitymon_gateway_set_index(0, 0);
+  gravitymon_gateway_set_type("");
+  gravitymon_gateway_set_source("");
+  gravitymon_gateway_set_time("");
+  gravitymon_gateway_set_gravity(NAN, ' ');
+  gravitymon_gateway_set_temp(NAN, NAN, ' ');
+  gravitymon_gateway_set_battery_voltage(NAN);
+  gravitymon_gateway_set_battery_percentage(NAN);
+  gravitymon_gateway_set_rssi(0);
+}
 
-  char buf[10] = "";
+void Display::updateGravity(const char *name, uint8_t index, uint8_t maxIndex,
+                            const char *type, const char *source,
+                            const char *timestamp, float gravity,
+                            char gravityUnit, float temp, char tempUnit,
+                            float batteryVoltage, float batteryPercentage,
+                            int rrsi) {
+  gravitymon_gateway_set_name(name);
+  gravitymon_gateway_set_index(index, maxIndex);
+  gravitymon_gateway_set_type(type);
+  gravitymon_gateway_set_source(source);
+  gravitymon_gateway_set_time(timestamp);
+  gravitymon_gateway_set_gravity(gravity, gravityUnit);
+  gravitymon_gateway_set_temp(temp, NAN, tempUnit);
+  gravitymon_gateway_set_battery_voltage(batteryVoltage);
+  gravitymon_gateway_set_battery_percentage(batteryPercentage);
+  gravitymon_gateway_set_rssi(rrsi);
+}
 
-  if (maxIndex) snprintf(buf, sizeof(buf), "%d/%d", index + 1, maxIndex);
+void Display::updatePressure(const char *name, uint8_t index, uint8_t maxIndex,
+                             const char *type, const char *source,
+                             const char *timestamp, float pressure,
+                             float pressure2, const char *pressureUnit,
+                             float temp, char tempUnit, float batteryVoltage,
+                             float batteryPercentage, int rrsi) {
+  gravitymon_gateway_set_name(name);
+  gravitymon_gateway_set_index(index, maxIndex);
+  gravitymon_gateway_set_type(type);
+  gravitymon_gateway_set_source(source);
+  gravitymon_gateway_set_time(timestamp);
+  gravitymon_gateway_set_pressure(pressure, pressure2, pressureUnit);
+  gravitymon_gateway_set_temp(temp, NAN, tempUnit);
+  gravitymon_gateway_set_battery_voltage(batteryVoltage);
+  gravitymon_gateway_set_battery_percentage(batteryPercentage);
+  gravitymon_gateway_set_rssi(rrsi);
+}
 
-  lvglData._dataDeviceIndex = buf;
+void Display::updateTemperature(const char *name, uint8_t index,
+                                uint8_t maxIndex, const char *type,
+                                const char *source, const char *timestamp,
+                                float temp, float temp2, char tempUnit,
+                                int rrsi) {
+  gravitymon_gateway_set_name(name);
+  gravitymon_gateway_set_index(index, maxIndex);
+  gravitymon_gateway_set_type(type);
+  gravitymon_gateway_set_source(source);
+  gravitymon_gateway_set_time(timestamp);
+  gravitymon_gateway_set_gravity(NAN, ' ');  // clear SG/pressure field
+  gravitymon_gateway_set_temp(temp, temp2, tempUnit);
+  gravitymon_gateway_set_battery_voltage(NAN);
+  gravitymon_gateway_set_battery_percentage(NAN);
+  gravitymon_gateway_set_rssi(rrsi);
 }
 
 void Display::updateHistory(const char *history, int idx) {
-  lvglData._dataHistory[idx] = history;
+  gravitymon_gateway_set_history(idx, history);
 }
 
-void Display::updateStatus(const char *status, bool darkmode) {
-  lvglData._dataStatusbar = status;
-  lvglData._darkmode = darkmode;
+void Display::updateStatus(const char *status) {
+  gravitymon_gateway_set_status(status);
+}
+
+void Display::updateDarkmode(bool darkmode) {
+  gravitymon_gateway_set_theme(darkmode);
+}
+
+void Display::setLayout(uint8_t layoutId) {
+#if defined(ENABLE_TFT)
+  // Signal the LVGL task to switch layout on its next iteration.
+  // gravitymon_gateway_set_layout() calls LVGL APIs that are not thread-safe,
+  // so it must run from the LVGL task — never from the main task.
+  s_pending_layout = static_cast<int8_t>(layoutId);
+#endif
 }
 
 void Display::calibrateTouch() {
@@ -282,7 +415,18 @@ void Display::calibrateTouch() {
 bool Display::getTouch(uint16_t *x, uint16_t *y) {
 #if defined(ENABLE_TFT)
 
-#if TOUCH_CS == -1  // Using CST328 touch on waveshare
+#if defined(WAVESHARE_S3_TFT43)
+  if (!s_board) return false;
+  auto touch = s_board->getTouch();
+  if (touch) {
+    TouchPoint tp;
+    if (touch->readPoints(&tp, 1, 0) > 0) {
+      *x = tp.x;
+      *y = tp.y;
+      return true;
+    }
+  }
+#elif TOUCH_CS == -1  // Using CST328 touch on waveshare
   uint16_t xt[CST328_LCD_TOUCH_MAX_POINTS] = {0};
   uint16_t yt[CST328_LCD_TOUCH_MAX_POINTS] = {0};
   uint16_t strength[CST328_LCD_TOUCH_MAX_POINTS] = {0};
@@ -290,17 +434,9 @@ bool Display::getTouch(uint16_t *x, uint16_t *y) {
 
   Touch_Read_Data();
   uint8_t b =
-      Touch_Get_XY(xt, yt, strength, &cnt, uint8_t CST328_LCD_TOUCH_MAX_POINTS);
+      Touch_Get_XY(xt, yt, strength, &cnt, CST328_LCD_TOUCH_MAX_POINTS);
 
   if (b && cnt > 0) {
-    // if (_rotation == Rotation::ROTATION_90) {
-    //   *x = yt[0];
-    //   *y = TFT_HEIGHT - xt[0];
-    // } else {  // Rotation::ROTATION_270
-    //   *x = yt[0];
-    //   *y = TFT_HEIGHT - xt[0];
-    // }
-
     *x = TFT_WIDTH - xt[0];
     *y = TFT_HEIGHT - yt[0];
     return true;
@@ -313,13 +449,8 @@ bool Display::getTouch(uint16_t *x, uint16_t *y) {
     if (xt < 0) xt = 0;
     if (yt < 0) yt = 0;
 
-    // if (_rotation == Rotation::ROTATION_90) {
     *x = yt;
     *y = TFT_HEIGHT - xt;
-    // } else {  // Rotation::ROTATION_270
-    //   *x = yt;
-    //   *y = TFT_HEIGHT - xt;
-    // }
     return true;
   }
 #endif
@@ -388,83 +519,38 @@ void log_print(lv_log_level_t level, const char *buf) {
   Log.notice(F("LVGL: %s." CR), buf);
 }
 
-lv_obj_t *createButton(const char *label, int32_t x, int32_t y, int32_t w,
-                       int32_t h, lv_event_cb_t handler) {
-  lv_obj_t *btn;
-  btn = lv_button_create(lv_screen_active());
-  lv_obj_set_size(btn, w, h);
-  lv_obj_set_pos(btn, x, y);
-  lv_obj_add_event_cb(btn, handler, LV_EVENT_ALL, NULL);
-  lv_obj_t *lbl = lv_label_create(btn);
-  lv_label_set_text(lbl, label);
-  lv_obj_center(lbl);
-  return btn;
-}
-
-lv_obj_t *createLabel(const char *label, int32_t x, int32_t y, int32_t w,
-                      int32_t h, lv_style_t *style) {
-  lv_obj_t *lbl = lv_label_create(lv_screen_active());
-  lv_label_set_text(lbl, label);
-  lv_obj_set_size(lbl, w, h);
-  lv_obj_set_pos(lbl, x, y);
-  lv_obj_add_style(lbl, style, 0);
-  return lbl;
-}
-
 void updateLabel(lv_obj_t *obj, const char *label) {
   lv_label_set_text(obj, label);
 }
 
 void lvgl_loop_handler(void *parameter) {
+  // Capture this task's handle so the vsync ISR can unblock the flush callback.
+#if defined(WAVESHARE_S3_TFT43)
+  s_lvgl_task = xTaskGetCurrentTaskHandle();
+  if (s_board) {
+    s_board->getLCD()->attachRefreshFinishCallback(onLcdVsync, nullptr);
+  }
+#endif
+
   LoopTimer taskLoop(500);
 
   for (;;) {
+    // Apply any pending layout switch requested from the main task.
+    // gravitymon_gateway_set_layout() touches LVGL objects so it must run here.
+    int8_t pending = s_pending_layout;
+    if (pending >= 0) {
+      s_pending_layout = -1;
+      gravitymon_gateway_set_layout(static_cast<uint8_t>(pending));
+    }
+
     if (taskLoop.hasExpired()) {
       taskLoop.reset();
-
-      lv_obj_t *scr = lv_scr_act();
-      lv_color_t color;
-
-      if (lvglData._darkmode) {
-        lv_obj_set_style_bg_color(scr, lv_color_hex(0x1F1F1F), LV_PART_MAIN);
-        lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, LV_PART_MAIN);
-        color = lv_color_white();
-      } else {
-        lv_obj_set_style_bg_color(scr, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
-        lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, LV_PART_MAIN);
-        color = lv_color_black();
-      }
-
-      lv_obj_set_style_text_color(lvglData._txtDeviceName, color, 0);
-      lv_obj_set_style_text_color(lvglData._txtDeviceIndex, color, 0);
-      lv_obj_set_style_text_color(lvglData._txtDeviceValue1, color, 0);
-      lv_obj_set_style_text_color(lvglData._txtDeviceValue2, color, 0);
-      lv_obj_set_style_text_color(lvglData._txtDeviceValue3, color, 0);
-      lv_obj_set_style_text_color(lvglData._txtDeviceTimeStamp, color, 0);
-      lv_obj_set_style_text_color(lvglData._txtStatusbar, color, 0);
-
-      for (int i = 0; i < 5; i++)
-        lv_obj_set_style_text_color(lvglData._txtHistory[i], color, 0);
-
-      updateLabel(lvglData._txtDeviceName, lvglData._dataDeviceName.c_str());
-      updateLabel(lvglData._txtDeviceIndex, lvglData._dataDeviceIndex.c_str());
-      updateLabel(lvglData._txtDeviceValue1,
-                  lvglData._dataDeviceValue1.c_str());
-      updateLabel(lvglData._txtDeviceValue2,
-                  lvglData._dataDeviceValue2.c_str());
-      updateLabel(lvglData._txtDeviceValue3,
-                  lvglData._dataDeviceValue3.c_str());
-      updateLabel(lvglData._txtDeviceTimeStamp,
-                  lvglData._dataDeviceTimeStamp.c_str());
-      updateLabel(lvglData._txtStatusbar, lvglData._dataStatusbar.c_str());
-
-      for (int i = 0; i < 5; i++)
-        updateLabel(lvglData._txtHistory[i], lvglData._dataHistory[i].c_str());
+      gravitymon_gateway_loop();
     }
 
     lv_task_handler();
-    lv_tick_inc(5);
-    delay(5);
+    lv_tick_inc(10);
+    delay(10);
   }
 }
 
@@ -474,25 +560,45 @@ Display::Display() {}
 
 void Display::setup() {}
 
-void Display::createUI() {}
+void Display::createUI(uint8_t layoutId) {}
 
 void Display::calibrateTouch() {}
 
 void Display::setFont(FontSize f) {}
 
-void Display::printLine(int l, const String& text) {}
+void Display::printLine(int l, const String &text) {}
 
-void Display::printLineCentered(int l, const String& text) {}
+void Display::printLineCentered(int l, const String &text) {}
 
 void Display::clear(uint32_t color) {}
 
-void Display::updateDevice(const char* name, const char* value1,
-                           const char* value2, const char* value3,
-                           const char* timestamp, int index, int maxIndex) {}
-void Display::updateHistory(const char* history, int idx) {}
-void Display::updateStatus(const char* status, bool darkmode) {}
+void Display::updateEmpty() {}
+void Display::updateGravity(const char *name, uint8_t index, uint8_t maxIndex,
+                            const char *type, const char *source,
+                            const char *timestamp, float gravity, char unit,
+                            float temp, char tempUnit, float batteryVoltage,
+                            float batteryPercentage, int rssi) {}
 
-#endif
+void Display::updatePressure(const char *name, uint8_t index, uint8_t maxIndex,
+                             const char *type, const char *source,
+                             const char *timestamp, float pressure,
+                             float pressure2, const char *pressureUnit,
+                             float temp, char tempUnit, float batteryVoltage,
+                             float batteryPercentage, int rssi) {}
+void Display::updateTemperature(const char *name, uint8_t index,
+                                uint8_t maxIndex, const char *timestamp,
+                                const char *type, const char *source,
+                                float temp, float temp2, char tempUnit,
+                                int rssi) {}
+void Display::updateHistory(const char *history, int idx) {}
+
+void Display::updateStatus(const char *status) {}
+
+void Display::updateDarkmode(bool darkmode) {}
+
+void Display::setLayout(uint8_t layoutId) {}
+
+#endif  // ENABLE_TFT
 
 #endif  // GATEWAY
 

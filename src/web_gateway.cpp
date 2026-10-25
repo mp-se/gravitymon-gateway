@@ -1,25 +1,20 @@
 /*
-MIT License
-
-Copyright (c) 2021-2025 Magnus
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+ * GravityMon Gateway
+ * Copyright (c) 2021-2026 Magnus
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
  */
 #if defined(GATEWAY)
 
@@ -28,6 +23,7 @@ SOFTWARE.
 #include <ble_gateway.hpp>
 #include <config_gateway.hpp>
 #include <main_gateway.hpp>
+#include <mdns_discovery.hpp>
 #include <measurement.hpp>
 #include <memory>
 #include <push_gateway.hpp>
@@ -61,9 +57,13 @@ constexpr auto PARAM_SD_MOUNTED = "sd_mounted";
 constexpr auto PARAM_SD = "sd";
 constexpr auto PARAM_TFT = "tft";
 
-#if defined(ENABLE_MMC) || defined(ENABLE_SD)
-extern Storage mySdStorage;
+#if defined(ENABLE_MMC)
+extern SdCardMMC mySdStorage;
+#elif defined(ENABLE_SD)
+extern SdCardSD mySdStorage;
 #endif
+
+extern MdnsScanner myMdnsScanner;
 
 GatewayWebServer::GatewayWebServer(GravmonGatewayConfig *config)
     : BrewingWebServer(config), _gatewayConfig(config) {}
@@ -99,8 +99,10 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
 
         gravityDevices[gravIdx][PARAM_NAME] = gd->getName();
         gravityDevices[gravIdx][PARAM_DEVICE] = gd->getId();
-        gravityDevices[gravIdx][PARAM_GRAVITY] = gd->getGravity();
-        gravityDevices[gravIdx][PARAM_TEMP] = gd->getTempC();
+        if (!isnan(gd->getGravity()))
+          gravityDevices[gravIdx][PARAM_GRAVITY] = gd->getGravity();
+        if (!isnan(gd->getTempC()))
+          gravityDevices[gravIdx][PARAM_TEMP] = gd->getTempC();
         gravityDevices[gravIdx][PARAM_UPDATE_TIME] = entry->getUpdateAge();
         gravityDevices[gravIdx][PARAM_PUSH_TIME] = entry->getPushAge();
         gravityDevices[gravIdx][PARAM_SOURCE] = gd->getSourceAsString();
@@ -114,9 +116,12 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
 
         pressureDevices[pressIdx][PARAM_NAME] = pd->getName();
         pressureDevices[pressIdx][PARAM_DEVICE] = pd->getId();
-        pressureDevices[pressIdx][PARAM_PRESSURE] = pd->getPressure();
-        pressureDevices[pressIdx][PARAM_PRESSURE1] = pd->getPressure1();
-        pressureDevices[pressIdx][PARAM_TEMP] = pd->getTempC();
+        if (!isnan(pd->getPressure()))
+          pressureDevices[pressIdx][PARAM_PRESSURE] = pd->getPressure();
+        if (!isnan(pd->getPressure1()))
+          pressureDevices[pressIdx][PARAM_PRESSURE1] = pd->getPressure1();
+        if (!isnan(pd->getTempC()))
+          pressureDevices[pressIdx][PARAM_TEMP] = pd->getTempC();
         pressureDevices[pressIdx][PARAM_UPDATE_TIME] = entry->getUpdateAge();
         pressureDevices[pressIdx][PARAM_PUSH_TIME] = entry->getPushAge();
         pressureDevices[pressIdx][PARAM_SOURCE] = pd->getSourceAsString();
@@ -131,8 +136,10 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
 
         gravityDevices[gravIdx][PARAM_NAME] = td->getTiltColor();
         gravityDevices[gravIdx][PARAM_DEVICE] = td->getId();
-        gravityDevices[gravIdx][PARAM_GRAVITY] = td->getGravity();
-        gravityDevices[gravIdx][PARAM_TEMP] = td->getTempC();
+        if (!isnan(td->getGravity()))
+          gravityDevices[gravIdx][PARAM_GRAVITY] = td->getGravity();
+        if (!isnan(td->getTempC()))
+          gravityDevices[gravIdx][PARAM_TEMP] = td->getTempC();
         gravityDevices[gravIdx][PARAM_UPDATE_TIME] = entry->getUpdateAge();
         gravityDevices[gravIdx][PARAM_PUSH_TIME] = entry->getPushAge();
         gravityDevices[gravIdx][PARAM_SOURCE] = td->getSourceAsString();
@@ -144,10 +151,13 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
         Log.notice("WEB: Processing Chamber data %d." CR, i);
         const ChamberData *cd = entry->getChamberData();
 
-        temperatureDevices[tempIdx][PARAM_NAME] = "";
+        temperatureDevices[tempIdx][PARAM_NAME] = cd->getName();
         temperatureDevices[tempIdx][PARAM_DEVICE] = cd->getId();
-        temperatureDevices[tempIdx][PARAM_CHAMBER_TEMP] = cd->getChamberTempC();
-        temperatureDevices[tempIdx][PARAM_BEER_TEMP] = cd->getBeerTempC();
+        if (!isnan(cd->getChamberTempC()))
+          temperatureDevices[tempIdx][PARAM_CHAMBER_TEMP] =
+              cd->getChamberTempC();
+        if (!isnan(cd->getBeerTempC()))
+          temperatureDevices[tempIdx][PARAM_BEER_TEMP] = cd->getBeerTempC();
         temperatureDevices[tempIdx][PARAM_UPDATE_TIME] = entry->getUpdateAge();
         temperatureDevices[tempIdx][PARAM_PUSH_TIME] = entry->getPushAge();
         temperatureDevices[tempIdx][PARAM_SOURCE] = cd->getSourceAsString();
@@ -159,11 +169,13 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
         Log.notice("WEB: Processing Rapt data %d." CR, i);
         const RaptData *rd = entry->getRaptData();
 
-        gravityDevices[gravIdx][PARAM_NAME] = rd->getId();
         gravityDevices[gravIdx][PARAM_DEVICE] = rd->getId();
-        gravityDevices[gravIdx][PARAM_GRAVITY] = rd->getGravity();
-        gravityDevices[gravIdx][PARAM_VELOCITY] = rd->getVelocity();
-        gravityDevices[gravIdx][PARAM_TEMP] = rd->getTempC();
+        if (!isnan(rd->getGravity()))
+          gravityDevices[gravIdx][PARAM_GRAVITY] = rd->getGravity();
+        if (!isnan(rd->getVelocity()))
+          gravityDevices[gravIdx][PARAM_VELOCITY] = rd->getVelocity();
+        if (!isnan(rd->getTempC()))
+          gravityDevices[gravIdx][PARAM_TEMP] = rd->getTempC();
         gravityDevices[gravIdx][PARAM_UPDATE_TIME] = entry->getUpdateAge();
         gravityDevices[gravIdx][PARAM_PUSH_TIME] = entry->getPushAge();
         gravityDevices[gravIdx][PARAM_SOURCE] = rd->getSourceAsString();
@@ -199,6 +211,9 @@ bool GatewayWebServer::setupWebServer(const char *serviceName) {
       "/api/sd", std::bind(&GatewayWebServer::webHandleSecureDigital, this,
                            std::placeholders::_1, std::placeholders::_2));
   _server->addHandler(handler);
+  _server->on(
+      "/api/mdns", (WebRequestMethodComposite)HTTP_GET,
+      [this](AsyncWebServerRequest *request) { webHandleMdns(request); });
 #if defined(ENABLE_MMC) || defined(ENABLE_SD)
   _server->serveStatic("/sd", mySdStorage.getFS(), "/");
 #endif
@@ -526,6 +541,22 @@ void GatewayWebServer::webHandleSecureDigital(AsyncWebServerRequest *request,
   }
 #endif
 }
+
+void GatewayWebServer::webHandleMdns(AsyncWebServerRequest *request) {
+  if (!isAuthenticated(request)) {
+    return;
+  }
+
+  Log.notice(F("WEB : webServer callback for /api/hardware." CR));
+  AsyncJsonResponse *response = new AsyncJsonResponse(false);
+  JsonObject obj = response->getRoot().as<JsonObject>();
+  myMdnsScanner.populateJson(obj);
+  response->setLength();
+  request->send(response);
+}
+
+// void GatewayWebServer::doTaskHardwareScanning(JsonObject &obj) {
+// }
 
 #endif  // GATEWAY
 

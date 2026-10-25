@@ -1,25 +1,20 @@
 /*
-MIT License
-
-Copyright (c) 2025 Magnus
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+ * GravityMon Gateway
+ * Copyright (c) 2021-2026 Magnus
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
  */
 #ifndef SRC_MEASUREMENT_HPP_
 #define SRC_MEASUREMENT_HPP_
@@ -37,8 +32,10 @@ SOFTWARE.
 #include <utility>
 #include <utils.hpp>
 
-#if defined(ENABLE_MMC) || defined(ENABLE_SD)
-extern Storage mySdStorage;
+#if defined(ENABLE_MMC)
+extern SdCardMMC mySdStorage;
+#elif defined(ENABLE_SD)
+extern SdCardSD mySdStorage;
 #endif
 
 enum MeasurementType {
@@ -362,21 +359,27 @@ class ChamberData : public MeasurementBaseData {
  private:
   float _chamberTempC = 0;
   float _beerTempC = 0;
+  int _txPower = 0;
   int _rssi = 0;
+  String _name = "";
 
  public:
-  ChamberData(MeasurementSource source, String id, float chamberTempC,
-              float beerTempC, int rssi)
+  ChamberData(MeasurementSource source, String id, String name,
+              float chamberTempC, float beerTempC, int txPower, int rssi)
       : MeasurementBaseData(id, MeasurementType::Chamber, source) {
     _chamberTempC = chamberTempC;
     _beerTempC = beerTempC;
     _rssi = rssi;
+    _txPower = txPower;
+    _name = name;
   }
   virtual ~ChamberData() {}
 
   float getChamberTempC() const { return _chamberTempC; }
   float getBeerTempC() const { return _beerTempC; }
+  int getTxPower() const { return _txPower; }
   int getRssi() const { return _rssi; }
+  const char* getName() const { return _name.c_str(); }
 
   void writeToFile(File& file) const {
     char buffer[300];
@@ -391,8 +394,8 @@ class ChamberData : public MeasurementBaseData {
     // 5, ChamberTemp (C)
     // 6, BeerTemp (C)
     // 7, Rssi
-    // 8,
-    // 9,
+    // 8, Name (new in 0.9.0)
+    // 9, TxPower (new 0.9.0)
     // 10,
     // 11,
     // 12,
@@ -400,9 +403,10 @@ class ChamberData : public MeasurementBaseData {
 
     snprintf(buffer, sizeof(buffer),
              "1,%s,%s,%s,%s,"
-             "%.2f,%.2f,%d,,,,,,",
+             "%.2f,%.2f,%d,%s,%d,,,,",
              getTypeAsString(), getSourceAsString(), getCreatedAsString(),
-             getId(), getChamberTempC(), getBeerTempC(), getRssi());
+             getId(), getChamberTempC(), getBeerTempC(), getRssi(), getName(),
+             getTxPower());
     file.println(buffer);
   }
 };
@@ -413,7 +417,7 @@ class RaptData : public MeasurementBaseData {
   float _gravity = 0;
   float _angle = 0;
   float _velocity = 0;
-  float _battery = 0;
+  float _batteryPercent = 0;
   int _rssi = 0;
   int _txPower = 0;
 
@@ -421,13 +425,14 @@ class RaptData : public MeasurementBaseData {
   // Note! For RAPT the last part of the MAC adress is used as ID since the
   // payload does not contain that.
   RaptData(MeasurementSource source, String id, float tempC, float gravity,
-           float velocity, float angle, float battery, int txPower, int rssi)
+           float velocity, float angle, float batteryPercent, int txPower,
+           int rssi)
       : MeasurementBaseData(id, MeasurementType::Rapt, source) {
     _tempC = tempC;
     _velocity = velocity;
     _gravity = gravity;
     _angle = angle;
-    _battery = battery;
+    _batteryPercent = batteryPercent;
     _txPower = txPower;
     _rssi = rssi;
   }
@@ -437,7 +442,7 @@ class RaptData : public MeasurementBaseData {
   float getGravity() const { return _gravity; }
   float getVelocity() const { return _velocity; }
   float getAngle() const { return _angle; }
-  float getBattery() const { return _battery; }
+  float getBatteryPercent() const { return _batteryPercent; }
   int getTxPower() const { return _txPower; }
   int getRssi() const { return _rssi; }
 
@@ -454,7 +459,7 @@ class RaptData : public MeasurementBaseData {
     // 5, Temperature (C)
     // 6, Gravity (SG)
     // 7, Angle
-    // 8, Battery
+    // 8, BatteryPercent
     // 9, Tx Power
     // 10, Rssi
 
@@ -462,7 +467,7 @@ class RaptData : public MeasurementBaseData {
              "1,%s,%s,%s,%s,"
              "%.2f,%.4f,%.4f,%.2f,%d,%d,,,",
              getTypeAsString(), getSourceAsString(), getCreatedAsString(),
-             getId(), getTempC(), getGravity(), getAngle(), getBattery(),
+             getId(), getTempC(), getGravity(), getAngle(), getBatteryPercent(),
              getTxPower(), getRssi());
     file.println(buffer);
   }
