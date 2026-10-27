@@ -256,7 +256,11 @@ void Display::createUI(uint8_t layoutId) {
                           NULL,               // Task input parameter
                           0,                  // Priority of the task
                           &lvglTaskHandler,   // Task handle.
-                          1);                 // Core 1 — keeps LVGL away from BLE (Core 0)
+#if defined(WAVESHARE_S3_TFT43)
+                          1);                 // Keep RGB-panel LVGL away from BLE on Core 0
+#else
+                          0);                 // TFT28 used Core 0 in 0.9.0; Core 1 runs AsyncTCP
+#endif
 
 #if defined(WAVESHARE_S3_TFT43)
   // The flush callback (esp_panel_flush_cb) blocks on ulTaskNotifyTake() and
