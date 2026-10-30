@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en" data-accent-color="violet" data-content_root="./">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Push targets and service integration - GravityMon Gateway 0.9.1 documentation</title><link rel="shortcut icon" href="_static/gateway-icon.png"/><link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Format templates" href="format-template.html" /><link rel="prev" title="Hardware" href="hardware.html" /><script>
+    function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
+    setColorMode(localStorage._theme||"auto");
+  </script><link rel="stylesheet" type="text/css" href="_static/pygments.css?v=e1a1ceaf" />
+    <link rel="stylesheet" type="text/css" href="_static/shibuya.css?v=2ceb65ce" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+    <link media="print" rel="stylesheet" type="text/css" href="_static/print.css?v=20ff2c19" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=a03ddf9a" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sy-f-text: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+  --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+}
+</style>
+    
+  <meta property="og:type" content="website"/><meta property="og:title" content="Push targets and service integration"/>
+    <meta name="twitter:card" content="summary"/>
+  </head>
+<body><div class="sy-head">
+  <div class="sy-head-blur"></div>
+  <div class="sy-head-inner sy-container mx-auto">
+    <a class="sy-head-brand" href="index.html">
+      <img class="light-logo" src="_static/gateway-icon.png" alt="GravityMon Gateway" height="28" loading="lazy" />
+      <img class="dark-logo" src="_static/gateway-icon.png" alt="GravityMon Gateway" height="28" loading="lazy" />
+      <strong>GravityMon Gateway</strong>
+    </a>
+    <div class="sy-head-nav" id="head-nav">
+      <nav class="sy-head-links"></nav>
+      <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <kbd>/</kbd>
+</form><div class="sy-head-socials"></div></div>
+    </div>
+    <div class="sy-head-actions flex items-center shrink-0 print:hidden"><button class="js-theme theme-switch flex items-center"
+data-aria-auto="Switch to light color mode"
+data-aria-light="Switch to dark color mode"
+data-aria-dark="Switch to auto color mode">
+<i class="i-lucide theme-icon"></i>
+</button><button class="md:hidden flex items-center js-menu" aria-label="Menu" type="button" aria-controls="head-nav" aria-expanded="false">
+        <div class="hamburger">
+          <span class="hamburger_1"></span>
+          <span class="hamburger_2"></span>
+          <span class="hamburger_3"></span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="sy-page sy-container flex mx-auto">
+  <aside id="lside" class="sy-lside md:w-72 md:shrink-0 print:hidden">
+    <div class="sy-lside-inner md:sticky">
+      <div class="sy-scrollbar p-6">
+        <div class="globaltoc" data-expand-depth="0"><p class="caption" role="heading" aria-level="3"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="functionality.html">Functionality</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hardware.html">Hardware</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Push targets and service integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="format-template.html">Format templates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data.html">Measurement data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="releases.html">Releases</a></li>
+</ul>
+<p class="caption" role="heading" aria-level="3"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="compiling.html">Building from source</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+</ul>
+
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="lside-overlay js-menu" role="button" aria-label="Close left sidebar" aria-controls="lside" aria-expanded="false"></div>
+  <aside id="rside" class="sy-rside pb-3 w-64 shrink-0 order-last">
+    <button class="rside-close js-menu xl:hidden" aria-label="Close Table of Contents" type="button" aria-controls="rside" aria-expanded="false">
+      <i class="i-lucide close"></i>
+    </button>
+    <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
+<li><a class="reference internal" href="#shared-target-controls">Shared target controls</a></li>
+<li><a class="reference internal" href="#http-post-1">HTTP POST #1</a></li>
+<li><a class="reference internal" href="#http-post-2">HTTP POST #2</a></li>
+<li><a class="reference internal" href="#http-get">HTTP GET</a></li>
+<li><a class="reference internal" href="#influxdb-v2">InfluxDB v2</a></li>
+<li><a class="reference internal" href="#mqtt">MQTT</a></li>
+<li><a class="reference internal" href="#template-syntax">Template syntax</a></li>
+<li><a class="reference internal" href="#common-integrations">Common integrations</a></li>
+</ul>
+</div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
+  </aside>
+  <div class="rside-overlay js-menu" role="button" aria-label="Close Table of Contents" aria-controls="rside" aria-expanded="false"></div>
+  <main class="sy-main w-full max-sm:max-w-full print:pt-6">
+<div class="sy-breadcrumbs" role="navigation">
+  <div class="sy-breadcrumbs-inner flex items-center">
+    <div class="md:hidden mr-3">
+      <button class="js-menu" aria-label="Menu" type="button" aria-controls="lside" aria-expanded="false">
+        <i class="i-lucide menu"></i>
+      </button>
+    </div>
+    <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="index.html"><span itemprop="name">GravityMon Gateway</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="1" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <strong itemprop="name">Push targets and service integration</strong>
+        <meta itemprop="position" content="2" />
+      </li></ol>
+    <div class="xl:hidden ml-1">
+      <button class="js-menu" aria-label="Show table of contents" type="button" aria-controls="rside"
+        aria-expanded="false">
+        <i class="i-lucide outdent"></i>
+      </button>
+    </div>
+  </div>
+</div><div class="flex flex-col break-words justify-between">
+      <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
+  <article class="yue" role="main">
+          <section id="push-targets-and-service-integration">
+<span id="services"></span><h1>Push targets and service integration<a class="headerlink" href="#push-targets-and-service-integration" title="Link to this heading">#</a></h1>
+<p>Configure destinations under <strong>Push targets</strong>. The gateway provides two HTTP
+POST targets, one HTTP GET target, InfluxDB v2, and MQTT. Each target has
+separate settings, enable switches for gravity and pressure data, and an
+independent skip interval. The gateway can send to more than one target.
+Scheduled forwarding currently applies to GravityMon and PressureMon
+measurements. Other supported BLE types can appear in the gateway UI and SD
+logs, but are not sent to these push targets.</p>
+<p>Before configuring a target, collect its endpoint or broker details and any
+credentials required by the service. Do not include real credentials in
+screenshots or public support requests.</p>
+<section id="shared-target-controls">
+<h2>Shared target controls<a class="headerlink" href="#shared-target-controls" title="Link to this heading">#</a></h2>
+<p>HTTP targets have a URL and up to two optional HTTP header lines. Each target
+also has separate gravity and pressure format templates and enable switches.
+The <strong>Predefined URLs</strong>, <strong>Predefined headers</strong>, and <strong>Predefined formats</strong>
+controls can insert starting values. Review inserted values for account
+specific details before saving.</p>
+<p><strong>Preview format</strong> renders the current template with representative data.
+<strong>Run push gravity test</strong> and <strong>Run push pressure test</strong> send test requests
+using the matching template. A successful test shows that the gateway reached
+the endpoint and received a response; check the receiving service to confirm
+that it interpreted the fields as intended.</p>
+<p><strong>Skip interval</strong> controls how many eligible measurement send cycles to skip:
+0 sends on every eligible cycle, 1 sends every second cycle, 2 sends every
+third cycle, and so on up to 5. The available range is 0–5. Use a nonzero
+value for service rate limits or to reduce network traffic. This setting is
+separate for each target.</p>
+<p>Gravity and pressure are configured independently. Where both measurement
+types are enabled in the firmware, each has its own <strong>Enable</strong> switch, template,
+predefined format selector, preview, and test button. A switch controls
+scheduled pushes for that type; use its test button to check the template and
+connection while setting up. The test uses sample data and does not prove that
+the receiving service stores or displays the result correctly.</p>
+<p>Some fields can be disabled while <strong>Wi-Fi Direct</strong> is enabled. Save a target
+before running its test, then check both the response shown by the gateway and
+the service or broker receiving the data.</p>
+</section>
+<section id="http-post-1">
+<h2>HTTP POST #1<a class="headerlink" href="#http-post-1" title="Link to this heading">#</a></h2>
+<p>Open <strong>Push targets → HTTP Post</strong>. This is the first independent HTTP POST
+destination.</p>
+<ul class="simple">
+<li><p><strong>HTTP URL</strong> — complete endpoint URL, including <code class="docutils literal notranslate"><span class="pre">http://</span></code> or <code class="docutils literal notranslate"><span class="pre">https://</span></code>.
+The <strong>URL</strong> control opens predefined endpoint choices.</p></li>
+<li><p><strong>HTTP Header #1 / #2</strong> — optional raw header lines. The <strong>Header</strong> control
+inserts predefined values. Enter each header as <code class="docutils literal notranslate"><span class="pre">Name:</span> <span class="pre">value</span></code>. Leave a
+line empty if the endpoint does not require it. For example, a JSON endpoint
+may require <code class="docutils literal notranslate"><span class="pre">Content-Type:</span> <span class="pre">application/json</span></code>.</p></li>
+<li><p><strong>Skip interval</strong> — target-specific send frequency, from 0 to 5.</p></li>
+<li><p><strong>Data format (gravity / pressure)</strong> — separate payload templates. Use the
+matching <strong>Enable</strong> switch to include that measurement type in scheduled
+sends. <strong>Predefined formats</strong> inserts a starting template; <strong>Preview format</strong>
+shows the substituted sample.</p></li>
+<li><p><strong>Run push gravity test / Run push pressure test</strong> — sends a sample using
+that target’s corresponding template. Configure and save the endpoint and
+credentials first.</p></li>
+</ul>
+<p>An advanced firmware build may expose <strong>Use tcp</strong>. In that mode the endpoint
+field changes to <strong>Server</strong> in <code class="docutils literal notranslate"><span class="pre">server:port</span></code> form and the HTTP URL, headers,
+and skip interval controls are hidden. This option is not shown in the usual
+build.</p>
+</section>
+<section id="http-post-2">
+<h2>HTTP POST #2<a class="headerlink" href="#http-post-2" title="Link to this heading">#</a></h2>
+<p>Open <strong>Push targets → HTTP Post 2</strong>. It has the same controls as HTTP Post #1,
+but stores its own URL, headers, skip interval, templates, and enable switches.
+Use it for a second service or for a second payload arrangement. Updating one
+POST target does not configure the other. Its URL accepts <code class="docutils literal notranslate"><span class="pre">http://</span></code> or
+<code class="docutils literal notranslate"><span class="pre">https://</span></code>. Each header uses <code class="docutils literal notranslate"><span class="pre">Name:</span> <span class="pre">value</span></code> syntax and may be left blank.
+Choose a predefined format, inspect its preview, enable gravity and/or pressure,
+then save and run the matching test.</p>
+</section>
+<section id="http-get">
+<h2>HTTP GET<a class="headerlink" href="#http-get" title="Link to this heading">#</a></h2>
+<p>Open <strong>Push targets → HTTP Get</strong>. This target has a URL, two optional headers,
+skip interval, separate gravity and pressure templates and enable switches,
+predefined formats, previews, and test buttons. The template is appended to
+the URL as query data. Include the query separator and parameter names in the
+template as required by the endpoint; a typical query string starts with <code class="docutils literal notranslate"><span class="pre">?</span></code>
+and separates parameters with <code class="docutils literal notranslate"><span class="pre">&amp;</span></code>. Parameters can include a device name, ID,
+temperature, gravity or pressure, and battery. Match parameter names and
+encoding to what the receiving service expects. Use the optional headers when
+the service requires them, then check the preview and run a test.</p>
+</section>
+<section id="influxdb-v2">
+<h2>InfluxDB v2<a class="headerlink" href="#influxdb-v2" title="Link to this heading">#</a></h2>
+<p>Open <strong>Push targets → Influxdb v2</strong>. This target writes line protocol to an
+InfluxDB 2.x server.</p>
+<ul class="simple">
+<li><p><strong>Server</strong> — base URL of the InfluxDB service, including scheme and port
+when required.</p></li>
+<li><p><strong>Organisation</strong> — organization identifier or name used by the server.</p></li>
+<li><p><strong>Bucket</strong> — destination bucket.</p></li>
+<li><p><strong>Authentication token</strong> — token with write access to the bucket.</p></li>
+<li><p><strong>Skip interval</strong> — target send frequency, from 0 to 5.</p></li>
+<li><p><strong>Data format (gravity / pressure)</strong> — separate line protocol templates
+with enable switches, predefined formats, previews, and push tests.</p></li>
+</ul>
+<p>A line protocol line contains a measurement name, optional comma-separated
+tags, a space, and comma-separated fields. Keep tag and field types consistent
+with the InfluxDB schema. After a successful test, verify the point in the
+configured bucket.</p>
+</section>
+<section id="mqtt">
+<h2>MQTT<a class="headerlink" href="#mqtt" title="Link to this heading">#</a></h2>
+<p>Open <strong>Push targets → MQTT</strong>.</p>
+<ul class="simple">
+<li><p><strong>Server</strong> — broker host name or address; enter the host without a URL
+scheme.</p></li>
+<li><p><strong>Port</strong> — broker listener (0–65535). The UI describes <code class="docutils literal notranslate"><span class="pre">1883</span></code> as standard
+MQTT, <code class="docutils literal notranslate"><span class="pre">8883</span></code> as standard SSL, and ports <code class="docutils literal notranslate"><span class="pre">8000</span></code> and above as SSL. Leave
+<code class="docutils literal notranslate"><span class="pre">0</span></code> for the default. Check which listener your broker actually exposes.</p></li>
+<li><p><strong>User name / Password</strong> — optional broker credentials; leave blank if the
+broker does not require authentication. Each field accepts up to 20
+characters.</p></li>
+<li><p><strong>Skip interval</strong> — target send frequency, from 0 to 5.</p></li>
+<li><p><strong>Data format (gravity / pressure)</strong> — separate topic/payload templates,
+enable switches, predefined formats, previews, and push tests.</p></li>
+</ul>
+<p>An MQTT template contains topic and payload pairs separated by <code class="docutils literal notranslate"><span class="pre">|</span></code>. Each
+pair uses <code class="docutils literal notranslate"><span class="pre">topic:payload</span></code>. This lets one measurement publish multiple values
+to separate topics, for example gravity and temperature. Check the preview to
+confirm topic spelling and payload format expected by subscribers. Configure
+retain behavior at the broker or subscriber as needed; there is no retain
+switch on this page.</p>
+</section>
+<section id="template-syntax">
+<h2>Template syntax<a class="headerlink" href="#template-syntax" title="Link to this heading">#</a></h2>
+<p>Use <strong>Predefined formats</strong> to start from a known service format, then adapt it
+to the receiver’s requirements. For JSON, ensure the preview remains valid
+JSON and uses the expected string and numeric types. InfluxDB templates must
+be valid line protocol; MQTT formats must contain the expected topic and
+payload pairs. See <a class="reference internal" href="format-template.html"><span class="doc">Format templates</span></a> for variables and examples.</p>
+</section>
+<section id="common-integrations">
+<h2>Common integrations<a class="headerlink" href="#common-integrations" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p><strong>Brewfather</strong> — use its iSpindel compatible HTTP POST endpoint or custom
+stream endpoint with a matching JSON format. See the <a class="reference external" href="https://docs.brewfather.app/integrations">Brewfather integration
+documentation</a>.</p></li>
+<li><p><strong>Home Assistant</strong> — MQTT can publish individual topics or use a discovery
+template to create entities. Verify topics and payloads against your broker
+setup.</p></li>
+<li><p><strong>InfluxDB</strong> — use the InfluxDB v2 target and a line protocol template.</p></li>
+<li><p><strong>Other HTTP or MQTT services</strong> — use a custom template to map gateway
+fields into the payload and topics required by the service.</p></li>
+</ul>
+<p>Service APIs change over time. Refer to each provider’s current documentation
+for endpoint paths, token permissions, TLS requirements, and field names.</p>
+</section>
+</section>
+
+        </article><button class="back-to-top" type="button">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+  </svg>
+  <span>Back to top</span>
+</button><div class="navigation flex print:hidden"><div class="navigation-prev">
+    <a href="hardware.html">
+      <i class="i-lucide chevron-left"></i>
+      <div class="page-info">
+        <span>Previous</span><div class="title">Hardware</div></div>
+    </a>
+  </div><div class="navigation-next">
+    <a href="format-template.html">
+      <div class="page-info">
+        <span>Next</span>
+        <div class="title">Format templates</div>
+      </div>
+      <i class="i-lucide chevron-right"></i>
+    </a>
+  </div></div></div>
+    </div>
+  </main>
+</div>
+<footer class="sy-foot">
+  <div class="sy-foot-inner sy-container mx-auto">
+    <div class="sy-foot-reserved md:flex justify-between items-center">
+      <div class="sy-foot-copyright"><p>2021-2026, Magnus Persson</p>
+  
+  <p>
+    Made with
+    
+    <a href="https://www.sphinx-doc.org/">Sphinx</a> and
+    
+    <a href="https://shibuya.lepture.com">Shibuya theme</a>.
+  </p>
+</div>
+      <div class="sy-foot-socials"></div>
+    </div>
+  </div>
+</footer>
+      <script src="_static/documentation_options.js?v=9dc39874"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=f281be69"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
+      <script src="_static/shibuya.js?v=50760d75"></script></body>
+</html>

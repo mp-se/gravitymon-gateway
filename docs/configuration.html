@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en" data-accent-color="violet" data-content_root="./">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Configuration - GravityMon Gateway 0.9.1 documentation</title><link rel="shortcut icon" href="_static/gateway-icon.png"/><link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Hardware" href="hardware.html" /><link rel="prev" title="Installation" href="installation.html" /><script>
+    function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
+    setColorMode(localStorage._theme||"auto");
+  </script><link rel="stylesheet" type="text/css" href="_static/pygments.css?v=e1a1ceaf" />
+    <link rel="stylesheet" type="text/css" href="_static/shibuya.css?v=2ceb65ce" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+    <link media="print" rel="stylesheet" type="text/css" href="_static/print.css?v=20ff2c19" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=a03ddf9a" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sy-f-text: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+  --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+}
+</style>
+    
+  <meta property="og:type" content="website"/><meta property="og:title" content="Configuration"/>
+    <meta name="twitter:card" content="summary"/>
+  </head>
+<body><div class="sy-head">
+  <div class="sy-head-blur"></div>
+  <div class="sy-head-inner sy-container mx-auto">
+    <a class="sy-head-brand" href="index.html">
+      <img class="light-logo" src="_static/gateway-icon.png" alt="GravityMon Gateway" height="28" loading="lazy" />
+      <img class="dark-logo" src="_static/gateway-icon.png" alt="GravityMon Gateway" height="28" loading="lazy" />
+      <strong>GravityMon Gateway</strong>
+    </a>
+    <div class="sy-head-nav" id="head-nav">
+      <nav class="sy-head-links"></nav>
+      <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <kbd>/</kbd>
+</form><div class="sy-head-socials"></div></div>
+    </div>
+    <div class="sy-head-actions flex items-center shrink-0 print:hidden"><button class="js-theme theme-switch flex items-center"
+data-aria-auto="Switch to light color mode"
+data-aria-light="Switch to dark color mode"
+data-aria-dark="Switch to auto color mode">
+<i class="i-lucide theme-icon"></i>
+</button><button class="md:hidden flex items-center js-menu" aria-label="Menu" type="button" aria-controls="head-nav" aria-expanded="false">
+        <div class="hamburger">
+          <span class="hamburger_1"></span>
+          <span class="hamburger_2"></span>
+          <span class="hamburger_3"></span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="sy-page sy-container flex mx-auto">
+  <aside id="lside" class="sy-lside md:w-72 md:shrink-0 print:hidden">
+    <div class="sy-lside-inner md:sticky">
+      <div class="sy-scrollbar p-6">
+        <div class="globaltoc" data-expand-depth="0"><p class="caption" role="heading" aria-level="3"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="functionality.html">Functionality</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hardware.html">Hardware</a></li>
+<li class="toctree-l1"><a class="reference internal" href="services.html">Push targets and service integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="format-template.html">Format templates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data.html">Measurement data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="releases.html">Releases</a></li>
+</ul>
+<p class="caption" role="heading" aria-level="3"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="compiling.html">Building from source</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+</ul>
+
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="lside-overlay js-menu" role="button" aria-label="Close left sidebar" aria-controls="lside" aria-expanded="false"></div>
+  <aside id="rside" class="sy-rside pb-3 w-64 shrink-0 order-last">
+    <button class="rside-close js-menu xl:hidden" aria-label="Close Table of Contents" type="button" aria-controls="rside" aria-expanded="false">
+      <i class="i-lucide close"></i>
+    </button>
+    <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
+<li><a class="reference internal" href="#home-page">Home page</a></li>
+<li><a class="reference internal" href="#device-settings">Device settings</a></li>
+<li><a class="reference internal" href="#device-hardware-and-ble">Device hardware and BLE</a></li>
+<li><a class="reference internal" href="#tft-display">TFT display</a></li>
+<li><a class="reference internal" href="#wi-fi-networks">Wi-Fi networks</a></li>
+<li><a class="reference internal" href="#wi-fi-direct">Wi-Fi Direct</a></li>
+<li><a class="reference internal" href="#measurement-logging">Measurement logging</a></li>
+<li><a class="reference internal" href="#push-settings">Push settings</a></li>
+<li><a class="reference internal" href="#backups-and-maintenance">Backups and maintenance</a></li>
+</ul>
+</div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
+  </aside>
+  <div class="rside-overlay js-menu" role="button" aria-label="Close Table of Contents" aria-controls="rside" aria-expanded="false"></div>
+  <main class="sy-main w-full max-sm:max-w-full print:pt-6">
+<div class="sy-breadcrumbs" role="navigation">
+  <div class="sy-breadcrumbs-inner flex items-center">
+    <div class="md:hidden mr-3">
+      <button class="js-menu" aria-label="Menu" type="button" aria-controls="lside" aria-expanded="false">
+        <i class="i-lucide menu"></i>
+      </button>
+    </div>
+    <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="index.html"><span itemprop="name">GravityMon Gateway</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="1" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <strong itemprop="name">Configuration</strong>
+        <meta itemprop="position" content="2" />
+      </li></ol>
+    <div class="xl:hidden ml-1">
+      <button class="js-menu" aria-label="Show table of contents" type="button" aria-controls="rside"
+        aria-expanded="false">
+        <i class="i-lucide outdent"></i>
+      </button>
+    </div>
+  </div>
+</div><div class="flex flex-col break-words justify-between">
+      <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
+  <article class="yue" role="main">
+          <section id="configuration">
+<span id="id1"></span><h1>Configuration<a class="headerlink" href="#configuration" title="Link to this heading">#</a></h1>
+<p>Open the gateway’s mDNS address (<code class="docutils literal notranslate"><span class="pre">&lt;name&gt;.local</span></code>) or IP address in a browser.
+The top navigation groups settings under <strong>Device</strong>, <strong>Measurements</strong>,
+<strong>Push targets</strong>, and <strong>Other</strong>. A badge beside a menu item indicates a setup
+item that may need attention. The <strong>Save</strong> button becomes active when the
+current page contains unsaved changes. Save first, then use <strong>Restart device</strong>
+where the page indicates a restart is needed.</p>
+<section id="home-page">
+<h2>Home page<a class="headerlink" href="#home-page" title="Link to this heading">#</a></h2>
+<p>The home page summarizes the latest measurement received from each device.
+Each card identifies the measurement class and source, shows the device name
+when known, and reports the age of the latest update and push. Gravity cards
+show gravity and temperature; pressure cards show pressure and temperature;
+chamber cards show chamber and beer temperatures. Device status cards include
+gateway Wi-Fi signal, IP address, memory, firmware, platform, device ID, and
+uptime.</p>
+<p>The update age helps distinguish a device that is currently reporting from
+one whose last reading is stale. A missing measurement field means the source
+did not provide a usable value; it should not be read as a measured zero.</p>
+</section>
+<section id="device-settings">
+<h2>Device settings<a class="headerlink" href="#device-settings" title="Link to this heading">#</a></h2>
+<p>Open <strong>Device → Settings</strong>.</p>
+<ul class="simple">
+<li><p><strong>mDNS</strong> — the gateway’s network host name. The <code class="docutils literal notranslate"><span class="pre">.local</span></code> suffix is added
+automatically, so entering <code class="docutils literal notranslate"><span class="pre">gateway</span></code> gives the address
+<code class="docutils literal notranslate"><span class="pre">gateway.local</span></code>. Choose a name that is unique on the local network.</p></li>
+<li><p><strong>Temperature Format</strong> — displays temperatures in Celsius or Fahrenheit.</p></li>
+<li><p><strong>Gravity Format</strong> — displays gravity as Specific Gravity or Plato.</p></li>
+<li><p><strong>Pressure Units</strong> — displays pressure in PSI, kPa, or Bar.</p></li>
+<li><p><strong>User Interface</strong> — selects day or dark appearance for the browser UI.</p></li>
+<li><p><strong>Save</strong> — stores changed settings.</p></li>
+<li><p><strong>Restart device</strong> — restarts the gateway.</p></li>
+<li><p><strong>Restore factory defaults</strong> — erases the configured settings and restores
+defaults. Export a backup first if you may need the current configuration.</p></li>
+</ul>
+<p>The unit selections control presentation and template conversions. They do
+not change the sensor’s physical measurement.</p>
+</section>
+<section id="device-hardware-and-ble">
+<h2>Device hardware and BLE<a class="headerlink" href="#device-hardware-and-ble" title="Link to this heading">#</a></h2>
+<p>Open <strong>Device → Hardware</strong>.</p>
+<ul class="simple">
+<li><p><strong>Enable Bluetooth</strong> — turns BLE scanning on or off. Changing this setting
+requires a device restart.</p></li>
+<li><p><strong>Scan Mode</strong> — choose <strong>Passive</strong> or <strong>Active</strong>. Passive scanning is used
+for GravityMon iBeacon and PressureMon iBeacon advertisements. Active
+scanning is needed for GravityMon Eddystone advertisements and requires a
+BLE 5.0 capable target such as the ESP32-S3.</p></li>
+<li><p><strong>Scanning Time</strong> — the duration of a BLE scan cycle, in seconds. Longer
+scans can discover devices that advertise less often, while using more time
+for scanning. The scan duration field is in seconds.</p></li>
+<li><p><strong>Timezone</strong> — sets the local timezone used when presenting or recording
+times. Select the zone that matches the gateway’s location. The choices
+include common North American, European, African, Asian, Australian, and
+Pacific timezones.</p></li>
+<li><p><strong>Display Layout</strong> — selects <strong>Overview</strong> or <strong>Device focused</strong> on supported
+TFT builds. The available display and touch behavior depends on the board.</p></li>
+<li><p><strong>Save</strong> and <strong>Restart device</strong> — save settings and restart when required.</p></li>
+</ul>
+<p>The UI currently documents GravityMon iBeacon, GravityMon Eddystone, and
+PressureMon iBeacon formats. The project can also parse supported Tilt, RAPT,
+and Chamber Controller advertisements; the exact advertisement type and BLE
+capabilities determine what can be received. The UI recommends TiltBridge for
+Tilt installations.</p>
+</section>
+<section id="tft-display">
+<h2>TFT display<a class="headerlink" href="#tft-display" title="Link to this heading">#</a></h2>
+<p>On supported TFT builds, the screen cycles through detected measurements
+automatically, showing one device at a time. The display provides a compact
+overview of recent devices or a device-focused view with more detail; the
+available layout pair is selected to fit the board’s screen size. On boards
+whose touch driver supports it, swipe gestures move between displayed
+measurements. Screen dimensions, touch hardware, and gesture support depend on
+the exact board variant. The TFT is a status display; use the web interface for
+full configuration and historical graphs.</p>
+</section>
+<section id="wi-fi-networks">
+<h2>Wi-Fi networks<a class="headerlink" href="#wi-fi-networks" title="Link to this heading">#</a></h2>
+<p>Open <strong>Device → Wi-Fi</strong> to select the primary and optional secondary network.
+The page scans nearby networks and labels them with a signal quality estimate
+and a lock indicator for secured networks. At least one network must be
+configured. Enter the matching password for each selected SSID.</p>
+<ul class="simple">
+<li><p><strong>SSID #1 / Password #1</strong> — primary network.</p></li>
+<li><p><strong>SSID #2 / Password #2</strong> — optional alternate network. This gives the
+gateway another configured network to try if the primary is unavailable.</p></li>
+<li><p><strong>Portal timeout</strong> — how long the Wi-Fi setup portal remains idle before
+timing out (10–240 seconds).</p></li>
+<li><p><strong>Connection timeout</strong> — how long a connection attempt can wait (1–60
+seconds).</p></li>
+<li><p><strong>Scan for strongest AP</strong>, when shown — scans for the strongest access point
+matching a configured network. Scanning can increase connection time.</p></li>
+</ul>
+<p>If the Wi-Fi scan cannot list a hidden network, use the manual entry page
+linked from the Wi-Fi page. After saving changed Wi-Fi credentials, restart
+the gateway. Its IP address may change; use the router’s client list or the
+new mDNS name to find it again.</p>
+</section>
+<section id="wi-fi-direct">
+<h2>Wi-Fi Direct<a class="headerlink" href="#wi-fi-direct" title="Link to this heading">#</a></h2>
+<p>Open <strong>Device → Wi-Fi AP</strong> to configure the gateway’s Wi-Fi Direct network.
+This lets a compatible source device connect directly to the gateway instead
+of using the normal access point. It is useful when the source should report to
+the gateway directly or when selecting the closest access point matters.</p>
+<p>Set <strong>Direct SSID</strong> and <strong>Direct Password</strong> to the network credentials that
+source devices will use. <strong>Generate</strong> creates a gateway-specific SSID and a
+random password. Save changes and restart the gateway, then configure the
+source device to use the matching network and gateway destination.</p>
+</section>
+<section id="measurement-logging">
+<h2>Measurement logging<a class="headerlink" href="#measurement-logging" title="Link to this heading">#</a></h2>
+<p>Open <strong>Measurements → Settings</strong>. These options apply when the selected board
+supports SD storage:</p>
+<ul class="simple">
+<li><p><strong>Max number of log files on SD card</strong> — maximum number of log files to
+retain, from 2 to 100. The active log is <code class="docutils literal notranslate"><span class="pre">/data.csv</span></code>; rotated files are
+<code class="docutils literal notranslate"><span class="pre">/data1.csv</span></code>, <code class="docutils literal notranslate"><span class="pre">/data2.csv</span></code>, and so on. The firmware rotates the files as
+the active log grows.</p></li>
+<li><p><strong>Size of each log file on SD card</strong> — currently fixed at 16 KB and shown
+for information. Rotation occurs after <code class="docutils literal notranslate"><span class="pre">data.csv</span></code> grows beyond that size.</p></li>
+<li><p><strong>Minimum time between logs to SD card (BLE)</strong> — minimum interval between
+logging records from the same BLE device. Available intervals are 1, 3, 5,
+10, 15, 30, 45, and 60 minutes. Increase this interval to reduce card writes
+and preserve space. It only throttles BLE records; GravityMon and PressureMon
+Wi-Fi reports are logged as received.</p></li>
+</ul>
+<p>The file count is the number of rotated files in addition to the active file.
+For example, a limit of 4 can retain <code class="docutils literal notranslate"><span class="pre">/data.csv</span></code> and <code class="docutils literal notranslate"><span class="pre">/data1.csv</span></code> through
+<code class="docutils literal notranslate"><span class="pre">/data4.csv</span></code>.</p>
+<p>Use <strong>Measurements → View</strong> to browse stored data and graphs. The page is only
+useful when SD support is available and a card is mounted. Select a device
+type and device to see its recorded values as a graph and table. <strong>Other →
+Tools</strong> also provides a Secure Digital file view when the card is mounted; use
+it to confirm that the CSV logs exist. A card that is absent or failed to mount
+leaves these SD features unavailable. Some builds retry mounting an SD card
+periodically, so after inserting a card allow time for it to be detected and
+check the gateway status again.</p>
+</section>
+<section id="push-settings">
+<h2>Push settings<a class="headerlink" href="#push-settings" title="Link to this heading">#</a></h2>
+<p>Open <strong>Push targets → Settings</strong>.</p>
+<ul class="simple">
+<li><p><strong>Token</strong> — a shared value available to templates as <code class="docutils literal notranslate"><span class="pre">${token}</span></code>. Some
+receiving services use it as an authentication or device token.</p></li>
+<li><p><strong>Push timeout</strong> — maximum time to wait for a remote service to accept a
+connection (10–60 seconds).</p></li>
+<li><p><strong>Push minimum resend time</strong> — minimum delay before a value can be sent again
+to a target (10–1800 seconds). This can prevent repeatedly forwarding the
+same reading.</p></li>
+</ul>
+<p>Each push target has its own enable switch and <strong>Skip interval</strong>. A value of 0
+means do not skip cycles; 1 means send every second cycle, 2 every third, and
+so on. Use target-specific intervals when a service has rate limits or when
+you want to reduce traffic.</p>
+</section>
+<section id="backups-and-maintenance">
+<h2>Backups and maintenance<a class="headerlink" href="#backups-and-maintenance" title="Link to this heading">#</a></h2>
+<p>Under <strong>Other</strong>, <strong>Backup &amp; Restore</strong> exports or restores settings, <strong>Firmware
+update</strong> installs an update, <strong>Support</strong> shows diagnostic information including
+mDNS discoveries, and <strong>Tools</strong> provides maintenance actions. Export a backup
+before resetting settings, changing networks, or updating firmware. See
+<a class="reference internal" href="installation.html"><span class="doc">Installation</span></a> for the difference between a routine firmware update and
+a full web-flasher install.</p>
+</section>
+</section>
+
+        </article><button class="back-to-top" type="button">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+  </svg>
+  <span>Back to top</span>
+</button><div class="navigation flex print:hidden"><div class="navigation-prev">
+    <a href="installation.html">
+      <i class="i-lucide chevron-left"></i>
+      <div class="page-info">
+        <span>Previous</span><div class="title">Installation</div></div>
+    </a>
+  </div><div class="navigation-next">
+    <a href="hardware.html">
+      <div class="page-info">
+        <span>Next</span>
+        <div class="title">Hardware</div>
+      </div>
+      <i class="i-lucide chevron-right"></i>
+    </a>
+  </div></div></div>
+    </div>
+  </main>
+</div>
+<footer class="sy-foot">
+  <div class="sy-foot-inner sy-container mx-auto">
+    <div class="sy-foot-reserved md:flex justify-between items-center">
+      <div class="sy-foot-copyright"><p>2021-2026, Magnus Persson</p>
+  
+  <p>
+    Made with
+    
+    <a href="https://www.sphinx-doc.org/">Sphinx</a> and
+    
+    <a href="https://shibuya.lepture.com">Shibuya theme</a>.
+  </p>
+</div>
+      <div class="sy-foot-socials"></div>
+    </div>
+  </div>
+</footer>
+      <script src="_static/documentation_options.js?v=9dc39874"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=f281be69"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
+      <script src="_static/shibuya.js?v=50760d75"></script></body>
+</html>
