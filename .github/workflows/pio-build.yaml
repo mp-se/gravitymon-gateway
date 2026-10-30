@@ -35,6 +35,11 @@ jobs:
           npm install
           npm run build
 
+      - name: Copy UI assets
+        run: |
+          cp ui/dist/assets/style.css.gz html/app.css.gz
+          cp ui/dist/assets/index.js.gz html/app.js.gz
+
       - name: Build gateway32pro-tft
         run: pio run -e gateway32pro-tft
 

@@ -12,7 +12,10 @@
 
 This is a companion device for use with GravityMon v2.0, it will support the new BLE options and Wifi Direct options introduced into v2.0.
 
-For documentation see www.gravitymon.com.
+For Gateway documentation, see the [GravityMon Gateway project page](https://www.gravitymon.com/project-gateway.html).
+GravityMon and PressureMon device documentation and firmware flashing are
+available at [gravitymon.com](https://www.gravitymon.com) and its [Web
+Flasher](https://www.gravitymon.com/flasher/index.html).
 
 Note! The documentation for this project is part of the gravitymon documentation since they share a lot of common features and behaviours
 

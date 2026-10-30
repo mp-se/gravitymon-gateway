@@ -3,6 +3,8 @@
 .venv
 .claude
 graphify-out
+src_docs/_build
+/docs
 
 *.map
 *.pyc

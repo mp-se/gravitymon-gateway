@@ -1,0 +1,60 @@
+name: Sphinx documentation
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install documentation dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r src_docs/requirements.txt
+
+      - name: Build documentation
+        run: sphinx-build -b html src_docs/source docs
+
+      - name: Prepare published documentation
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        run: |
+          if git ls-remote --exit-code --heads "https://github.com/${GITHUB_REPOSITORY}.git" ghpages > /dev/null; then
+            git clone "https://github.com/${GITHUB_REPOSITORY}.git" --branch ghpages --single-branch ghpages
+          else
+            git init --initial-branch=ghpages ghpages
+            git -C ghpages remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          fi
+          mkdir -p ghpages/docs
+          cp -r docs/. ghpages/docs/
+          touch ghpages/docs/.nojekyll
+          cd ghpages
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add docs
+          if ! git diff --cached --quiet; then
+            git commit -m "Update documentation"
+          fi
+
+      - name: Publish documentation
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        uses: ad-m/github-push-action@master
+        with:
+          branch: ghpages
+          directory: ghpages
+          github_token: ${{ secrets.GITHUB_TOKEN }}

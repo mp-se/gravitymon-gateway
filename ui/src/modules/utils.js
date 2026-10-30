@@ -28,6 +28,18 @@ export const httpHeaderOptions = ref([
 ])
 
 export const httpPostUrlOptions = ref([
+  {
+    label: 'BrewGraph gravity',
+    value: 'http://ingest.brewgraph.com/ingest/gravitymon'
+  },
+  {
+    label: 'BrewGraph pressure',
+    value: 'http://ingest.brewgraph.com/ingest/pressuremon'
+  },
+  {
+    label: 'BrewGraph auto',
+    value: 'http://ingest.brewgraph.com/ingest/dispatch'
+  },
   { label: 'Brewfather ispindel', value: 'http://log.brewfather.net/ispindel?id=<yourid>' },
   { label: 'Brewfather stream', value: 'http://log.brewfather.net/stream?id=<yourid>' },
   {
