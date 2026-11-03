@@ -35,6 +35,7 @@ import PushHttpPost2View from '@/views/PushHttpPost2View.vue'
 import PushHttpGetView from '@/views/PushHttpGetView.vue'
 import PushInfluxdbView from '@/views/PushInfluxdbView.vue'
 import PushMqttView from '@/views/PushMqttView.vue'
+import PushDevicesView from '@/views/PushDevicesView.vue'
 import AboutView from '@/views/AboutView.vue'
 import FirmwareView from '@/views/FirmwareView.vue'
 import SupportView from '@/views/SupportView.vue'
@@ -120,6 +121,11 @@ const routes = [
     path: '/push/mqtt',
     name: 'push-Mqtt',
     component: PushMqttView
+  },
+  {
+    path: '/push/devices',
+    name: 'push-devices',
+    component: PushDevicesView
   },
   {
     path: '/other/support',
@@ -228,6 +234,10 @@ const items = ref([
         label: 'Settings',
         badge: badge.pushSettingBadge,
         path: '/push/settings'
+      },
+      {
+        label: 'BLE devices',
+        path: '/push/devices'
       },
       {
         label: 'HTTP Post',

@@ -69,6 +69,21 @@ describe('pinia module helpers', () => {
     expect(globalStore.configChanged).toBe(true)
   })
 
+  it('detects in-place changes to array values', async () => {
+    const { module, configStore } = await loadModule()
+    configStore.list = [{ id: 'a', token: '' }]
+    module.saveConfigState()
+
+    expect(module.getConfigChanges()).toEqual({})
+
+    configStore.list[0].token = 'x'
+    expect(module.getConfigChanges()).toEqual({ list: [{ id: 'a', token: 'x' }] })
+
+    module.saveConfigState()
+    configStore.list.push({ id: 'b', token: '' })
+    expect(Object.keys(module.getConfigChanges())).toEqual(['list'])
+  })
+
   it('keeps configChanged false when there are no saved changes or initialization is incomplete', async () => {
     const { module, configStore, globalStore } = await loadModule()
 

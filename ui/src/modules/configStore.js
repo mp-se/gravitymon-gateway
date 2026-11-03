@@ -53,6 +53,7 @@ export const useConfigStore = defineStore('config', {
       wifi_direct_pass: '',
       // Push - Generic
       token: '',
+      ble_devices: [],
       push_timeout: 0,
       push_resend_time: 300,
       // Push - Http Post 1
@@ -175,6 +176,13 @@ export const useConfigStore = defineStore('config', {
         this.wifi_direct_pass = json.wifi_direct_pass
         // Push - Generic
         this.token = json.token
+        this.ble_devices = Array.isArray(json.ble_devices)
+          ? json.ble_devices.map((device) => ({
+              id: device.id || '',
+              name: device.name || '',
+              token: device.token || ''
+            }))
+          : []
         this.push_timeout = json.push_timeout
         this.push_resend_time = json.push_resend_time
         // Push - Http Post 1

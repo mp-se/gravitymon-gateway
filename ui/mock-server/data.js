@@ -30,6 +30,10 @@ export var configData = {
   wifi_pass2: "mypass",
   // Push - Generic
   token: "mytoken",
+  ble_devices: [
+    { id: "6d3fb9", name: "RAPT demo", token: "rapt-token" },
+    { id: "ble-pressure-1", name: "Pressure demo", token: "pressure-token" }
+  ],
   push_timeout: 10,
   push_resend_time: 300, 
 
@@ -104,12 +108,14 @@ export var statusData = {
     { device: "dev4", name: "test4", gravity: 1.100, temp: 24, update_time: 400, push_time: 10, source: "HTTP Post", type: "Gravitymon" },  
     { device: "dev5", name: "test5", gravity: 1.100, temp: 24, update_time: 500, push_time: 10, source: "HTTP Post", type: "Gravitymon" },  
     { device: "devA", name: "blue", gravity: 1.100, temp: 24, update_time: 100, push_time: 10, source: "BLE Beacon", type: "Tilt"  },  
-    { device: "6d3fb9", name: "6d3fb9", gravity: 1.234567, velocity: 0, temp: 42.12344, update_time: 6, push_time: 104, source: "BLE Beacon", type: "RAPT" }
+    { device: "6d3fb9", name: "6d3fb9", gravity: 1.234567, velocity: 0, temp: 42.12344, update_time: 6, push_time: 104, source: "BLE Beacon", type: "RAPT" },
+    { device: "ble-gravity-1", name: "gravity-beacon", gravity: 1.012, temp: 20, update_time: 12, push_time: 20, source: "BLE Beacon", type: "Gravitymon" }
   ],
   pressure_device: [ 
     { device: "dev6", name: "test1", pressure: 1.23, temp: 24, update_time: 100, push_time: 10, source: "HTTP Post", type: "Pressuremon" },  
     { device: "dev7", name: "test2", pressure: 0.95, temp: 24, update_time: 200, push_time: 10, source: "HTTP Post", type: "Pressuremon" },
-    { device: "dev8", name: "test3", pressure: 2.23, temp: 24, update_time: 300, push_time: 10, source: "HTTP Post", type: "Pressuremon" },  
+    { device: "dev8", name: "test3", pressure: 2.23, temp: 24, update_time: 300, push_time: 10, source: "HTTP Post", type: "Pressuremon" },
+    { device: "ble-pressure-1", name: "pressure-beacon", pressure: 1.05, temp: 21, update_time: 15, push_time: 25, source: "BLE Beacon", type: "Pressuremon" },
   ],
   temperature_device: [ 
     { device: "dev9", name: "", chamber_temp: 1.23, beer_temp: 24, update_time: 100, push_time: 10, source: "BLE Beacon", type: "Chamber Controller" }

@@ -111,6 +111,7 @@ describe('configStore module', () => {
       wifi_direct_ssid: 'direct',
       wifi_direct_pass: 'directpw',
       token: 'token',
+      ble_devices: [{ id: 'ble-1', name: 'Fermenter', token: 'device-token' }],
       push_timeout: 45,
       push_resend_time: 90,
       http_post_target: 'https://post1',
@@ -149,6 +150,9 @@ describe('configStore module', () => {
     expect(store.wifi_direct_ssid).toBe('direct')
     expect(store.influxdb2_bucket).toBe('bucket')
     expect(store.mqtt_port).toBe(1883)
+    expect(store.ble_devices).toEqual([
+      { id: 'ble-1', name: 'Fermenter', token: 'device-token' }
+    ])
     expect(globalStore.disabled).toBe(false)
   })
 

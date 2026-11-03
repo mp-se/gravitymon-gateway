@@ -44,7 +44,11 @@ const saveConfigState = () => {
   configCompare.value = {}
   for (var key in config) {
     if (typeof config[key] !== 'function' && key !== '$id') {
-      configCompare.value[key] = config[key]
+      // Snapshot arrays/objects so in-place edits (push, field changes) are detected
+      configCompare.value[key] =
+        config[key] !== null && typeof config[key] === 'object'
+          ? JSON.parse(JSON.stringify(config[key]))
+          : config[key]
     }
   }
 
@@ -61,7 +65,13 @@ const getConfigChanges = () => {
   }
 
   for (var key in configCompare.value) {
-    if (configCompare.value[key] != config[key]) {
+    const saved = configCompare.value[key]
+    const current = config[key]
+    const changed =
+      current !== null && typeof current === 'object'
+        ? JSON.stringify(saved) !== JSON.stringify(current)
+        : saved != current
+    if (changed) {
       changes[key] = config[key]
     }
   }

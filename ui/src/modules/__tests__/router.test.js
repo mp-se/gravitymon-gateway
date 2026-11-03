@@ -60,7 +60,7 @@ describe('router module', () => {
 
     expect(createWebHistoryMock).toHaveBeenCalledWith('/')
     expect(createRouterMock).toHaveBeenCalledTimes(1)
-    expect(createRouterArgs.routes).toHaveLength(21)
+    expect(createRouterArgs.routes).toHaveLength(22)
     expect(createRouterArgs.routes[0]).toMatchObject({ path: '/', name: 'home' })
     expect(createRouterArgs.routes.at(-1)).toMatchObject({ name: '404', path: '/:catchAll(.*)' })
   })
