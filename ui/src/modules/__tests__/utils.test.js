@@ -18,7 +18,12 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { httpHeaderOptions, httpPostUrlOptions, httpGetUrlOptions } from '@/modules/utils'
+import {
+  httpHeaderOptions,
+  httpPostUrlOptions,
+  httpGetUrlOptions,
+  brewgraphEndpointWarning
+} from '@/modules/utils'
 
 describe('utils - shared options', () => {
   it('exports httpHeaderOptions ref', () => {
@@ -36,5 +41,28 @@ describe('utils - shared options', () => {
   it('exports httpGetUrlOptions ref', () => {
     expect(httpGetUrlOptions).toBeDefined()
     expect(httpGetUrlOptions.value).toBeInstanceOf(Array)
+  })
+})
+
+describe('utils - brewgraphEndpointWarning', () => {
+  const gravityUrl = 'http://ingest.brewgraph.com/ingest/gravitymon'
+  const pressureUrl = 'http://ingest.brewgraph.com/ingest/pressuremon'
+  const autoUrl = 'http://ingest.brewgraph.com/ingest/dispatch'
+
+  it('warns when the gravity endpoint also has pressure enabled', () => {
+    expect(brewgraphEndpointWarning(gravityUrl, true, true)).toContain('gravity endpoint')
+    expect(brewgraphEndpointWarning(gravityUrl, false, true)).toContain('gravity endpoint')
+  })
+
+  it('warns when the pressure endpoint also has gravity enabled', () => {
+    expect(brewgraphEndpointWarning(pressureUrl, true, true)).toContain('pressure endpoint')
+  })
+
+  it('does not warn for matching, auto or other urls', () => {
+    expect(brewgraphEndpointWarning(gravityUrl, true, false)).toBe('')
+    expect(brewgraphEndpointWarning(pressureUrl, false, true)).toBe('')
+    expect(brewgraphEndpointWarning(autoUrl, true, true)).toBe('')
+    expect(brewgraphEndpointWarning('http://example.com/x', true, true)).toBe('')
+    expect(brewgraphEndpointWarning(undefined, true, true)).toBe('')
   })
 })

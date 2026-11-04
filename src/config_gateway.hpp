@@ -23,6 +23,8 @@
 
 #include <config_brewing.hpp>
 
+#include <map>
+
 constexpr auto CONFIG_GRAVITY_UNIT = "gravity_unit";
 constexpr auto CONFIG_BLE_ENABLE = "ble_enable";
 constexpr auto CONFIG_BLE_ACTIVE_SCAN = "ble_active_scan";
@@ -30,6 +32,7 @@ constexpr auto CONFIG_BLE_SCAN_TIME = "ble_scan_time";
 constexpr auto CONFIG_PUSH_RESEND_TIME = "push_resend_time";
 constexpr auto CONFIG_TIMEZONE = "timezone";
 constexpr auto CONFIG_PRESSURE_UNIT = "pressure_unit";
+constexpr auto CONFIG_BLE_DEVICES = "ble_devices";
 
 constexpr auto CONFIG_SD_LOG_FILES = "sd_log_files";
 constexpr auto CONFIG_SD_LOG_MIN_TIME = "sd_log_min_time";
@@ -78,6 +81,9 @@ class GravmonGatewayConfig : public BrewingConfig {
   bool _influxdb2PressureEnable = true;
   bool _mqttGravityEnable = true;
   bool _mqttPressureEnable = true;
+
+  std::map<String, String> _bleDeviceTokens;
+  std::map<String, String> _bleDeviceNames;
 
  public:
   GravmonGatewayConfig(String baseMDNS, String fileName);
@@ -221,6 +227,34 @@ class GravmonGatewayConfig : public BrewingConfig {
             hasTargetInfluxDb2() || hasTargetMqtt())
                ? true
                : false;
+  }
+
+  const std::map<String, String>& getBleDeviceTokens() const {
+    return _bleDeviceTokens;
+  }
+
+  void setBleDeviceTokens(const std::map<String, String>& tokens) {
+    _bleDeviceTokens = tokens;
+    _saveNeeded = true;
+  }
+
+  const std::map<String, String>& getBleDeviceNames() const {
+    return _bleDeviceNames;
+  }
+
+  void setBleDeviceNames(const std::map<String, String>& names) {
+    _bleDeviceNames = names;
+    _saveNeeded = true;
+  }
+
+  const char* getBleDeviceToken(const String& id) const {
+    auto it = _bleDeviceTokens.find(id);
+    return it == _bleDeviceTokens.end() ? "" : it->second.c_str();
+  }
+
+  const char* getBleDeviceName(const String& id) const {
+    auto it = _bleDeviceNames.find(id);
+    return it == _bleDeviceNames.end() ? "" : it->second.c_str();
   }
 
   // IO functions

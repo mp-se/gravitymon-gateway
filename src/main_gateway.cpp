@@ -639,6 +639,16 @@ void addChamberLogEntry(const char* id, const tm* timeinfo, float chamberTempC,
   logUpdated = true;
 }
 
+// Token/name sent by the device itself wins, otherwise use the mapping
+// configured for the device id. No token means the reading is not forwarded.
+const char* resolveToken(const char* token, const char* id) {
+  return strlen(token) ? token : myConfig.getBleDeviceToken(id);
+}
+
+const char* resolveName(const char* name, const char* id) {
+  return strlen(name) ? name : myConfig.getBleDeviceName(id);
+}
+
 void controller() {
   // Scan for ble beacons
   if (myConfig.isBleEnable()) {
@@ -666,12 +676,20 @@ void controller() {
               addGravityLogEntry(gd->getId(), entry->getTimeinfoUpdated(),
                                  gd->getGravity(), gd->getTempC());
 
+              const char* token = resolveToken(gd->getToken(), gd->getId());
+
+              if (!strlen(token)) {
+                Log.verbose(F("Loop: No token for %s, skip push." CR),
+                            gd->getId());
+                break;
+              }
+
               TemplatingEngine engine;
 
               setupTemplateEngineGravityGateway(
                   &myConfig, engine, gd->getAngle(), gd->getGravity(),
                   gd->getTempC(), gd->getBattery(), gd->getInterval(),
-                  gd->getId(), gd->getToken(), gd->getName());
+                  gd->getId(), token, resolveName(gd->getName(), gd->getId()));
 
               if (WiFi.status() == WL_CONNECTED && ESP.getFreeHeap() > 50000) {
                 push.sendAll(engine, BrewingPush::MeasurementType::GRAVITY,
@@ -702,12 +720,20 @@ void controller() {
                                   pd->getPressure(), pd->getPressure1(),
                                   pd->getTempC());
 
+              const char* token = resolveToken(pd->getToken(), pd->getId());
+
+              if (!strlen(token)) {
+                Log.verbose(F("Loop: No token for %s, skip push." CR),
+                            pd->getId());
+                break;
+              }
+
               TemplatingEngine engine;
 
               setupTemplateEnginePressureGateway(
                   &myConfig, engine, pd->getPressure(), pd->getPressure1(),
                   pd->getTempC(), pd->getBattery(), pd->getInterval(),
-                  pd->getId(), pd->getToken(), pd->getName());
+                  pd->getId(), token, resolveName(pd->getName(), pd->getId()));
               push.sendAll(engine, BrewingPush::MeasurementType::PRESSURE,
                            myConfig.isHttpPostPressureEnable(),
                            myConfig.isHttpPost2PressureEnable(),
