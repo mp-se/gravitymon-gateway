@@ -1,60 +1,76 @@
 name: PlatformIO CI
 
-on: 
+on:
   workflow_dispatch:
   pull_request:
   push:
-    branches: 
+    branches:
       - dev
 
 jobs:
   pio-build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
-      - name: Checkout 
+      - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version: 24
 
-      - name: Setup Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: '3.12'
-
-      - name: Setup PlatformIO
-        # intelhex is required by PlatformIO but missing from its dependencies
-        run: pip install platformio intelhex
+      - name: Build UI version info
+        working-directory: ui
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git fetch --tags
+          REV=`git rev-parse HEAD | rev | cut -c 1-6 | rev`
+          TAG=`git tag --sort=creatordate | tail -1`
+          echo "VITE_APP_BUILD=..$REV" >> .env
+          echo "VITE_APP_VERSION=$TAG" >> .env
+          cat .env
 
       - name: Build UI
+        working-directory: ui
         run: |
-          cd ui
+          rm -rf node_modules package-lock.json
           npm install
           npm run build
 
-      - name: Copy UI assets
+      - name: Copy UI to html
         run: |
           cp ui/dist/assets/style.css.gz html/app.css.gz
           cp ui/dist/assets/index.js.gz html/app.js.gz
 
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install PlatformIO
+        run: |
+          python -m pip install --upgrade pip
+          # intelhex is required by PlatformIO but missing from its dependencies
+          pip install platformio intelhex
+
       - name: Build gateway32pro-tft
-        run: pio run -e gateway32pro-tft
+        run: pio run -e gateway32pro-tft -j 1 -v
 
       - name: Build gateway32s3pro-tft-sd
-        run: pio run -e gateway32s3pro-tft-sd
+        run: pio run -e gateway32s3pro-tft-sd -j 1 -v
 
       - name: Build gateway32s3wave-tft28-sd
-        run: pio run -e gateway32s3wave-tft28-sd
+        run: pio run -e gateway32s3wave-tft28-sd -j 1 -v
 
       - name: Build gateway32s3wave-tft43-sd
-        run: pio run -e gateway32s3wave-tft43-sd
-    
+        run: pio run -e gateway32s3wave-tft43-sd -j 1 -v
+
       # Pull requests only verify that the build works, nothing is committed
-      - uses: EndBug/add-and-commit@v11 # You can change this to use a specific version. https://github.com/marketplace/actions/add-commit
-        if: ${{ github.event_name != 'pull_request' }}
+      - uses: EndBug/add-and-commit@v11
+        if: github.event_name != 'pull_request'
         with:
           add: 'bin html'
           author_name: GitHub Action
