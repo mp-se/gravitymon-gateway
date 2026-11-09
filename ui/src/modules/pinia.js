@@ -43,13 +43,13 @@ const saveConfigState = () => {
 
   configCompare.value = {}
   for (var key in config) {
-    if (typeof config[key] !== 'function' && key !== '$id') {
-      // Snapshot arrays/objects so in-place edits (push, field changes) are detected
-      configCompare.value[key] =
-        config[key] !== null && typeof config[key] === 'object'
-          ? JSON.parse(JSON.stringify(config[key]))
-          : config[key]
-    }
+    // Skip pinia internals (_p -> app -> component -> vnode is circular and not serializable)
+    if (key.startsWith('_') || key.startsWith('$')) continue
+    const value = config[key]
+    if (typeof value === 'function') continue
+    // Snapshot arrays/objects so in-place edits (push, field changes) are detected
+    configCompare.value[key] =
+      value !== null && typeof value === 'object' ? JSON.parse(JSON.stringify(value)) : value
   }
 
   logInfo('pinia.saveConfigState()', 'Saved state: ', configCompare.value)
