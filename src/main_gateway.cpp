@@ -659,6 +659,16 @@ void controller() {
   }
 
   if (controllerTimer.hasExpired()) {
+    // ESP.getFreeHeap() includes PSRAM on S3 boards, which hides internal-RAM
+    // exhaustion (locks, FILE structs and lwip buffers must live in internal RAM).
+    Log.notice(
+        F("Loop: Heap internal=%d (largest block %d, lowest ever %d), "
+          "total=%d." CR),
+        heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
+        heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL),
+        heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL),
+        ESP.getFreeHeap());
+
     if (WiFi.status() == WL_CONNECTED && ESP.getFreeHeap() > 50000) {
       BrewingPush push(&myConfig);
 

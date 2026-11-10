@@ -548,10 +548,9 @@ void GatewayWebServer::webHandleMdns(AsyncWebServerRequest *request) {
   }
 
   Log.notice(F("WEB : webServer callback for /api/hardware." CR));
-  AsyncJsonResponse *response = new AsyncJsonResponse(false);
-  JsonObject obj = response->getRoot().as<JsonObject>();
-  myMdnsScanner.populateJson(obj);
-  response->setLength();
+  AsyncResponseStream *response =
+      request->beginResponseStream("application/json");
+  myMdnsScanner.writeJson(*response);
   request->send(response);
 }
 
