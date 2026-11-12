@@ -1,9 +1,12 @@
-import purgecss from '@fullhuman/postcss-purgecss'
+import purgecssModule from '@fullhuman/postcss-purgecss'
 import cssnano from 'cssnano'
+
+// v7 exposes the plugin as .default, v9 exports the function directly
+const purgecss = purgecssModule.default ?? purgecssModule
 
 export default {
   plugins: [
-    purgecss.default({
+    purgecss({
       content: [
         './index.html',
         './src/**/*.{vue,js,ts,jsx,tsx}',
