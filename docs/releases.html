@@ -86,7 +86,9 @@ data-aria-dark="Switch to auto color mode">
       <i class="i-lucide close"></i>
     </button>
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
-<li><a class="reference internal" href="#id1">0.9.1</a></li>
+<li><a class="reference internal" href="#id1">0.9.3</a></li>
+<li><a class="reference internal" href="#id2">0.9.2</a></li>
+<li><a class="reference internal" href="#id3">0.9.1</a></li>
 <li><a class="reference internal" href="#earlier-versions">Earlier versions</a></li>
 </ul>
 </div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
@@ -121,7 +123,31 @@ data-aria-dark="Switch to auto color mode">
           <section id="releases">
 <h1>Releases<a class="headerlink" href="#releases" title="Link to this heading">#</a></h1>
 <section id="id1">
-<h2>0.9.1<a class="headerlink" href="#id1" title="Link to this heading">#</a></h2>
+<h2>0.9.3<a class="headerlink" href="#id1" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p>Added push support for BLE data transmission (GravityMon, Pressuremon
+and RAPT devices. Readings are forwarded to the configured. RAPT does not
+report battery voltage or interval, so those values are sent as 0.</p></li>
+<li><p>Added BLE token mapping to the web interface to support data push to BrewGraph
+and other services.</p></li>
+<li><p>Added BrewGraph URL options for gravity, pressure, and automatic ingestion.</p></li>
+<li><p>Improved mDNS device management by limiting the number of devices and
+reducing memory use.</p></li>
+<li><p>Improved how the web interface saves configuration state.</p></li>
+<li><p>Updated web interface dependencies (including PurgeCSS v9) and the CI build
+workflow.</p></li>
+</ul>
+</section>
+<section id="id2">
+<h2>0.9.2<a class="headerlink" href="#id2" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p>Updated the LVGL library dependency and adjusted the display task core
+assignment.</p></li>
+<li><p>Added a Sphinx documentation workflow and expanded the project documentation.</p></li>
+</ul>
+</section>
+<section id="id3">
+<h2>0.9.1<a class="headerlink" href="#id3" title="Link to this heading">#</a></h2>
 <ul class="simple">
 <li><p>Added support for the Waveshare ESP32-S3 4.3-inch TFT gateway board and
 refreshed display layouts.</p></li>
