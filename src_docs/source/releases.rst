@@ -1,6 +1,28 @@
 Releases
 ########
 
+0.9.3
+-----
+
+* Added push support for BLE data transmission (GravityMon, Pressuremon 
+  and RAPT devices. Readings are forwarded to the configured. RAPT does not 
+  report battery voltage or interval, so those values are sent as 0.
+* Added BLE token mapping to the web interface to support data push to BrewGraph 
+  and other services.
+* Added BrewGraph URL options for gravity, pressure, and automatic ingestion.
+* Improved mDNS device management by limiting the number of devices and
+  reducing memory use.
+* Improved how the web interface saves configuration state.
+* Updated web interface dependencies (including PurgeCSS v9) and the CI build
+  workflow.
+
+0.9.2
+-----
+
+* Updated the LVGL library dependency and adjusted the display task core
+  assignment.
+* Added a Sphinx documentation workflow and expanded the project documentation.
+
 0.9.1
 -----
 
