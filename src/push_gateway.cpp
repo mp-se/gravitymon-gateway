@@ -180,7 +180,7 @@ void setupTemplateEnginePressureGateway(GravmonGatewayConfig* config,
                 DECIMALS_PRESSURE);
   engine.setVal(TPL_PRESSURE_KPA, convertPsiPressureToKPa(pressurePsi),
                 DECIMALS_PRESSURE);
-  engine.setVal(TPL_PRESSURE_KPA, convertPsiPressureToKPa(pressurePsi1),
+  engine.setVal(TPL_PRESSURE1_KPA, convertPsiPressureToKPa(pressurePsi1),
                 DECIMALS_PRESSURE);
 
   if (config->isPressureBar()) {

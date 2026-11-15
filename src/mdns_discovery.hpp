@@ -47,6 +47,9 @@ class MdnsScanner {
   bool saveToFile();
   bool loadFromFile();
   void populateJson(JsonObject &doc) const;
+  // Streams {"mdns":[...]} one device at a time, avoiding one large JSON
+  // document (internal RAM is scarce on the S3 boards).
+  size_t writeJson(Print &out) const;
   void parseJson(const JsonDocument &doc);
   void clear();
 
@@ -60,6 +63,11 @@ class MdnsScanner {
   LoopTimer _saveTimer{1000 * 60 * 30};  // Save mdns data every 30 minutes
 
   void scan();
+  void prune(time_t now);
+  int findDeviceIndexById(const String &id) const;
+  static bool isSupportedApp(const String &app);
+  static String txtValue(const std::vector<std::pair<String, String>> &txt,
+                         const char *key);
   int findDeviceIndex(const String &name, const IPAddress &ip,
                       uint16_t port) const;
 };

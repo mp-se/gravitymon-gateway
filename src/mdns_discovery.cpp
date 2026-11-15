@@ -19,6 +19,8 @@
 #include <ESPmDNS.h>
 #include <WiFi.h>
 
+#include <algorithm>
+
 #include <log.hpp>
 #include <mdns_discovery.hpp>
 #include <sdcard_mmc.hpp>
@@ -27,6 +29,8 @@
 #include <vector>
 
 constexpr const char *DEFAULT_FILENAME = "/mdns_devices.json";
+constexpr size_t MAX_DEVICES = 20;  // Cap to limit internal RAM usage
+constexpr time_t MAX_AGE_SECONDS = 30 * 24 * 60 * 60;  // Forget after 30 days
 
 #if defined(ENABLE_MMC)
 extern SdCardMMC mySdStorage;
@@ -101,46 +105,92 @@ void MdnsScanner::scan() {
 #endif
       uint16_t port = MDNS.port(i);
       if (port == 0) continue;  // Skip invalid ports
+      if (ip == IPAddress(0, 0, 0, 0)) continue;  // Unresolved address
 
-      int idx = findDeviceIndex(String(nameBuf), ip, port);
+      // Only keep the TXT fields we use. Devices without an id cannot be
+      // matched against BLE/push data, so they are not stored at all.
+      std::vector<std::pair<String, String>> txt;
+      for (int k = 0; k < MDNS.numTxt(i); k++) {
+        String key = MDNS.txtKey(i, k);
+        if (key == "id" || key == "app") {
+          txt.emplace_back(key, MDNS.txt(i, k));
+        }
+      }
+      String id = txtValue(txt, "id");
+      if (!id.length() || !isSupportedApp(txtValue(txt, "app"))) continue;
+
+      // Same id means same device, even if its name or ip has changed
+      int idx = findDeviceIndexById(id);
       if (idx < 0) {
         MdnsDevice d;
         d.name = String(nameBuf);
         d.ip = ip;
         d.port = port;
         d.lastSeen = (t > 0) ? t : 0;
-        d.txt.clear();
-
-        // Parse TXT records - iterate through available TXT fields
-        for (int t = 0; t < MDNS.numTxt(i); t++) {
-          String key = MDNS.txtKey(i, t);
-          String value = MDNS.txt(i, t);
-          if (key.length() > 0) {
-            d.txt.emplace_back(std::make_pair(key, value));
-          }
-        }
-
+        d.txt = std::move(txt);
         _devices.emplace_back(std::move(d));
         Log.verbose(F("MDNS: Found new device %s" CR), nameBuf);
       } else {
         MdnsDevice &d = _devices[idx];
-        d.lastSeen = (t > 0) ? t : 0;
-
-        // update IP/port in case it changed
+        d.name = String(nameBuf);
         d.ip = ip;
         d.port = port;
-        d.txt.clear();
-
-        // Parse TXT records - iterate through available TXT fields
-        for (int t = 0; t < MDNS.numTxt(i); t++) {
-          String key = MDNS.txtKey(i, t);
-          String value = MDNS.txt(i, t);
-          if (key.length() > 0) {
-            d.txt.emplace_back(std::make_pair(key, value));
-          }
-        }
+        d.lastSeen = (t > 0) ? t : 0;
+        d.txt = std::move(txt);
       }
     }
+  }
+
+  prune(t);
+}
+
+// Only devices the gateway can receive BLE data from are of interest
+bool MdnsScanner::isSupportedApp(const String &app) {
+  static const char *const apps[] = {"gravitymon", "pressuremon",
+                                     "chamber-controller"};
+  for (const char *a : apps) {
+    if (app.equalsIgnoreCase(a)) return true;
+  }
+  return false;
+}
+
+String MdnsScanner::txtValue(
+    const std::vector<std::pair<String, String>> &txt, const char *key) {
+  for (const auto &p : txt) {
+    if (p.first == key) return p.second;
+  }
+  return "";
+}
+
+int MdnsScanner::findDeviceIndexById(const String &id) const {
+  for (size_t i = 0; i < _devices.size(); ++i) {
+    if (txtValue(_devices[i].txt, "id") == id) return static_cast<int>(i);
+  }
+  return -1;
+}
+
+void MdnsScanner::prune(time_t now) {
+  // Drop devices without id and (when the clock is valid) stale ones
+  bool clockOk = now > 1700000000;
+  _devices.erase(
+      std::remove_if(_devices.begin(), _devices.end(),
+                     [&](const MdnsDevice &d) {
+                       if (!txtValue(d.txt, "id").length() ||
+                           !isSupportedApp(txtValue(d.txt, "app")))
+                         return true;
+                       return clockOk && d.lastSeen > 0 &&
+                              (now - d.lastSeen) > MAX_AGE_SECONDS;
+                     }),
+      _devices.end());
+
+  // Cap the list, evicting the least recently seen devices first
+  while (_devices.size() > MAX_DEVICES) {
+    auto oldest = std::min_element(
+        _devices.begin(), _devices.end(),
+        [](const MdnsDevice &a, const MdnsDevice &b) {
+          return a.lastSeen < b.lastSeen;
+        });
+    _devices.erase(oldest);
   }
 }
 
@@ -163,6 +213,28 @@ void MdnsScanner::populateJson(JsonObject &doc) const {
   }
 }
 
+size_t MdnsScanner::writeJson(Print &out) const {
+  size_t n = out.print("{\"mdns\":[");
+  bool first = true;
+  for (const auto &d : _devices) {
+    JsonDocument doc;  // Small, per-device document
+    JsonObject o = doc.to<JsonObject>();
+    o["name"] = d.name.c_str();
+    o["ip"] = d.ip.toString().c_str();
+    o["port"] = d.port;
+    o["last_seen"] = static_cast<uint32_t>(d.lastSeen);
+    JsonObject ta = o["txt"].to<JsonObject>();
+    for (const auto &t : d.txt) {
+      ta[t.first] = t.second;
+    }
+    if (!first) n += out.print(',');
+    first = false;
+    n += serializeJson(doc, out);
+  }
+  n += out.print("]}");
+  return n;
+}
+
 bool MdnsScanner::saveToFile() {
 #if defined(ENABLE_MMC) || defined(ENABLE_SD)
   const char *fn = DEFAULT_FILENAME;
@@ -177,11 +249,7 @@ bool MdnsScanner::saveToFile() {
     return false;
   }
 
-  JsonDocument doc;
-  JsonObject obj = doc.to<JsonObject>();
-  populateJson(obj);
-
-  size_t written = serializeJson(doc, f);
+  size_t written = writeJson(f);
   if (written == 0) {
     Log.error(F("MDNS: Failed to write JSON to %s." CR), fn);
     f.close();
@@ -253,6 +321,7 @@ void MdnsScanner::parseJson(const JsonDocument &doc) {
     }
     _devices.emplace_back(std::move(d));
   }
+  prune(time(nullptr));  // Also shrinks a list saved by older firmware
 }
 
 void MdnsScanner::clear() { _devices.clear(); }

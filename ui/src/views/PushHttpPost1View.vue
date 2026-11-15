@@ -69,6 +69,9 @@
             v-if="config.http_post_tcp === false || global.ui.enableHttpPostTcpMode === false"
           />
         </div>
+        <div class="col-md-12" v-if="endpointWarning">
+          <div class="alert alert-warning" role="alert">{{ endpointWarning }}</div>
+        </div>
         <div class="col-md-9">
           <BsInputText
             v-model="config.http_post_header1"
@@ -283,7 +286,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { httpHeaderOptions, httpPostUrlOptions } from '@/modules/utils'
+import { httpHeaderOptions, httpPostUrlOptions, brewgraphEndpointWarning } from '@/modules/utils'
 import { gravityHttpPostFormatOptions } from '@/modules/gravityFormatOptions'
 import { pressureHttpPostFormatOptions } from '@/modules/pressureFormatOptions'
 import { applyTemplate } from '@/modules/formatTemplate'
@@ -294,6 +297,14 @@ import { logError } from '@mp-se/espframework-ui-components'
 
 const gravityRender = ref('')
 const pressureRender = ref('')
+
+const endpointWarning = computed(() =>
+  brewgraphEndpointWarning(
+    config.http_post_target,
+    global.ui.enableGravity && config.http_post_gravity,
+    global.ui.enablePressure && config.http_post_pressure
+  )
+)
 
 const pushDisabled = computed(() => {
   return global.disabled || config.use_wifi_direct

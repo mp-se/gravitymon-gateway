@@ -59,3 +59,16 @@ export const httpPostUrlOptions = ref([
 ])
 
 export const httpGetUrlOptions = ref([{ label: '-blank-', value: '' }])
+
+// Warn when a BrewGraph type specific endpoint also receives the other measurement type
+export const brewgraphEndpointWarning = (url, gravityEnabled, pressureEnabled) => {
+  if (typeof url !== 'string') return ''
+
+  if (url.includes('brewgraph.com/ingest/gravitymon') && pressureEnabled)
+    return 'The BrewGraph gravity endpoint only accepts gravity data. Disable "Enable pressure" for this target, or use the BrewGraph pressure or auto endpoint.'
+
+  if (url.includes('brewgraph.com/ingest/pressuremon') && gravityEnabled)
+    return 'The BrewGraph pressure endpoint only accepts pressure data. Disable "Enable gravity" for this target, or use the BrewGraph gravity or auto endpoint.'
+
+  return ''
+}

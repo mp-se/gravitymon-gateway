@@ -2,9 +2,9 @@
 .vscode
 .venv
 .claude
-graphify-out
+graphify-out/
 src_docs/_build
-/docs
+test-devices/
 
 *.map
 *.pyc

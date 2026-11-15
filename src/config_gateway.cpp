@@ -53,6 +53,14 @@ void GravmonGatewayConfig::createJson(JsonObject& doc) const {
   doc[CONFIG_INFLUXDB2_PRESSURE_ENABLE] = isInfluxdb2PressureEnable();
   doc[CONFIG_MQTT_GRAVITY_ENABLE] = isMqttGravityEnable();
   doc[CONFIG_MQTT_PRESSURE_ENABLE] = isMqttPressureEnable();
+
+  JsonArray bleDevices = doc[CONFIG_BLE_DEVICES].to<JsonArray>();
+  for (const auto& item : _bleDeviceTokens) {
+    JsonObject device = bleDevices.add<JsonObject>();
+    device["id"] = item.first;
+    device["token"] = item.second;
+    device["name"] = getBleDeviceName(item.first);
+  }
 }
 
 void GravmonGatewayConfig::parseJson(JsonObject& doc) {
@@ -83,6 +91,21 @@ void GravmonGatewayConfig::parseJson(JsonObject& doc) {
     setPushResendTime(doc[CONFIG_PUSH_RESEND_TIME].as<int>());
   if (!doc[CONFIG_PRESSURE_UNIT].isNull())
     setPressureUnit(doc[CONFIG_PRESSURE_UNIT].as<String>());
+
+  if (!doc[CONFIG_BLE_DEVICES].isNull()) {
+    std::map<String, String> tokens;
+    std::map<String, String> names;
+    JsonArray bleDevices = doc[CONFIG_BLE_DEVICES].as<JsonArray>();
+    for (JsonObject device : bleDevices) {
+      if (device["id"].isNull()) continue;
+      String id = device["id"].as<String>();
+      if (!id.length()) continue;
+      tokens[id] = device["token"].isNull() ? "" : device["token"].as<String>();
+      names[id] = device["name"].isNull() ? "" : device["name"].as<String>();
+    }
+    setBleDeviceTokens(tokens);
+    setBleDeviceNames(names);
+  }
   if (!doc[CONFIG_SD_LOG_FILES].isNull())
     setSdLogFiles(doc[CONFIG_SD_LOG_FILES].as<int>());
   if (!doc[CONFIG_SD_LOG_MIN_TIME].isNull())
