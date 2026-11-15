@@ -796,9 +796,32 @@ void controller() {
               addGravityLogEntry(rd->getId(), entry->getTimeinfoUpdated(),
                                  rd->getGravity(), rd->getTempC());
 
-              // NOTE: Push support not posible
+              // Rapt has no token/name in its payload, so the configured
+              // device mapping is used.
+              const char* token = resolveToken("", rd->getId());
+
+              if (!strlen(token)) {
+                Log.verbose(F("Loop: No token for %s, skip push." CR),
+                            rd->getId());
+                break;
+              }
+
+              TemplatingEngine engine;
+
+              // Rapt has no battery voltage or interval, so 0 is passed.
+              setupTemplateEngineGravityGateway(
+                  &myConfig, engine, rd->getAngle(), rd->getGravity(),
+                  rd->getTempC(), 0, 0, rd->getId(), token,
+                  resolveName("", rd->getId()));
+              push.sendAll(engine, BrewingPush::MeasurementType::GRAVITY,
+                           myConfig.isHttpPostGravityEnable(),
+                           myConfig.isHttpPost2GravityEnable(),
+                           myConfig.isHttpGetGravityEnable(),
+                           myConfig.isInfluxdb2GravityEnable(),
+                           myConfig.isMqttGravityEnable());
 
               entry->setPushed();
+              yield();
             }
           } break;
         }
