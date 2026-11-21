@@ -94,8 +94,18 @@
 <script setup>
 import { ref } from 'vue'
 import { global } from '@/modules/pinia'
+import { checkFirmwareFile } from '@/modules/firmwareCheck'
 import { sharedHttpClient as http } from '@mp-se/espframework-ui-components'
 import { logDebug, logError } from '@mp-se/espframework-ui-components'
+
+// Error messages for the checks in checkFirmwareFile()
+const firmwareErrors = {
+  not_firmware: () => 'The selected file is not a valid firmware image',
+  wrong_chip: () =>
+    `The selected firmware is built for another chip, this device is an ${global.platform}`,
+  wrong_name: () =>
+    `The selected file does not have the expected name ${global.firmware_file}. Use the firmware file for this device and make sure it has not been renamed, for example by the browser when downloaded twice`
+}
 
 const progress = ref(0)
 const hasFileSelected = ref(false)
@@ -108,9 +118,24 @@ const onFileChange = (event) => {
 async function upload() {
   const fileElement = document.getElementById('upload')
 
+  // Start from a clean slate, a message from a previous attempt is outdated
+  global.messageError = ''
+  global.messageSuccess = ''
+
   if (fileElement.files.length === 0) {
     global.messageError = 'You need to select one file with firmware to upload'
   } else {
+    // Reject a wrong file now instead of after the whole file has been sent
+    const check = await checkFirmwareFile(
+      fileElement.files[0],
+      global.platform,
+      global.firmware_file
+    )
+    if (!check.ok) {
+      global.messageError = firmwareErrors[check.error]()
+      return
+    }
+
     global.disabled = true
     logDebug('FirmwareView.upload()', 'Selected file: ' + fileElement.files[0].name)
 

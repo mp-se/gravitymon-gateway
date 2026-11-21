@@ -31,7 +31,21 @@ import {
 } from '@mp-se/espframework-ui-components'
 
 class TiltData {
-  constructor({ type, source, created, id, color, temp, gravity, txPower, rssi }) {
+  constructor({
+    type,
+    source,
+    created,
+    id,
+    color,
+    temp,
+    gravity,
+    txPower,
+    rssi,
+    weeksOnBattery = -1,
+    firmwareVersion = 0
+  }) {
+    this.weeksOnBattery = weeksOnBattery
+    this.firmwareVersion = firmwareVersion
     this.type = type
     this.source = source
     this.created = new Date(created)
@@ -74,6 +88,14 @@ class TiltData {
   getIsPro() {
     return this.isPro
   }
+  // -1 when the Tilt does not report battery age
+  getWeeksOnBattery() {
+    return this.weeksOnBattery
+  }
+  // 0 when no firmware version has been received
+  getFirmwareVersion() {
+    return this.firmwareVersion
+  }
 
   static isTiltDataCsv(line) {
     const parts = line.split(',')
@@ -105,7 +127,10 @@ class TiltData {
       temp: parseFloat(parts[6]),
       gravity: parseFloat(parts[7]),
       txPower: parseInt(parts[8], 10),
-      rssi: parseInt(parts[9], 10)
+      rssi: parseInt(parts[9], 10),
+      // Columns 10/11 are empty in logs written by older firmware
+      weeksOnBattery: Number.isNaN(parseInt(parts[10], 10)) ? -1 : parseInt(parts[10], 10),
+      firmwareVersion: Number.isNaN(parseInt(parts[11], 10)) ? 0 : parseInt(parts[11], 10)
     })
   }
 }
