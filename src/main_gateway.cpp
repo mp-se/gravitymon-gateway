@@ -22,6 +22,7 @@
 
 #include <WiFi.h>
 #include <esp_core_dump.h>
+#include <ota_guard.hpp>
 
 #include <battery.hpp>
 #include <ble_gateway.hpp>
@@ -67,6 +68,7 @@ void gestureRight();
 void checkCrashReason();
 
 SerialDebug mySerial;
+OtaGuard myOtaGuard;
 GravmonGatewayConfig myConfig(CFG_APPNAME, CFG_FILENAME);
 WifiConnection myWifi(&myConfig, CFG_AP_SSID, CFG_AP_PASS, CFG_APPNAME,
                       USER_SSID, USER_PASS);
@@ -100,6 +102,10 @@ SdCardSD mySdStorage;
 #endif
 
 void setup() {
+  // Must be first, a hang or crash before this point cannot be rolled back
+  myOtaGuard.checkBootloader();
+  myOtaGuard.begin();  // May roll back to previous firmware, see ota_guard.hpp
+
   // Main startup
   delay(2000);
 
@@ -307,6 +313,7 @@ void loop() {
   myWebServer.loop();
   mySerialWebSocket.loop();
   myWifi.loop();
+  myOtaGuard.loop();  // Marks the firmware valid after it has run for a while
   bleScanner.loop(myConfig.getSdLogMinTime());
   myMdnsScanner.loop();
 
@@ -760,26 +767,40 @@ void controller() {
           case MeasurementType::TiltPro: {
             Log.notice("Loop: Processing Tilt data %d." CR, i);
 
-            // #define ENABLE_TILT_SCANNING
-
-#if defined(ENABLE_TILT_SCANNING)
-            //  This part is for testing / debugging only, use Tiltbridge if you
-            //  use Tilt
-            //  as BLE transmission, will show detected tilt devices but dont
-            //  send data.
-
             if (entry->isUpdated() &&
                 (entry->getPushAge() > myConfig.getPushResendTime())) {
-              const TiltData* pd = entry->getTiltData();
+              const TiltData* td = entry->getTiltData();
 
-              addGravityLogEntry(pd->getId(), entry->getTimeinfoUpdated(),
-                                 pd->getGravity(), pd->getTempC());
+              addGravityLogEntry(td->getId(), entry->getTimeinfoUpdated(),
+                                 td->getGravity(), td->getTempC());
 
-              // TODO: Add push support
+              // Tilt has no token/name in its payload, so the configured
+              // device mapping is used (id is the Tilt color).
+              const char* token = resolveToken("", td->getId());
+
+              if (!strlen(token)) {
+                Log.verbose(F("Loop: No token for %s, skip push." CR),
+                            td->getId());
+                break;
+              }
+
+              TemplatingEngine engine;
+
+              // Tilt has no angle, battery voltage or interval, so 0 is
+              // passed.
+              setupTemplateEngineGravityGateway(
+                  &myConfig, engine, 0, td->getGravity(), td->getTempC(), 0, 0,
+                  td->getId(), token, resolveName("", td->getId()));
+              push.sendAll(engine, BrewingPush::MeasurementType::GRAVITY,
+                           myConfig.isHttpPostGravityEnable(),
+                           myConfig.isHttpPost2GravityEnable(),
+                           myConfig.isHttpGetGravityEnable(),
+                           myConfig.isInfluxdb2GravityEnable(),
+                           myConfig.isMqttGravityEnable());
 
               entry->setPushed();
+              yield();
             }
-#endif
           } break;
 
           case MeasurementType::Chamber: {

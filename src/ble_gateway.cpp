@@ -354,41 +354,35 @@ void BleScanner::proccesTiltBeacon(const std::string &advertStringHex,
   // 4c000215a495bb40c5b14b44b5121370f02d74de005004d9c5
   // ????????iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiittttggggXR
   // **********----------**********----------**********
-  char hexCode[3] = {'\0'};
-  char colorArray[33] = {'\0'};
-  char tempArray[5] = {'\0'};
-  char gravityArray[5] = {'\0'};
-  char txPowerArray[3] = {'\0'};
+  // Index 24 is the tx_pwr byte, recent tilts alternate it between 197 and
+  // the number of weeks on battery.
+  if (advertStringHex.length() < 25) return;
 
-  for (int i = 4; i < advertStringHex.length(); i++) {
-    snprintf(hexCode, sizeof(hexCode), "%.2x", advertStringHex[i]);
-    // Indices 4 - 19 each generate two characters of the color array
-    if ((i > 3) && (i < 20)) {
-      strncat(colorArray, hexCode, 2);
-    }
-    // Indices 20-21 each generate two characters of thfe temperature array
-    if (i == 20 || i == 21) {
-      strncat(tempArray, hexCode, 2);
-    }
-    // Indices 22-23 each generate two characters of the sp_gravity array
-    if (i == 22 || i == 23) {
-      strncat(gravityArray, hexCode, 2);
-    }
-    // Index 24 contains the tx_pwr (which is used by recent tilts to indicate
-    // battery age)
-    if (i == 24) {
-      strncat(txPowerArray, hexCode, 2);
-    }
+  // Read bytes as unsigned, plain char may be signed on some targets.
+  const uint8_t *bytes =
+      reinterpret_cast<const uint8_t *>(advertStringHex.data());
+
+  char colorArray[33] = {'\0'};
+  for (int i = 0; i < 16; i++) {
+    snprintf(colorArray + (i * 2), 3, "%02x", bytes[4 + i]);
   }
 
   color = uuidToTiltColor(colorArray);
-  if (color == TiltColor::None) {
+  if (color < 0 || static_cast<size_t>(color) >= _tiltExtra.size()) {
     return;
   }
 
-  uint16_t temp = std::strtoul(tempArray, nullptr, 16);
-  uint16_t gravity = std::strtoul(gravityArray, nullptr, 16);
-  uint8_t txPower = std::strtoul(txPowerArray, nullptr, 16);
+  uint16_t temp = static_cast<uint16_t>((bytes[20] << 8) | bytes[21]);
+  uint16_t gravity = static_cast<uint16_t>((bytes[22] << 8) | bytes[23]);
+  uint8_t txPower = bytes[24];
+
+  // Track battery/firmware per color since they arrive in separate packets.
+  TiltExtraState &extra = _tiltExtra[color];
+  if (!extra.update(temp, gravity, txPower)) {
+    Log.info(F("BLE : Tilt %d firmware version %d." CR), static_cast<int>(color),
+             extra.firmwareVersion);
+    return;  // Version packet, not a measurement
+  }
 
   float gravityFactor = 1000;
   float tempFactor = 1;
@@ -408,7 +402,8 @@ void BleScanner::proccesTiltBeacon(const std::string &advertStringHex,
   if (isnan(finalGravity) || isinf(finalGravity)) finalGravity = 0.0f;
 
   tiltData.reset(new TiltData(MeasurementSource::BleBeacon, color, finalTemp,
-                              finalGravity, txPower, 0, pro));
+                              finalGravity, txPower, currentRSSI, pro,
+                              extra.weeksOnBattery, extra.firmwareVersion));
 
   Log.info(F("BLE : Update data for tilt %s." CR), tiltData->getId());
   addData(std::move(tiltData));

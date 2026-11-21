@@ -139,6 +139,8 @@ class TiltData : public MeasurementBaseData {
   float _gravity = 0;
   int _txPower = 0;
   int _rssi = 0;
+  int _weeksOnBattery = -1;
+  int _firmwareVersion = 0;
   TiltColor _tiltColor;
 
   const char* colorToString(TiltColor color) const {
@@ -166,7 +168,8 @@ class TiltData : public MeasurementBaseData {
 
  public:
   TiltData(MeasurementSource source, TiltColor color, float tempF,
-           float gravity, int txPower, int rssi, bool pro)
+           float gravity, int txPower, int rssi, bool pro,
+           int weeksOnBattery = -1, int firmwareVersion = 0)
       : MeasurementBaseData(
             colorToString(color),
             pro ? MeasurementType::TiltPro : MeasurementType::Tilt, source) {
@@ -175,6 +178,8 @@ class TiltData : public MeasurementBaseData {
     _gravity = gravity;
     _txPower = txPower;
     _rssi = rssi;
+    _weeksOnBattery = weeksOnBattery;
+    _firmwareVersion = firmwareVersion;
   }
   virtual ~TiltData() {}
 
@@ -184,6 +189,10 @@ class TiltData : public MeasurementBaseData {
   float getGravity() const { return _gravity; }
   int getTxPower() const { return _txPower; }
   int getRssi() const { return _rssi; }
+  // Weeks on battery, -1 if the Tilt does not report it (yet)
+  int getWeeksOnBattery() const { return _weeksOnBattery; }
+  // Firmware version, 0 if not received (yet)
+  int getFirmwareVersion() const { return _firmwareVersion; }
   TiltColor getTiltColor() const { return _tiltColor; }
 
   void writeToFile(File& file) const {
@@ -201,17 +210,18 @@ class TiltData : public MeasurementBaseData {
     // 7, Gravity (SG)
     // 8, Tx Power
     // 9, Rssi
-    // 10,
-    // 11,
+    // 10, Weeks on battery (-1 = unknown)
+    // 11, Firmware version (0 = unknown)
     // 12,
     // 13,
 
     snprintf(buffer, sizeof(buffer),
              "1,%s,%s,%s,%s,%s,"
-             "%.2f,%.4f,%d,%d,,,,",
+             "%.2f,%.4f,%d,%d,%d,%d,,",
              getTypeAsString(), getSourceAsString(), getCreatedAsString(),
              getId(), colorToString(_tiltColor), getTempC(), getGravity(),
-             getTxPower(), getRssi());
+             getTxPower(), getRssi(), getWeeksOnBattery(),
+             getFirmwareVersion());
     file.println(buffer);
   }
 };

@@ -47,6 +47,8 @@ constexpr auto PARAM_PRESSURE1 = "pressure1";
 constexpr auto PARAM_TEMP = "temp";
 constexpr auto PARAM_CHAMBER_TEMP = "chamber_temp";
 constexpr auto PARAM_BEER_TEMP = "beer_temp";
+constexpr auto PARAM_WEEKS_ON_BATTERY = "weeks_on_battery";
+constexpr auto PARAM_FIRMWARE_VERSION = "firmware_version";
 constexpr auto PARAM_UPDATE_TIME = "update_time";
 constexpr auto PARAM_PUSH_TIME = "push_time";
 constexpr auto PARAM_UPTIME_SECONDS = "uptime_seconds";
@@ -140,6 +142,12 @@ void GatewayWebServer::doWebStatus(JsonObject &obj) {
           gravityDevices[gravIdx][PARAM_GRAVITY] = td->getGravity();
         if (!isnan(td->getTempC()))
           gravityDevices[gravIdx][PARAM_TEMP] = td->getTempC();
+        if (td->getWeeksOnBattery() >= 0)
+          gravityDevices[gravIdx][PARAM_WEEKS_ON_BATTERY] =
+              td->getWeeksOnBattery();
+        if (td->getFirmwareVersion() > 0)
+          gravityDevices[gravIdx][PARAM_FIRMWARE_VERSION] =
+              td->getFirmwareVersion();
         gravityDevices[gravIdx][PARAM_UPDATE_TIME] = entry->getUpdateAge();
         gravityDevices[gravIdx][PARAM_PUSH_TIME] = entry->getPushAge();
         gravityDevices[gravIdx][PARAM_SOURCE] = td->getSourceAsString();

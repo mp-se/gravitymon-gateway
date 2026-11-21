@@ -18,6 +18,7 @@
  */
 #include <AUnit.h>
 
+#include <ble_gateway.hpp>
 #include <measurement.hpp>
 
 MeasurementList myMeasurementList;
@@ -93,6 +94,43 @@ test(measure_tilt) {
   assertEqual(d.getTxPower(), 10);
   assertEqual(d.getRssi(), -10);
   assertEqual(d.getTiltColor(), TiltColor::Red);
+}
+
+test(measure_tilt_extra) {
+  TiltData d(MeasurementSource::NoSource, TiltColor::Red, 11.5, 2.2, 10, -10,
+             false);
+  assertEqual(d.getWeeksOnBattery(), -1);
+  assertEqual(d.getFirmwareVersion(), 0);
+
+  TiltData e(MeasurementSource::NoSource, TiltColor::Red, 11.5, 2.2, 10, -10,
+             false, 12, 1009);
+  assertEqual(e.getWeeksOnBattery(), 12);
+  assertEqual(e.getFirmwareVersion(), 1009);
+}
+
+test(measure_tilt_extra_state) {
+  TiltExtraState s;
+
+  // Old Tilt: real tx power only, never 197 -> no battery info
+  assertTrue(s.update(68, 1050, 0xc9));
+  assertEqual(s.weeksOnBattery, -1);
+
+  // Newer Tilt: 197 first, then weeks on battery
+  TiltExtraState n;
+  assertTrue(n.update(68, 1050, 197));
+  assertEqual(n.weeksOnBattery, -1);
+  assertTrue(n.update(68, 1050, 23));
+  assertEqual(n.weeksOnBattery, 23);
+  assertTrue(n.update(68, 1050, 197));
+  assertEqual(n.weeksOnBattery, 23);  // keeps last known value
+
+  // Version packet is not a measurement
+  assertFalse(n.update(999, 1009, 197));
+  assertEqual(n.firmwareVersion, 1009);
+
+  // Tilt Pro at 99.9F is a real reading
+  assertTrue(n.update(999, 10500, 197));
+  assertEqual(n.firmwareVersion, 1009);
 }
 
 test(measure_gravity) {
